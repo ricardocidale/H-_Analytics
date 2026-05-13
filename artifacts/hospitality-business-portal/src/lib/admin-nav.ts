@@ -127,7 +127,7 @@ export function useAdminSectionFromHash(
 // Test-only escape hatch: in dev/test builds, expose `setAdminSection` on
 // `window.__setAdminSection` so end-to-end Playwright plans can navigate to
 // admin sections that have no sidebar entry. (Note: `analyst-tables` now
-// has a real sidebar entry under the Steady State group as of Task #598;
+// has a real sidebar entry under the Model Defaults group as of Task #598;
 // the hook stays as a fallback for any future admin-only section that
 // hasn't been wired into the nav yet.) Gated by `import.meta.env.DEV` so
 // it never ships in production bundles. Mirrors the existing

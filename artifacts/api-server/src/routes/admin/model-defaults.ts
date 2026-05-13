@@ -1,6 +1,6 @@
 /**
  * Admin routes for model_defaults — the DB-backed seed values for the
- * Steady State → Defaults page (three-tier cascade: Constants → Defaults
+ * Model Defaults → Defaults page (three-tier cascade: Constants → Defaults
  * → Assumptions).
  *
  * GET  /api/admin/model-defaults

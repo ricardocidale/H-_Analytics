@@ -36,7 +36,7 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
             ["Verification", "Run the financial verification engine and review audit results"],
             ["Activity", "View system activity logs and user actions"],
             ["Rebecca", "Configure the AI analytics assistant — knowledge base, guardrails, and analytics"],
-            ["Steady State", "Govern the model's accounting and regulatory constants — see Model Constants below"],
+            ["Model Defaults", "Govern the model's accounting and regulatory constants — see Model Constants below"],
             ["Database", "Database management tools for administrators"],
           ]}
         />

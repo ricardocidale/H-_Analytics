@@ -56,7 +56,7 @@ export type AdminSection =
   | "default-assignments"
   // Canonical read-only roll-up across every Specialist's required fields.
   | "required-fields"
-  // Steady State (Defaults & Constants)
+  // Model Defaults (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
   | "constants"
   // AI Research → Specialists (P5). The 7 read-only assignment+health surface
@@ -110,7 +110,7 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // → Required Fields). It renders a read-only aggregate across every
   // Specialist's `candidateFields` + `fieldRequirements`. No redirect.
   "default-assignments": "scenarios",
-  // Steady State → all live inside the model-defaults page; sub-tab is selected
+  // Model Defaults → all live inside the model-defaults page; sub-tab is selected
   // by Admin.tsx's MODEL_DEFAULTS_SUB_TAB map keyed off the alias.
   "defaults-management-company": "model-defaults",
   "defaults-property": "model-defaults",
@@ -188,7 +188,7 @@ function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "financial-defaults",
-      label: "Steady State",
+      label: "Model Defaults",
       icon: IconSliders,
       description: "Default values and constants applied to new entities and financial model",
       sections: [

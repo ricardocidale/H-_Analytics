@@ -12,7 +12,7 @@
  * Assumption-tier value, inherit from the Default tier". Without this
  * overlay the client would fall straight through NULL to the hardcoded
  * `DEFAULT_*` constant in `shared/constants-funding.ts`, hiding the
- * admin's Default-tier value (the value the admin tuned on Steady State
+ * admin's Default-tier value (the value the admin tuned on Model Defaults
  * → Defaults).
  *
  * Why a sibling module to `apply-model-constants.ts` instead of

@@ -9,7 +9,7 @@
  * consolidation — see ARCHITECTURE.md §1a). The legacy `Company` tab was
  * removed earlier (identity / tax / inflation fields moved to Admin →
  * Model Defaults). The legacy `Property Defaults` tab was then merged
- * into Admin → Steady State → Property Underwriting (USALI expense
+ * into Admin → Model Defaults → Property Underwriting (USALI expense
  * ratios, exit cap rate, sales commission, industry vertical, exit
  * revenue multiple). Both surfaces wrote to the same globalAssumptions
  * row the engine reads, so the move is behavior-neutral.

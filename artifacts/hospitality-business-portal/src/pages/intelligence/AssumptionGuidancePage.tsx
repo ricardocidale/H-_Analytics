@@ -29,7 +29,7 @@ export default function AssumptionGuidancePage() {
                 After research runs complete, the Analyst synthesizes findings into
                 suggested value ranges with cited sources for each financial assumption.
                 These suggestions appear here for admin review before being applied to
-                the Steady State defaults.
+                the Model Defaults.
               </p>
             </div>
           </div>

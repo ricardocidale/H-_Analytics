@@ -4,7 +4,7 @@
  * When the Analyst (orchestrateResearch) produces a `researchValues` map for a
  * property, this helper promotes the `mid` value of each mapped canonical
  * field into the corresponding scalar column on the Property row, so the
- * Steady State engine stops falling back to generic MC defaults and uses the
+ * Model Defaults engine stops falling back to generic MC defaults and uses the
  * market-sourced number instead.
  *
  * Invariant — NEVER overwrite a user-typed value. A column is eligible for
