@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T21:00:00Z
-Status: idle
+Updated: 2026-05-13T22:00:00Z
+Status: handoff-pending
 
 ## Active Branch
 
@@ -13,25 +13,14 @@ main
 
 ## Last Commit on Branch
 
-docs(plans): 2026-05-13-005 refi max LTV cap calibration + admin UI plan
+docs(plans): rewrite 2026-05-13-005 with no-NULL enforcement rule
 
 ## What Replit Did This Session
 
-U3 — Wired `refiMaxLtvToOriginal` slider in `CapitalStructureSection.tsx`:
-- Added `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL` import from `@shared/constants`
-  (constant lives in `lib/shared/src/constants-funding.ts`, value = 0.70)
-- Added "Max Loan vs. Purchase Price" field at end of Refinance Terms grid:
-  - Label + InfoTooltip explaining the cap mechanic
-  - Read-only display showing current value as "X.XX×"
-  - Slider: 0.50×–2.00× (stored/sent as decimal), step 0.05
-  - Helper text showing the dollar cap based on purchase price
-- Typecheck clean, magic-numbers pass (named constant, no literal)
-- Field saves via existing `onChange("refiMaxLtvToOriginal", val)` pattern;
-  the schema already marks `refiMaxLtvToOriginal: true` in updatable fields
-
-Also produced two plans this session:
-- `docs/plans/2026-05-13-003-*` — financial defaults integrity + IRR calibration (CC)
-- `docs/plans/2026-05-13-004-*` — slide factory UI design consistency sweep (CC)
+- U3 — Wired `refiMaxLtvToOriginal` slider in `CapitalStructureSection.tsx`
+- Diagnosed root cause of IRR inflation: `SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00`
+  stored at property level on all seeded properties
+- Wrote and refined Plan 2026-05-13-005 (see Handoff to CC below)
 
 ## Files Replit Owns Right Now
 
@@ -39,11 +28,37 @@ None — session complete.
 
 ## Handoff to CC
 
-None pending.
+**Plan for CC to execute:**
+`docs/plans/2026-05-13-005-refi-max-ltv-cap-calibration-and-admin-ui-plan.md`
+
+**Summary:** Four independent phases — execute in any order:
+
+- **P1** — `artifacts/api-server/src/seeds/property-data.ts`
+  Change `SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00` → `0.70`. One line.
+
+- **P2** — New migration + runtime guard (migration-guards topology)
+  Update ALL properties: set `refi_max_ltv_to_original = 0.70` where NULL or > 0.70.
+  No `will_refinance` filter — no-NULL rule applies to every property row.
+  Guard file: `properties-refi-ltv-recalibration-001.ts`
+
+- **P3** — `artifacts/hospitality-business-portal/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`
+  Add "Max Loan vs. Purchase Price" field to Refinance Terms section.
+  Follow the STR Platform Fee pattern (separate fetch + local state + own Save button).
+  Query key: `mc.funding.refiMaxLtvToOriginal` in `model_defaults`.
+
+- **P4** — `artifacts/hospitality-business-portal/src/components/property-edit/CapitalStructureSection.tsx`
+  Display fix only: badge shows `70%` not `0.70×`, tooltip rewording, slider max → 150.
+  Do not change how value is stored or sent.
+
+**Key context:**
+- Engine cap logic is correct — do not touch `lib/engine/src/`
+- `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70` in `lib/shared/src/constants-funding.ts` is correct
+- `model_defaults` row `mc.funding.refiMaxLtvToOriginal` is already `0.70` — only property rows need fixing
+- Creation path already correct — `hydratePropertyFinancials` writes value at insert time
 
 ## Pending Replit Work
 
-- U3 UI: Add refi LTV cap field to `DebtSection.tsx` — blocked on CC completing Phase 5 engine wiring
+None.
 
 ## Do Not Touch (CC-owned surfaces)
 
