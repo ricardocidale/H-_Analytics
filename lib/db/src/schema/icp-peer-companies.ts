@@ -25,8 +25,15 @@ import {
   text,
   boolean,
   timestamp,
+  jsonb,
   index,
 } from "drizzle-orm/pg-core";
+
+import type {
+  BrandArchetypeSplit,
+  SplitEvidence,
+  CostantinoPeerConfig,
+} from "./types/jsonb-shapes";
 
 export const icpPeerCompanies = pgTable(
   "icp_peer_companies",
@@ -47,6 +54,37 @@ export const icpPeerCompanies = pgTable(
     sourceUrl: text("source_url"),
     /** Last time the peer-research minion successfully fetched this peer's property roster. */
     lastResearchedAt: timestamp("last_researched_at"),
+    /**
+     * Phase B (R1, R10) — Tiago Specialist output: per-bracket-slug weights
+     * for this peer's roster, summing to 1.0. NULL = peer has never been
+     * researched (cold start). Sole writer: Tiago via runForPeer().
+     */
+    brandArchetypeSplit: jsonb("brand_archetype_split").$type<BrandArchetypeSplit>(),
+    /**
+     * Phase B (R1) — Tiago Specialist output: estimated total active
+     * property count for this peer's portfolio. Hugo (aggregator minion)
+     * weights each peer's split by this estimate when combining into the
+     * global default mix. NULL = unknown.
+     */
+    rosterSizeEstimate: integer("roster_size_estimate"),
+    /**
+     * Phase B (R1, R10) — Tiago Specialist output: citations and 5–10
+     * sample properties supporting the split. Surfaced in the K&R per-peer
+     * Evidence panel. NULL = never researched.
+     */
+    splitEvidence: jsonb("split_evidence").$type<SplitEvidence>(),
+    /**
+     * Phase B (R10) — FK to bracket_mix_runs.id for the most recent
+     * successful Tiago run on this peer. NULL = never researched. The FK
+     * constraint is added in the U2 migration once bracket_mix_runs exists.
+     */
+    lastResearchRunId: integer("last_research_run_id"),
+    /**
+     * Phase B (R13) — per-peer override of Costantino freshness defaults
+     * (e.g. `{ staleAfterDays: 30 }`). NULL = inherit the source-registry
+     * defaults for icp_peer_companies (90 days / weekly recheck).
+     */
+    costantinoConfig: jsonb("costantino_config").$type<CostantinoPeerConfig>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

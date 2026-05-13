@@ -208,6 +208,19 @@ export async function runSchemaMigrations() {
     await runIcpPeerCompanies001();
     await markMigrationApplied("icp_peer_companies_001");
   }
+
+  // Phase B U1 of the ICP bracket-mix peer-derived rebuild plan
+  // (docs/plans/2026-05-13-001-feat-icp-bracket-mix-peer-derived-phase-b-plan.md).
+  // Belt-and-suspenders companion to 0061_icp_peer_companies_phase_b.sql.
+  // Idempotent: ADD COLUMN IF NOT EXISTS for the five Specialist output
+  // columns on icp_peer_companies (brand_archetype_split, roster_size_estimate,
+  // split_evidence, last_research_run_id, costantino_config). NULL on every
+  // column = peer has not yet been researched.
+  if (!(await isMigrationApplied("icp_peer_companies_002"))) {
+    const { runIcpPeerCompanies002 } = await import("../migrations/icp-peer-companies-002");
+    await runIcpPeerCompanies002();
+    await markMigrationApplied("icp_peer_companies_002");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

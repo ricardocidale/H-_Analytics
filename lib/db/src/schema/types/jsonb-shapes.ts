@@ -227,3 +227,74 @@ export interface BracketMixData {
   assignedAt?: string;
   evidence?: string;
 }
+
+// ── ICP Peer Companies — Phase B Specialist output shapes ─────────────────
+
+/**
+ * Phase B (R1) — one slug → weight pair within a peer's brand-level
+ * archetype split. `weight` is in [0, 1]; entries within a single
+ * BrandArchetypeSplit.entries array must sum to 1.0.
+ */
+export interface BrandArchetypeSplitEntry {
+  bracketSlug: string;
+  weight: number;
+}
+
+/**
+ * Phase B (R1, R10) — Tiago's per-peer Specialist output: how this peer's
+ * properties distribute across the active bracket archetypes. Stored on
+ * `icp_peer_companies.brand_archetype_split` and aggregated by Hugo into
+ * the global default `BracketMixData`.
+ */
+export interface BrandArchetypeSplit {
+  entries: BrandArchetypeSplitEntry[];
+}
+
+/**
+ * Phase B (R1) — one citation surfaced in the K&R per-peer Evidence panel.
+ */
+export interface SplitEvidenceCitation {
+  /** Cited source URL — required. */
+  url: string;
+  /** Page or article title; optional. */
+  title?: string;
+  /** Short excerpt or rationale for citation; optional. */
+  snippet?: string;
+}
+
+/**
+ * Phase B (R1) — one of the 5–10 representative properties Tiago surfaces
+ * per peer to ground the archetype split in concrete examples.
+ */
+export interface SplitEvidenceSampleProperty {
+  /** Display name of the example property. */
+  name: string;
+  /** Which bracket slug this property maps to in Tiago's classification. */
+  bracketSlug?: string;
+  /** Optional source URL for the property itself. */
+  url?: string;
+}
+
+/**
+ * Phase B (R1, R10) — full citation bundle persisted on
+ * `icp_peer_companies.split_evidence`. Surfaced read-only in the K&R
+ * per-peer Evidence panel; never edited by admins.
+ */
+export interface SplitEvidence {
+  citations: SplitEvidenceCitation[];
+  sampleProperties: SplitEvidenceSampleProperty[];
+}
+
+/**
+ * Phase B (R13) — per-peer override of Costantino's freshness defaults.
+ * Defaults (90 days stale / weekly recheck) live in DB on the
+ * source-registry / admin_resources row for `icp_peer_companies`; this
+ * jsonb shadows those defaults on a single peer when the operator wants a
+ * tighter or looser cadence for that brand.
+ */
+export interface CostantinoPeerConfig {
+  /** Override `staleAfterDays` from the source-registry default. */
+  staleAfterDays?: number;
+  /** Override the default recheck cadence. */
+  recheckCadence?: "weekly" | "monthly";
+}
