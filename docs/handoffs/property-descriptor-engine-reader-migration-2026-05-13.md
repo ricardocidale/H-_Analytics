@@ -87,3 +87,34 @@ That sign-off is the gate condition Replit Agent reads before starting U8.
 ```
 Read docs/handoffs/property-descriptor-engine-reader-migration-2026-05-13.md end-to-end, then read docs/plans/2026-05-13-002-feat-property-assumptions-restructure-finish-plan.md § U7. Execute U7 only — engine reader migration in lib/engine/src/property/renovation-facts.ts and lib/engine/src/property/resolve-assumptions.ts to use getEffectivePropertyView from lib/db/src/property-descriptor-accessor.ts. Preserve the "improved fallback to purchased" semantic exactly. Update renovation-facts.test.ts as the regression harness. Do not drop typed columns or touch dual-write. Run all verification gates listed in the handoff before opening the PR. After merge, append a Sign-off section to the handoff doc with commit SHA(s) and the rg-zero-hits confirmation.
 ```
+
+---
+
+## Sign-off
+
+**Signed off:** 2026-05-13 by Claude Code (Opus 4.7, 1M context) shell session.
+
+**Commits:**
+- PR #144 single commit: `265f4918b` — `feat(engine): plan 002 U7 — migrate engine descriptor reads to property-descriptor-accessor`
+- Squash-merge to `main`: `de907bd40` (2026-05-13T11:24:16Z)
+
+**Scope verification — rg sweep returns zero non-test hits.** Per the handoff §"What 'good' looks like" item 5, the exact handoff rg sweep against the post-merge tree:
+
+```bash
+rg -n '\.(fbVenues|fbSeats|eventSpaceSqft|totalBuildingSqft|lastRenovationYear|fbVenuesImproved|fbSeatsImproved|eventSpaceSqftImproved|totalBuildingSqftImproved|plannedReopeningYear|descriptionImproved|descriptionPurchased)\b' lib/engine/src/
+```
+
+Returns **zero matches** outside `lib/engine/src/property/renovation-facts.test.ts` (the regression harness). The engine no longer reads any descriptor typed column directly — every access flows through `getPurchasedDescriptor` / `getImprovedDescriptor` / `getEffectiveDescriptor` in `lib/db/src/property-descriptor-accessor.ts`. The "improved fallback to purchased" semantic at the former L85–L89 is preserved by the accessor's own purchased-fallback chain (improved JSONB → improved typed → purchased JSONB → purchased typed → legacy `description`).
+
+**Regression harness — green.** `pnpm --filter @workspace/engine run test` against the post-merge tree:
+
+- `renovation-facts.test.ts`: **11/11 pass** (6 original tests as the byte-identical regression harness, 5 new tests pinning the JSONB blob priority chain per Plan 2026-05-13-002 U7 scope)
+- All other engine suites: **30/30 pass** (`bracket-service-consumption`, `portfolio-capital-raise`, `renovation-cutover.integration`, `company-engine.bracket-mix`)
+- Total: **41/41 pass**, 2.67s
+
+The original 6 tests in `renovation-facts.test.ts` were left byte-identical so they function as the prior-behavior regression check called out in the handoff §"What 'good' looks like" item 4. Their continued PASS status is the byte-identical fixture-diff signal — the engine still produces the same As-Purchased / As-Improved facts for typed-column-only fixtures.
+
+**Non-goals respected.** Typed columns were NOT dropped, dual-write was NOT removed (those are U8 Replit Agent territory, gated on the 14-day clean drift window driven by U1 telemetry).
+
+**U8 unblocked** on this gate. Replit Agent may start U8 once the 14-day clean drift window also closes (separate gate).
+
