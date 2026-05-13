@@ -75,6 +75,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 | Dino | Pixel-diff calculator (±2px gate) |
 | Enzo | Content hash cache (SHA-256 idempotency) |
 | Franco | Deck render minion — renders the 6-slide PDF via Playwright, uploads to R2, writes `deckR2Key` onto the run row. Called by Marco's `produce_deck` tool and by the Rebecca `produce_slide_factory_deck` tool. No LLM. (`slides/minions/franco.ts`) |
+| Hugo | Bracket-Mix Aggregator Minion — combines every active peer's `brand_archetype_split` (Tiago output) weighted by `roster_size_estimate` into one normalized `BracketMixData`. Pure deterministic; cold start (no researched peers) → equal-weight + provisional flag, no row written. Called by the global-recompute orchestrator. No LLM. (`ai/ambient/minions/hugo.ts`) |
 
 ---
 
