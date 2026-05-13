@@ -48,6 +48,10 @@ export const vendorPassthroughCosts = pgTable(
     // Direct URL to the source document or page (nullable — some sources are
     // behind paywalls and only the publisher name is recorded).
     sourceUrl: text("source_url"),
+    // Optional bracket scope (icp_brackets.slug). NULL means the rate is
+    // universal across all brackets. Populated when source data breaks
+    // down by archetype (Phase B of the bracket-mix peer-derived rebuild plan).
+    bracketSlug: text("bracket_slug"),
     fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
   },
   (t) => [
@@ -88,6 +92,10 @@ export const mgmtCoMarkupFactors = pgTable(
     period: text("period").notNull(),
     source: text("source").notNull(),
     sourceUrl: text("source_url"),
+    // Optional bracket scope (icp_brackets.slug). NULL means the markup is
+    // universal across all brackets. Populated when source data breaks
+    // down by archetype (Phase B of the bracket-mix peer-derived rebuild plan).
+    bracketSlug: text("bracket_slug"),
     fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
   },
   (t) => [

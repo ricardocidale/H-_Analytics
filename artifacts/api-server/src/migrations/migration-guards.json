@@ -240,6 +240,10 @@
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
       "reason": "Task #1437 — single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
+    },
+    "0060_icp_peer_companies": {
+      "status": "self-idempotent",
+      "reason": "Phase A1 of the ICP bracket-mix peer-derived rebuild plan (docs/plans/2026-05-13-001-refactor-icp-bracket-mix-peer-derived-plan.md). CREATE TABLE IF NOT EXISTS icp_peer_companies + CREATE INDEX IF NOT EXISTS + ADD COLUMN IF NOT EXISTS bracket_slug on vendor_passthrough_costs and mgmt_co_markup_factors. Belt-and-suspenders runtime patch icp-peer-companies-001 reseeds the initial peer roster on every boot via ON CONFLICT DO NOTHING."
     }
   }
 }

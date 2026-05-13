@@ -8,6 +8,7 @@ import { acquireInFlight, releaseInFlight } from "../../middleware/analyst-refre
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { indexAllMarketResearch } from "../../ai/vector-indexing";
 import { runIcpBrackets001 } from "../../migrations/icp-brackets-001";
+import { runIcpPeerCompanies001 } from "../../migrations/icp-peer-companies-001";
 import { csrfTokenGuard } from "../../middleware/csrf";
 import { z } from "zod";
 import { ICP_CUSTOMER_TYPES, ICP_SERVICE_CONSUMPTION_PROFILES } from "@workspace/db";
@@ -245,16 +246,26 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
   // vector_namespace assets, and live row counts for catalog_table assets.
   app.get("/api/admin/knowledge-registry", requireAdmin, async (_req, res) => {
     try {
-      const [entries, stats, bracketCount] = await Promise.all([
+      const [entries, stats, bracketCount, peerCount] = await Promise.all([
         storage.getAllKnowledgeRegistry(),
         getNamespaceStats().catch(() => ({} as Record<string, number>)),
         db.execute(sql`SELECT COUNT(*)::int AS count FROM icp_brackets WHERE is_active = true`)
           .catch(() => ({ rows: [{ count: 0 }] })),
+        db.execute(sql`SELECT COUNT(*)::int AS count FROM icp_peer_companies WHERE is_active = true`)
+          .catch(() => ({ rows: [{ count: 0 }] })),
       ]);
 
-      const catalogRowCount = Number(
-        (bracketCount.rows[0] as { count: number } | undefined)?.count ?? 0,
-      );
+      // Per-asset catalog row counts. The K&R card surfaces this as the
+      // "live count" badge — must reflect the specific asset, not a shared
+      // bracket count, so each catalog_table card shows its own row count.
+      const catalogRowCountByAssetRef: Record<string, number> = {
+        "icp-bracket-catalog": Number(
+          (bracketCount.rows[0] as { count: number } | undefined)?.count ?? 0,
+        ),
+        "icp-peer-companies": Number(
+          (peerCount.rows[0] as { count: number } | undefined)?.count ?? 0,
+        ),
+      };
 
       const enriched = entries.map((entry) => ({
         ...entry,
@@ -262,7 +273,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           entry.assetType === "vector_namespace"
             ? (stats[entry.assetRef as VectorNamespace] ?? 0)
             : entry.assetType === "catalog_table"
-            ? catalogRowCount
+            ? (catalogRowCountByAssetRef[entry.assetRef] ?? null)
             : null,
       }));
 
@@ -502,6 +513,96 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
     }
   });
 
+  // ── ICP Peer Company Registry (Phase A3) ────────────────────────────────
+  //
+  // GET   /api/admin/knowledge-registry/icp-peer-companies/data
+  // PATCH /api/admin/knowledge-registry/icp-peer-companies/data/:id
+  //
+  // Read-only registry per the K&R contract: codebase + Neon define the
+  // inventory; admin only toggles individual peers active/inactive. The
+  // card-level Analyst button (POST /:id/regenerate routed below) currently
+  // re-runs the seed; Phase B will swap in the peer-research minion. Both
+  // routes must be registered BEFORE /:id to prevent path shadowing.
+  app.get(
+    "/api/admin/knowledge-registry/icp-peer-companies/data",
+    requireAdmin,
+    async (_req, res) => {
+      try {
+        const result = await db.execute(sql`
+          SELECT id, name, niche_tags, is_active, source_url,
+                 last_researched_at, created_at, updated_at
+          FROM icp_peer_companies
+          ORDER BY is_active DESC, name ASC, id ASC
+        `);
+        res.json({ peers: result.rows });
+      } catch (error: unknown) {
+        logAndSendError(res, "Failed to fetch ICP peer company registry", error, "AKNW-027");
+      }
+    },
+  );
+
+  const IcpPeerPatchSchema = z
+    .object({ isActive: z.boolean() })
+    .strict();
+
+  app.patch(
+    "/api/admin/knowledge-registry/icp-peer-companies/data/:id",
+    requireAdmin,
+    csrfTokenGuard,
+    async (req, res) => {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Invalid peer id",
+          code: "AKNW-028",
+        });
+      }
+      const parsed = IcpPeerPatchSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Invalid peer payload",
+          code: "AKNW-029",
+          details: parsed.error.flatten(),
+        });
+      }
+      const lockKey = `icp-peer-${id}`;
+      if (!acquireInFlight(lockKey)) {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: "A concurrent update is already in progress for this peer",
+          code: "AKNW-030",
+        });
+      }
+      try {
+        const existing = await db.execute(sql`
+          SELECT id, name FROM icp_peer_companies WHERE id = ${id} LIMIT 1
+        `);
+        if (existing.rows.length === 0) {
+          return res.status(HTTP_404_NOT_FOUND).json({
+            error: "Peer not found",
+            code: "AKNW-031",
+          });
+        }
+        const result = await db.execute(sql`
+          UPDATE icp_peer_companies
+             SET is_active = ${parsed.data.isActive},
+                 updated_at = now()
+           WHERE id = ${id}
+          RETURNING id, name, is_active
+        `);
+        const row = result.rows[0] as { id: number; name: string; is_active: boolean };
+        const action = parsed.data.isActive ? "icp-peer-activate" : "icp-peer-deactivate";
+        logActivity(req, action, "icp_peer_companies", row.id, row.name, {
+          isActive: row.is_active,
+        });
+        return res.json({ peer: row });
+      } catch (error: unknown) {
+        return logAndSendError(res, "Failed to update ICP peer", error, "AKNW-032");
+      } finally {
+        releaseInFlight(lockKey);
+      }
+    },
+  );
+
   // GET /api/admin/knowledge-registry/:id
   app.get("/api/admin/knowledge-registry/:id", requireAdmin, async (req, res) => {
     try {
@@ -667,6 +768,29 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           return res.json({ success: true, assetRef: entry.assetRef });
         } finally {
           releaseInFlight("icp-bracket-catalog");
+        }
+      }
+
+      // Phase A stub: re-runs the idempotent seed so the inventory
+      // self-heals if any seed peers were deleted directly. Phase B
+      // will swap this for the peer-research minion that fetches each
+      // active peer's roster, classifies into archetypes, and writes
+      // the regenerated bracket mix to global_assumptions.
+      if (entry.assetType === "catalog_table" && entry.assetRef === "icp-peer-companies") {
+        if (!acquireInFlight("icp-peer-companies")) {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: "Refresh already in flight for icp-peer-companies",
+          });
+        }
+        try {
+          await runIcpPeerCompanies001();
+          await storage.updateKnowledgeRegistryRefreshed(id, new Date());
+          logActivity(req, "knowledge-registry-regenerate", "knowledge_registry", null, id, {
+            assetRef: entry.assetRef,
+          });
+          return res.json({ success: true, assetRef: entry.assetRef });
+        } finally {
+          releaseInFlight("icp-peer-companies");
         }
       }
 

@@ -119,6 +119,16 @@ const KNOWLEDGE_REGISTRY_SEEDS: typeof knowledgeRegistry.$inferInsert[] = [
     assetType: "catalog_table",
     assetRef: "icp-bracket-catalog",
   },
+  {
+    id: "icp-peer-companies",
+    displayName: "ICP Peer Company Registry",
+    description: "Registry of peer brands whose property rosters drive the management-co-level bracket mix. Replaces the prior algorithm that classified the management company's own portfolio. Admin toggles peers on/off; the Analyst button regenerates the bracket mix across all active peers.",
+    howBuilt: "Seeded at startup (icp-peer-companies-001 migration) from the comp-set name lists in starter brackets. Each peer carries niche tags that guide the classifier. Admin can toggle individual peers active/inactive — inactive peers are excluded from the next regeneration run.",
+    sourceDescription: "Codebase seed batch (phase-a-seed-2026-05-13) drawn from STARTER_BRACKETS comp_set_names. Future entries added via Analyst peer-discovery research.",
+    renewalMechanism: "Per-row Active toggle in the admin viewer + a single card-level Analyst button. In Phase A the Analyst button re-runs the idempotent seed so the inventory self-heals if any rows were deleted directly; Phase B will swap that for the peer-research minion that fetches each active peer's roster, classifies into archetypes, and writes the regenerated bracket mix to global_assumptions.",
+    assetType: "catalog_table",
+    assetRef: "icp-peer-companies",
+  },
 ];
 
 // Last-known seed values for country_economic_data. Inserted once on first

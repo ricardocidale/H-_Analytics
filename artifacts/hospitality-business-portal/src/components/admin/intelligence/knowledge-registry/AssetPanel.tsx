@@ -699,6 +699,154 @@ function IcpBracketCatalogViewer() {
   );
 }
 
+// ── IcpPeerCompaniesViewer ───────────────────────────────────────────────────
+//
+// Phase A4 of the ICP bracket-mix peer-derived rebuild plan
+// (docs/plans/2026-05-13-001-refactor-icp-bracket-mix-peer-derived-plan.md).
+//
+// Read-only registry per the K&R contract: admin can only toggle each peer
+// active/inactive. The card-level Analyst button (rendered by the parent
+// AssetPanel) regenerates the bracket mix across all active peers.
+
+interface IcpPeerCompany {
+  id: number;
+  name: string;
+  niche_tags: string[] | null;
+  is_active: boolean;
+  source_url: string | null;
+  last_researched_at: string | null;
+}
+
+function IcpPeerCompaniesViewer() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { isAdmin } = useAuth();
+
+  const { data, isLoading, isError } = useQuery<{ peers: IcpPeerCompany[] }>({
+    queryKey: ["/api/admin/knowledge-registry/icp-peer-companies/data"],
+    queryFn: adminFetch<{ peers: IcpPeerCompany[] }>(
+      "/api/admin/knowledge-registry/icp-peer-companies/data",
+      "Failed to load ICP peer company registry",
+    ),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const res = await apiRequest(
+        "PATCH",
+        `/api/admin/knowledge-registry/icp-peer-companies/data/${id}`,
+        { isActive },
+      );
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry/icp-peer-companies/data"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry"] });
+      toast({ title: vars.isActive ? "Peer activated" : "Peer deactivated" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
+  if (isError) return <p className="text-xs text-destructive py-2">Failed to load ICP peer company registry.</p>;
+
+  const peers = data?.peers ?? [];
+  const activeCount = peers.filter((p) => p.is_active).length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          {activeCount} of {peers.length} peers active
+        </span>
+      </div>
+
+      {peers.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No peer companies in registry.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="text-left py-1.5 pr-3 font-medium">Peer brand</th>
+                <th className="text-left py-1.5 px-2 font-medium hidden sm:table-cell">Niche tags</th>
+                <th className="text-left py-1.5 px-2 font-medium hidden md:table-cell">Last researched</th>
+                {isAdmin && <th className="text-right py-1.5 pl-2 font-medium">Active</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {peers.map((p) => (
+                <tr
+                  key={p.id}
+                  className={`border-b border-border/50 align-top ${p.is_active ? "" : "opacity-50"}`}
+                  data-testid={`row-icp-peer-${p.id}`}
+                >
+                  <td className="py-2 pr-3">
+                    <div className="font-medium text-foreground/90 flex items-center gap-1.5">
+                      {p.name}
+                      {!p.is_active && (
+                        <span className="text-[9px] uppercase tracking-wide text-muted-foreground border border-border rounded px-1 py-0.5">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-2 px-2 hidden sm:table-cell">
+                    {p.niche_tags && p.niche_tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {p.niche_tags.map((t) => (
+                          <span
+                            key={t}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-2 text-muted-foreground hidden md:table-cell tabular-nums">
+                    {p.last_researched_at
+                      ? new Date(p.last_researched_at).toLocaleDateString()
+                      : "Never"}
+                  </td>
+                  {isAdmin && (
+                    <td className="py-2 pl-2 text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({ id: p.id, isActive: !p.is_active })
+                        }
+                        data-testid={`button-icp-peer-toggle-${p.id}`}
+                      >
+                        {p.is_active ? "Deactivate" : "Activate"}
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Consumers: Cecília (ICP agent), Marco (orchestrator). Peer roster is seeded by code; admins
+        toggle individual peers active/inactive without a code deploy. The card-level Analyst button
+        regenerates the management-co-level bracket mix across all active peers — Phase A re-runs
+        the seed; Phase B will swap in the peer-research minion.
+      </p>
+    </div>
+  );
+}
+
 // ── TypeSpecificViewer ────────────────────────────────────────────────────────
 
 // Maps knowledge_registry.assetRef → analyst-tables id (3 original benchmark tables only)
@@ -748,6 +896,10 @@ function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
 
   if (entry.assetType === "country_data") {
     return <CountryDataViewer />;
+  }
+
+  if (entry.assetType === "catalog_table" && entry.assetRef === "icp-peer-companies") {
+    return <IcpPeerCompaniesViewer />;
   }
 
   if (entry.assetType === "catalog_table" && entry.assetRef === "icp-bracket-catalog") {

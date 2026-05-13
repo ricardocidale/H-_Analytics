@@ -52,4 +52,5 @@ export * from "./compliance";
 export * from "./icp-data";
 export * from "./types/jsonb-shapes";
 export * from "./icp-brackets";
+export * from "./icp-peer-companies";
 export * from "./self-test-logs";

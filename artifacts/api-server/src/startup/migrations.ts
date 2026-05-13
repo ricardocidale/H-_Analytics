@@ -195,6 +195,19 @@ export async function runSchemaMigrations() {
     await runIcpBrackets002();
     await markMigrationApplied("icp_brackets_002");
   }
+
+  // Phase A2 of the ICP bracket-mix peer-derived rebuild plan
+  // (docs/plans/2026-05-13-001-refactor-icp-bracket-mix-peer-derived-plan.md).
+  // Belt-and-suspenders companion to 0060_icp_peer_companies.sql.
+  // Idempotent: creates icp_peer_companies (IF NOT EXISTS), adds nullable
+  // bracket_slug columns to vendor_passthrough_costs and mgmt_co_markup_factors,
+  // seeds the initial peer roster (ON CONFLICT DO NOTHING), registers the
+  // admin_resources entry (ON CONFLICT DO NOTHING).
+  if (!(await isMigrationApplied("icp_peer_companies_001"))) {
+    const { runIcpPeerCompanies001 } = await import("../migrations/icp-peer-companies-001");
+    await runIcpPeerCompanies001();
+    await markMigrationApplied("icp_peer_companies_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
