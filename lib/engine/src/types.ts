@@ -64,9 +64,9 @@ export interface PropertyInput {
   refinanceClosingCostRate?: number | null;
   // Refi LTV cap relative to ORIGINAL acquisition loan amount (Plan 2026-05-13-001 U2).
   // Engine caps the refinanced loan at `originalLoanAmount × refiMaxLtvToOriginal`
-  // to prevent inflated mid-projection cash-out spikes. Falls back to
-  // DEFAULT_REFI_MAX_LTV_TO_ORIGINAL when null/undefined.
-  refiMaxLtvToOriginal?: number | null;
+  // to prevent inflated mid-projection cash-out spikes. Always populated by the
+  // three-layer resolver (DB guarantee — no TS fallback needed).
+  refiMaxLtvToOriginal: number;
   exitCapRate?: number | null;
   // Disposition
   dispositionCommission?: number | null;

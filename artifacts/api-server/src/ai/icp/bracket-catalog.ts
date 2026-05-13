@@ -75,28 +75,6 @@ export const COUNTRY_GROUP_LATAM = [
   "Uruguay",
 ] as const;
 
-// ── Per-bracket default templates (HVS / PwC / CBRE 2024–2025 market anchors) ─
-
-/** US tertiary leisure markets — Hudson Valley / Catskills / Asheville / Blue Ridge. */
-const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975;
-/** US gateway markets — NYC / Boston / Miami / SF / LA. */
-const BRACKET_DEFAULT_US_GATEWAY_EXIT_CAP = 0.0850;
-/** LatAm prime urban — Cartagena / Bogotá / CDMX / São Paulo. */
-const BRACKET_DEFAULT_LATAM_PRIME_URBAN_EXIT_CAP = 0.1050;
-/** LatAm rural / illiquid — country-risk + thin buyer pool. */
-const BRACKET_DEFAULT_LATAM_RURAL_EXIT_CAP = 0.1200;
-/** LatAm luxury single-key STR — penthouses / villas / signature units. */
-const BRACKET_DEFAULT_LATAM_LUXURY_STR_EXIT_CAP = 0.1100;
-
-/** US brackets — standard 70% refi LTV cap vs original acquisition loan. */
-const BRACKET_DEFAULT_US_REFI_LTV_TO_ORIGINAL = 0.70;
-/** LatAm prime urban — tighter cap reflecting country-risk premium. */
-const BRACKET_DEFAULT_LATAM_PRIME_REFI_LTV_TO_ORIGINAL = 0.65;
-/** LatAm rural / illiquid — tightest cap reflecting buyer-pool / illiquidity. */
-const BRACKET_DEFAULT_LATAM_RURAL_REFI_LTV_TO_ORIGINAL = 0.60;
-/** LatAm luxury STR — back to 70%, single-key trades on guest-network proxies. */
-const BRACKET_DEFAULT_LATAM_LUXURY_STR_REFI_LTV_TO_ORIGINAL = 0.70;
-
 // ── Best-fit rule priorities (Davi ordering, U7 seed) ─────────────────────
 
 /** Most-specific rule: LatAm + STR luxury single-key. Demo anchor: Medellín Duplex. */
@@ -120,17 +98,6 @@ export interface CatalogBracket {
   description: string;
   /** Tailwind-compatible colour token pair used for card rendering. */
   colorToken: string;
-  /**
-   * Layer-2 default template for the per-property exit cap rate. Used by the
-   * U6 best-fit resolver when this bracket is selected as the closest match
-   * for a new property. Aligns with plan §U7 market-anchored values.
-   */
-  defaultExitCapRate: number;
-  /**
-   * Layer-2 default template for the per-property refi-LTV cap relative to
-   * the ORIGINAL acquisition loan amount. Used by U6's best-fit resolver.
-   */
-  defaultRefiMaxLtvToOriginal: number;
 }
 
 export const BRACKET_CATALOG: readonly CatalogBracket[] = [
@@ -142,8 +109,6 @@ export const BRACKET_CATALOG: readonly CatalogBracket[] = [
     description:
       "Independent boutique resorts in US tertiary or mountain/northeast leisure markets (Hudson Valley, Catskills, Asheville, Blue Ridge). 10–60 keys, F&B and wellness programming, event-driven revenue. Consumes the full Management Company service-line stack. Going-in caps trade tight to market; a 10-year hold premium pushes effective exit caps toward the high single digits.",
     colorToken: "chart-1",
-    defaultExitCapRate: BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP,
-    defaultRefiMaxLtvToOriginal: BRACKET_DEFAULT_US_REFI_LTV_TO_ORIGINAL,
   },
   {
     id: BRACKET_ID_US_GATEWAY_BOUTIQUE,
@@ -153,8 +118,6 @@ export const BRACKET_CATALOG: readonly CatalogBracket[] = [
     description:
       "Urban boutique hotels in US gateway markets (NYC, Boston, Miami, SF, LA). Independent or soft-brand affiliated; benefits from primary-market distribution leverage and tighter cap-rate trading. Consumes the full Management Company service-line stack.",
     colorToken: "chart-2",
-    defaultExitCapRate: BRACKET_DEFAULT_US_GATEWAY_EXIT_CAP,
-    defaultRefiMaxLtvToOriginal: BRACKET_DEFAULT_US_REFI_LTV_TO_ORIGINAL,
   },
   {
     id: BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE,
@@ -164,8 +127,6 @@ export const BRACKET_CATALOG: readonly CatalogBracket[] = [
     description:
       "Urban boutique hotels in prime Latin American gateway markets (Cartagena, Bogotá, Mexico City, São Paulo). 20–80 keys, brand-equity-driven, strong F&B. Consumes the full Management Company service-line stack. Country-risk premium plus thinner trade comps push exit caps above US gateway levels.",
     colorToken: "chart-3",
-    defaultExitCapRate: BRACKET_DEFAULT_LATAM_PRIME_URBAN_EXIT_CAP,
-    defaultRefiMaxLtvToOriginal: BRACKET_DEFAULT_LATAM_PRIME_REFI_LTV_TO_ORIGINAL,
   },
   {
     id: BRACKET_ID_LATAM_RURAL_ILLIQUID,
@@ -175,8 +136,6 @@ export const BRACKET_CATALOG: readonly CatalogBracket[] = [
     description:
       "Working farms, ranches, jungle lodges, and experiential retreats in rural or illiquid Latin American markets. Blended hotel + STR service consumption (F&B with curated short-stay units). Exit caps reflect thin buyer pool and high country/illiquidity premium.",
     colorToken: "chart-4",
-    defaultExitCapRate: BRACKET_DEFAULT_LATAM_RURAL_EXIT_CAP,
-    defaultRefiMaxLtvToOriginal: BRACKET_DEFAULT_LATAM_RURAL_REFI_LTV_TO_ORIGINAL,
   },
   {
     id: BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY,
@@ -186,8 +145,6 @@ export const BRACKET_CATALOG: readonly CatalogBracket[] = [
     description:
       "Single-key luxury short-term rentals in Latin American markets — penthouses, villas, signature single-unit properties charging $1,000+ ADR. Consumes only marketing, branding, and performance-bonus service lines (no Mgmt Co F&B, ops, or staffing). Strategic per-entity exit overrides (e.g. package-sale exits to existing guest networks) may push individual property exit caps below this bracket-template default.",
     colorToken: "chart-5",
-    defaultExitCapRate: BRACKET_DEFAULT_LATAM_LUXURY_STR_EXIT_CAP,
-    defaultRefiMaxLtvToOriginal: BRACKET_DEFAULT_LATAM_LUXURY_STR_REFI_LTV_TO_ORIGINAL,
   },
 ] as const;
 

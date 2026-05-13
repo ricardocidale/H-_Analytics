@@ -20,7 +20,6 @@ import {
   DEFAULT_REFI_CLOSING_COST_RATE,
   DEFAULT_EXIT_CAP_RATE,
 } from '@shared/constants';
-import { DEFAULT_REFI_MAX_LTV_TO_ORIGINAL } from '@shared/constants-funding';
 import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
 import { parseLocalDate } from '../helpers/utils';
@@ -133,7 +132,7 @@ export function applyRefinancePostProcessing(
 
   // Refi LTV cap relative to ORIGINAL acquisition loan amount (Plan 2026-05-13-001 U2).
   // See `applyRefiLtvOriginalCap` for the cap math + rationale.
-  const refiMaxLtvToOriginal = property.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL;
+  const refiMaxLtvToOriginal = property.refiMaxLtvToOriginal;
   const capResult = applyRefiLtvOriginalCap({
     refiLtv: refiLTV,
     refiMaxLtvToOriginal,

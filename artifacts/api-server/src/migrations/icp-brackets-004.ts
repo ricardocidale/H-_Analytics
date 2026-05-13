@@ -34,11 +34,34 @@ import {
   BEST_FIT_RULES_SEED,
   SERVICE_CONSUMPTION_HOTEL,
   SERVICE_CONSUMPTION_STR,
+  BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT,
+  BRACKET_ID_US_GATEWAY_BOUTIQUE,
+  BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE,
+  BRACKET_ID_LATAM_RURAL_ILLIQUID,
+  BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY,
   type BracketId,
   type BestFitRuleSeed,
 } from "../ai/icp/bracket-catalog";
 
 const TAG = "[migration] icp-brackets-004";
+
+// Per-bracket Layer-2 financial defaults — migration bootstrap only.
+// CatalogBracket no longer carries these fields; values live in icp_brackets DB rows.
+// Sources: HVS Hotel Investor Survey 2024, CBRE Cap Rate Survey 2024, PwC RE Report 2025.
+const SEED_BRACKET_EXIT_CAP_RATE: Record<BracketId, number> = {
+  [BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT]:  0.0975, // HVS/CBRE 2024, US tertiary markets + 75bp hold premium
+  [BRACKET_ID_US_GATEWAY_BOUTIQUE]:          0.0850, // CBRE 2024, US gateway markets
+  [BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE]:   0.1050, // HVS/PwC 2024, LatAm prime urban
+  [BRACKET_ID_LATAM_RURAL_ILLIQUID]:         0.1200, // country-risk + illiquidity premium
+  [BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY]:  0.1100, // HVS 2024 + guest-network liquidity proxy
+};
+const SEED_BRACKET_REFI_MAX_LTV_TO_ORIGINAL: Record<BracketId, number> = {
+  [BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT]:  0.70, // standard US cap
+  [BRACKET_ID_US_GATEWAY_BOUTIQUE]:          0.70, // standard US cap
+  [BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE]:   0.65, // tighter: country-risk premium
+  [BRACKET_ID_LATAM_RURAL_ILLIQUID]:         0.60, // tightest: illiquidity + thin buyer pool
+  [BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY]:  0.70, // single-key trades on guest-network proxies
+};
 
 /** Retired service-profile slugs from the icp-brackets-001 seed. */
 const RETIRED_BRACKET_SLUGS = [
@@ -123,8 +146,8 @@ export async function runIcpBrackets004(): Promise<void> {
         ${serviceConsumptionProfile},
         ${cat.description},
         true,
-        ${cat.defaultExitCapRate},
-        ${cat.defaultRefiMaxLtvToOriginal},
+        ${SEED_BRACKET_EXIT_CAP_RATE[cat.id]},
+        ${SEED_BRACKET_REFI_MAX_LTV_TO_ORIGINAL[cat.id]},
         ${matchCountries}::jsonb,
         ${matchBusinessModels}::jsonb,
         ${matchQualityTiers}::jsonb,
