@@ -8,7 +8,7 @@ supersedes: docs/brainstorms/icp-simplification/requirements.md for definitional
 
 ## 1) One-sentence definition (the elevator)
 
-ICP Bracket Mix is the Management Company–level weighted distribution of shared customer-property archetypes used only to scale service-line fee consumption (especially hotel vs STR behavior) in company-level financial calculations.
+ICP Bracket Mix is the Management Company–level weighted distribution of shared customer-property archetypes that serves two narrow purposes: (a) scale service-line fee consumption (hotel vs STR behavior) in company-level financial calculations, and (b) generate the **default values for default variables** that seed new Management Companies and new Properties from a DB-stored template — the same DB defaults that act as the dev-environment seed.
 
 ---
 
@@ -21,6 +21,17 @@ Source: `docs/brainstorms/icp-simplification/requirements.md` (§"User direction
 Interpretation rule:
 - This quote is the governing intent.
 - If implementation details drift, this quote is the correction anchor.
+
+### 2a) User direction extension (verbatim source, 2026-05-13)
+
+> "Bracket mix should be used to guide user and generate default values for default variables and in the case of dev, these values are also seed values. But they start as stored default values in the database that we use as seed in the development environment. If a new management company is added or a new property is added, they will be seeded with the default values from the database."
+
+Interpretation rule (additive — does not replace 2026-05-11):
+- Bracket catalog rows in the DB carry **default-value templates** for the default variables a ManCo or Property needs at creation time (e.g. cost-per-key, ADR band, occupancy band, exit cap, ramp months, F&B/event mix).
+- These DB-stored defaults are the **single source of truth** for both:
+  - the dev-environment seed, and
+  - the initial values copied into a newly-created Management Company or Property in **any** environment (dev, staging, prod).
+- "Default values" here means values in the **DEFAULT VARIABLES** tier of `hplus-variable-taxonomy` — they become user-editable Assumption Variables the moment the entity is created, and the engine reads the entity's stored value, not the bracket, at calculation time.
 
 ---
 
@@ -145,6 +156,24 @@ Evidence:
 
 Catalog storage:
 - Shared table `icp_brackets` (`lib/db/src/schema/icp-brackets.ts`), not user-scoped.
+
+### 6a) DB-stored defaults flow (per §2a, 2026-05-13)
+
+Bracket catalog rows are not just labels — each row carries a **default-value template** for the variables a Mgmt Co or Property needs at creation time. The flow is one-directional:
+
+```
+icp_brackets row (DB)  ──►  default-values template  ──►  copied into new ManCo / Property at creation
+                                                     ──►  dev-environment seed (same values)
+```
+
+Rules:
+- The template lives in the DB row (not in code constants), so admin edits to the bracket catalog change future seeds without a deploy.
+- On `POST /api/properties` (new property) and on Mgmt Co creation, the server resolves the active company bracket mix, looks up each component bracket's default-value template, weight-blends numeric defaults across the mix entries, and writes the resulting values into the new entity's columns.
+- Once written, the new entity's values are owned by the entity. Subsequent changes to the bracket catalog **do not** retroactively update existing entities (per `hplus-assumption-lifecycle`).
+- The dev seed script reads the same bracket catalog + default-value templates and applies them to the demo Mgmt Co and demo properties, so dev parity is automatic.
+
+Why this matters operationally:
+- An unrealistic seed (e.g. $80K/key boutique purchase price) is almost always evidence that the seeded entity bypassed the bracket-defaults pathway. Fixing the bracket-row template fixes both dev seed and all future entity creations in one place.
 
 ---
 
