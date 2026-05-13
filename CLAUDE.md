@@ -593,9 +593,7 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 <!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
 | | Item | Scope |
 |---|---|---|
-| [ ] | Verify `global-assumptions.ts` + `bracket-assignment-minion.ts` don't access removed `defaultExitCapRate` / `defaultRefiMaxLtvToOriginal` fields | Plan 2026-05-13-001 |
-| [ ] | Update `icp-brackets-004.ts` header comment — lines 14-17 reference removed `BRACKET_CATALOG` fields; mention `SEED_BRACKET_*` maps instead | Plan 2026-05-13-001 |
-| [ ] | U6: bracket-default seeding pathway at `POST /api/properties` (three-layer resolver writes icp_brackets Layer-2 values into new entity rows) | Plan 2026-05-13-001 |
+| [ ] | U6: bracket-default seeding pathway at `POST /api/properties` (three-layer resolver writes icp_brackets Layer-2 values into new entity rows); when creating `icp-brackets-004.ts` use `SEED_BRACKET_*` maps in header — not `BRACKET_CATALOG` fields (removed) | Plan 2026-05-13-001 |
 | [ ] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration | Plan 2026-05-13-001 |
 | [ ] | U8: verification — portfolio IRR in 25–30% band + docs | Plan 2026-05-13-001 |
 | [ ] | Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each constant as cleaned up) | Taxonomy cleanup |
