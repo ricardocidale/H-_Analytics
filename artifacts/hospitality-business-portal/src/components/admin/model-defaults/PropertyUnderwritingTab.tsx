@@ -163,6 +163,37 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
     refetchStrDefault();
   };
 
+  const { data: refiMaxLtvRow, refetch: refetchRefiMaxLtv } = useQuery({
+    queryKey: ["model-defaults", "funding", "refiMaxLtvToOriginal"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/model-defaults?category=management_company&cardKey=funding", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch refi LTV cap default");
+      const json = await res.json() as { rows: Array<{ id: number; defaultKey: string; value: unknown }> };
+      return json.rows.find(r => r.defaultKey === "mc.funding.refiMaxLtvToOriginal") ?? null;
+    },
+  });
+
+  const [refiMaxLtvDraft, setRefiMaxLtvDraft] = useState("");
+  useEffect(() => {
+    if (refiMaxLtvRow?.value != null)
+      setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
+  }, [refiMaxLtvRow]);
+
+  const saveRefiMaxLtv = async () => {
+    if (!refiMaxLtvRow) return;
+    const parsed = parseFloat(refiMaxLtvDraft);
+    if (!Number.isFinite(parsed) || parsed < 30 || parsed > 150) return;
+    try {
+      await apiRequest("PATCH", `/api/admin/model-defaults/${refiMaxLtvRow.id}`, {
+        value: parsed / 100,
+        reason: "Admin updated refi max LTV cap default",
+      });
+    } catch {
+      // Preserve fire-and-forget behavior.
+    }
+    refetchRefiMaxLtv();
+  };
+
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
   const analystEnabled = typeof onAnalystRefresh === "function";
@@ -649,6 +680,42 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           testId="field-refiClosingCost"
           researchRange="0.5%–2%"
         />
+        <div className="space-y-2" data-testid="field-refiMaxLtvToOriginal">
+          <Label className="label-text text-foreground flex items-center gap-1.5">
+            Max Loan vs. Purchase Price
+            <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price. 70% means the refi loan cannot exceed 70% of the purchase price, regardless of how much the property has appreciated. Applies to new properties; each property stores its own value once saved." />
+          </Label>
+          <div className="flex gap-2 items-center">
+            <Input
+              type="number"
+              step="1"
+              min="30"
+              max="150"
+              value={refiMaxLtvDraft}
+              onChange={(e) => setRefiMaxLtvDraft(e.target.value)}
+              className="bg-card border-primary/30 text-foreground w-24"
+              data-testid="input-refiMaxLtvToOriginal"
+            />
+            <span className="text-sm text-muted-foreground">% of purchase price</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (refiMaxLtvRow?.value != null)
+                  setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
+              }}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" variant="outline" onClick={saveRefiMaxLtv}>
+              Save
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Recommended: 65%–75%. Lower values reduce equity extraction at refinancing and
+            produce more realistic IRR projections.
+          </p>
+        </div>
       </Section>
 
       <Section grid title="Depreciation & Tax" description="Tax-related defaults for property underwriting.">
