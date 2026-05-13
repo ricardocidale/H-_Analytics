@@ -49,17 +49,24 @@ export function isProductionDeployment(): boolean {
 }
 
 /**
- * Check if running in a published Replit deployment (as opposed to the
- * Replit workspace dev preview).
+ * Check if running in a published user-facing deployment (as opposed to the
+ * Replit workspace dev preview or a local dev run).
  *
- * This is intentionally STRICTER than `isProductionDeployment()`: the dev
- * preview can run with `NODE_ENV=production` (e.g. when serving the built
- * web bundle), but `REPLIT_DEPLOYMENT` is only set to "1" by Replit on a
- * published deployment. Use this signal for dev-only conveniences (such as
- * the logo quick-login on the login screen) that must NEVER be reachable
- * in production but should still work in the dev preview regardless of
- * how the artifact was built.
+ * This is intentionally STRICTER than `isProductionDeployment()`: the Replit
+ * dev preview can run with `NODE_ENV=production` (e.g. when serving the built
+ * web bundle), so NODE_ENV alone cannot tell the two apart. We detect a real
+ * published deployment via platform-specific signals:
+ *
+ *   - Railway sets `RAILWAY_SERVICE_ID` on every deployed service.
+ *   - Replit Publish sets `REPLIT_DEPLOYMENT=1` (legacy; kept for back-compat).
+ *
+ * Use this signal for dev-only conveniences (such as the logo quick-login
+ * and `/api/auth/dev-login`) that must NEVER be reachable in production but
+ * should still work in the dev preview regardless of how the artifact was
+ * built.
  */
 export function isPublishedDeployment(): boolean {
-  return process.env.REPLIT_DEPLOYMENT === "1";
+  if (process.env.RAILWAY_SERVICE_ID) return true;
+  if (process.env.REPLIT_DEPLOYMENT === "1") return true;
+  return false;
 }
