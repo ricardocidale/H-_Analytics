@@ -98,6 +98,23 @@ const SEED_ADR_GROWTH_RATE_ELEVATED = 0.035;    // Above-default growth (Catskil
 const SEED_ADR_GROWTH_RATE_HIGH = 0.04;         // High-growth markets (Casa Medellín)
 const SEED_ADR_GROWTH_RATE_MODEST = 0.025;      // Conservative growth (stabilized US portfolio properties)
 
+// US acquisition and refinance LTV calibrations — Plan 2026-05-13-003 Phase 3
+const SEED_US_ACQ_LTV = 0.65;              // standard US boutique hotel acquisition LTV
+const SEED_US_HIGH_YIELD_ACQ_LTV = 0.60;  // lower LTV for higher-rate Financed markets (Blue Ridge, Scott's House)
+const SEED_US_HIGH_YIELD_REFI_LTV = 0.75; // income-based refi sizing LTV (Full Equity + Financed with stabilised income)
+const SEED_US_STD_ACQ_INT_RATE = 0.075;   // standard US acquisition rate (10yr Treasury ~4.5% + ~300bp, Q1-2026)
+const SEED_US_LOW_ACQ_INT_RATE = 0.07;    // lower-rate US market (Ogden Valley, Utah portfolio)
+const SEED_US_HIGH_YIELD_INT_RATE = 0.09; // higher-rate market (Blue Ridge Manor / Asheville NC)
+// Other-revenue rev share tiers — concierge, transfers, spa add-ons
+const SEED_REV_SHARE_OTHER_HIGH = 0.08;    // premium ancillary capture (Jano Grande, Loch Sheldrake, Scott's House)
+const SEED_REV_SHARE_OTHER_MID = 0.07;     // standard ancillary (Belleayre Mountain)
+const SEED_REV_SHARE_OTHER_LOW = 0.06;     // limited ancillary (Cartagena / San Diego)
+const SEED_REV_SHARE_OTHER_MINIMAL = 0.05; // minimal ancillary (Lakeview Haven Lodge)
+// Refi LTV-to-original cap: refi loan may not exceed original purchase price.
+// 1.00 is the conservative floor; stricter ratios (0.70–0.90) make normal-year
+// refis infeasible for income-capped properties. Source: Plan 2026-05-13-003.
+const SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00;
+
 // Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
 // (US baseline = 0.012). Same source-of-truth used by the schema column default.
 const SEED_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
@@ -236,11 +253,12 @@ export const SEED_INITIAL_PROPERTIES = [
     acquisitionInterestRate: SEED_COLOMBIA_ACQ_INTEREST_RATE,
     willRefinance: "Yes",
     refinanceDate: "2029-12-01",
-    refinanceLTV: 0.75,
+    refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV,
     refinanceInterestRate: SEED_REFI_INTEREST_RATE_COLOMBIA,
     refinanceTermYears: 25,
     refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE,
     refinanceYearsAfterAcquisition: 3,
+    refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
     costRateRooms: 0.17,
     costRateFB: 0.10,
@@ -254,7 +272,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.05,
     revShareEvents: SEED_REV_SHARE_EVENTS_MID,
     revShareFB: SEED_REV_SHARE_FB_REDUCED,
-    revShareOther: 0.08,
+    revShareOther: SEED_REV_SHARE_OTHER_HIGH,
     cateringBoostPercent: SEED_CATERING_BOOST_HIGH,
     exitCapRate: SEED_COLOMBIA_EXIT_CAP_RATE_HACIENDA,
     taxRate: 0.35,
