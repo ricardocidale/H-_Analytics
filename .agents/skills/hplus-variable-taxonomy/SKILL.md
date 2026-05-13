@@ -17,6 +17,121 @@ one of these four buckets.
 
 ---
 
+## SUPERSEDING RULE — Default Variables belong in the DB, not in TypeScript
+
+**As of 2026-05-13 this is the governing constraint.** Category 2 (DEFAULT
+VARIABLES) described below was the correct approach during initial development.
+The canonical architecture has since been locked:
+
+> **No business or financial value may exist as a TypeScript constant.
+> The only numbers that may live in TypeScript are math/physics absolutes
+> (Category 1 below). Everything else lives in the database.**
+
+Naming a financial value as a `const` does NOT make it acceptable — it is still
+a hardcoded value, just with a disguise. The constant is opaque to the admin,
+invisible to the agent layer, and requires a code deploy to change.
+
+### How values reach the engine
+
+```
+DB bootstrap (migration SQL — one-time, source-documented)
+         ↓
+Layer 1: model_defaults table (universal fallback, editable by admin in "Model Defaults" UI)
+         ↓
+Layer 2: icp_brackets rows (bracket-level overlay, applied at entity creation)
+         ↓
+Layer 3: property / company row (per-entity value, always populated by the three-layer resolver)
+         ↓
+Engine reads Layer 3 only — no TypeScript fallback needed
+```
+
+The three-layer resolver guarantees that `property.exitCapRate` is **always
+non-null** when the engine runs. The engine should read the field directly —
+never fall back to a TypeScript constant.
+
+### Concrete examples
+
+**VIOLATION — TypeScript constant for a financial value:**
+```ts
+// BAD — constants.ts
+export const DEFAULT_EXIT_CAP_RATE = 0.085;
+
+// BAD — engine (fallback to TS constant is a violation)
+const exitCapRate = property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+```
+
+**VIOLATION — Bracket defaults in TypeScript:**
+```ts
+// BAD — bracket-catalog.ts
+const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975;
+const BRACKET_DEFAULT_US_GATEWAY_EXIT_CAP  = 0.0850;
+// These are financial policy values. They belong in icp_brackets DB rows,
+// not as TypeScript constants — even well-named ones.
+```
+
+**VIOLATION — Service template rates as TypeScript array:**
+```ts
+// BAD — constants.ts
+export const DEFAULT_SERVICE_FEE_CATEGORIES = [
+  { name: "Marketing & Brand", rate: 0.02 },   // 2% is DB data, not code
+  { name: "Accounting",        rate: 0.015 },  // 1.5% is DB data, not code
+];
+```
+
+**VIOLATION — Refi LTV fallback in engine:**
+```ts
+// BAD
+const refiCap = property.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL;
+// The resolver guarantees this field is set; the fallback constant is a crutch.
+```
+
+**CORRECT — Bootstrap values live in migration SQL with source citation:**
+```sql
+-- In 0060_initial_model_defaults.sql
+-- Source: USALI 14th Edition §4, US hotel industry average
+INSERT INTO model_defaults (key, value, label)
+VALUES ('exitCapRate', 0.085, 'Default exit cap rate — US hotel average');
+
+-- Source: CBRE Hotel Cap Rate Survey 2024 + 75bp hold-period premium (tertiary US markets)
+INSERT INTO icp_brackets (slug, default_exit_cap_rate, default_refi_max_ltv_to_original)
+VALUES ('us-tertiary-boutique-resort', 0.0975, 0.70);
+```
+
+**CORRECT — Engine reads from Layer-3 with no TS fallback:**
+```ts
+// CORRECT — three-layer resolver guarantees property.exitCapRate is always set
+const exitCapRate = property.exitCapRate;
+const refiCap     = property.refiMaxLtvToOriginal;
+```
+
+**CORRECT — Math/time absolutes may remain in TypeScript:**
+```ts
+// CORRECT — these are Category 1: definitional math, same everywhere
+const MONTHS_PER_YEAR   = 12;     // definitional
+const DAYS_PER_MONTH    = 30.5;   // 365/12, GAAP convention
+const SECONDS_PER_DAY   = 86_400; // 24 × 60 × 60
+```
+
+### Migration path for existing DEFAULT_* constants
+
+The existing `DEFAULT_*` constants in `lib/shared/src/constants*.ts` are
+**legacy debt**. They were correct before the three-layer resolver existed.
+They are now violations waiting to be cleaned up. The cleanup discipline:
+
+1. Identify the constant and every caller.
+2. Ensure the `model_defaults` DB table has a row for the value (or the
+   relevant `icp_brackets` column is populated).
+3. Verify the three-layer resolver writes the value into every entity row at
+   creation time.
+4. Remove the `?? DEFAULT_X` fallback from the engine / route.
+5. Delete the TypeScript constant.
+6. Run the magic numbers check and typecheck — both must pass.
+
+Do NOT remove a `DEFAULT_*` constant before completing steps 2–4. Removing
+the fallback before the DB guarantee is in place causes null-dereference bugs.
+
+---
+
 ## Category 1 — TRUE CONSTANTS
 
 **Definition:** A value that is fixed by mathematics, physics, or an
@@ -61,16 +176,24 @@ with formula comment where used once.
 
 ---
 
-## Category 2 — DEFAULT VARIABLES
+## Category 2 — DEFAULT VARIABLES *(legacy — being migrated to DB)*
 
-**Definition:** Starting values for financial assumptions. The admin sets
-them in **Admin → Steady State**. Used to:
+> **See SUPERSEDING RULE above.** Under the current architecture, Category 2
+> values belong in the `model_defaults` DB table, not as TypeScript constants.
+> The `DEFAULT_*` constants below are legacy debt from before the three-layer
+> resolver existed. New code must NOT create new `DEFAULT_*` constants for
+> business values. Existing ones are cleaned up incrementally as described
+> in the SUPERSEDING RULE section.
+
+**Historical definition (for understanding existing code):** Starting values
+for financial assumptions. The admin sets them in **Admin → Model Defaults**.
+Used to:
 1. Seed the database on first deploy
 2. Populate new entity forms (new property, new company setup)
-3. Serve as code-level fallbacks when a DB field is null
+3. Serve as code-level fallbacks when a DB field is null (legacy pattern only)
 
 Default variables are admin-controlled. When the admin changes a default
-in Steady State, the new value applies to any new entity and any unconfirmed
+in Model Defaults, the new value applies to any new entity and any unconfirmed
 field. It does NOT override already-confirmed assumption variables.
 
 **H+ examples:**
@@ -203,14 +326,13 @@ const DEFAULT_COLOMBIA_INFLATION = 0.06;
 
 | The number is… | Use… | Location |
 |---|---|---|
-| Calendar math (12 months, 365 days, 30.5 days/month) | True constant, formula comment | `constants.ts` IMMUTABLE section |
-| A financial default the admin controls in Steady State | `DEFAULT_*` named constant | `lib/shared/src/constants*.ts` only |
+| Calendar math (12 months, 365 days, 30.5 days/month) | True constant, formula comment | `constants.ts` IMMUTABLE section or inline |
+| A financial default the admin controls | DB row in `model_defaults` | Bootstrapped by migration SQL with source comment |
+| A bracket-level overlay (exit cap, LTV by tier) | DB row in `icp_brackets` | Bootstrapped by migration SQL with source comment |
 | A country-specific rate (tax, inflation, depreciation) | `getFactoryNumber(key, country)` | Registry lookup |
-| A null-check fallback in any route/engine file | `?? DEFAULT_X` — named constant | Import from `@shared/constants` |
-| A new constant with no named constant yet | Define `DEFAULT_X` first; then use | `constants*.ts` → import → use |
-| A seed value (DB row initial value) | Import `DEFAULT_X`; reference it in seed | Never a raw literal in seed files |
-| A rate in a country or financial data table | `getFactoryNumber()` or storage | DB table |
-| A per-entity user-configurable value | DB read + `?? DEFAULT_X` fallback | DB column |
+| A per-entity user-configurable value | DB column on `properties` / `companies` | Always populated by three-layer resolver at creation |
+| Engine / calc function reading an entity value | `property.field` — no `?? DEFAULT_X` | DB value guaranteed by resolver |
+| A bootstrap value in a migration SQL file | Inline SQL literal with source comment | Migration SQL only — never copied into TS |
 | `0` used as a structural floor/clamp | Inline `0` is fine | Inline |
 
 ---

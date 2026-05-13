@@ -45,35 +45,83 @@ There are no exceptions.
 
 ---
 
-## 2. Number Taxonomy — FOUR CATEGORIES ONLY
+## 2. Number Taxonomy — Category 2 is LEGACY DEBT (locked 2026-05-13)
 
 Every number falls into exactly one category. Never invent a fifth.
 
 | Category | Name | Pattern |
 |---|---|---|
 | 1 | TRUE CONSTANTS | Math/physics only. `DAYS_PER_MONTH = 30.5 // 365/12` |
-| 2 | DEFAULT VARIABLES | Admin-controlled starting values. `DEFAULT_*` in `constants*.ts` |
-| 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB, fallback `?? DEFAULT_*` |
-| 4 | TABLE-SOURCED VALUES | Authority rates (tax, inflation, depreciation). `getMarketRate()` or `getFactoryNumber()` |
+| 2 | DEFAULT VARIABLES | **LEGACY** — Do NOT create new ones. See rule below. |
+| 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB — no `?? DEFAULT_*` |
+| 4 | TABLE-SOURCED VALUES | Authority rates. `getMarketRate()` or `getFactoryNumber()` |
 
-Full taxonomy + violations: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
+**Category 2 superseding rule:** Business and financial values must NOT
+exist as TypeScript constants — even named ones. `const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975`
+is the same violation as writing `0.0975` inline — the name doesn't change
+that it is hardcoded. These values belong in the database:
+- `model_defaults` table — Layer-1 universal fallback (admin-editable in "Model Defaults" UI)
+- `icp_brackets` rows — Layer-2 bracket overlay (applied at entity creation)
+- `properties` / `companies` column — Layer-3 per-entity value (always populated by the three-layer resolver)
+
+**The three-layer resolver guarantees Layer-3 is always set**, so engine code
+reads `property.exitCapRate` directly — never `?? DEFAULT_EXIT_CAP_RATE`.
+
+**The ONLY numbers allowed in TypeScript:**
+- Category 1: math/physics absolutes (12, 365, 30.5, π, 86400, etc.)
+- Structural clamps/indices: `0`, `1`, `-1`
+- One-time migration SQL literals (the canonical bootstrap source, with source comment)
+
+**Three violation examples with correct fixes:**
+```ts
+// VIOLATION 1 — named constant for financial value
+export const DEFAULT_EXIT_CAP_RATE = 0.085;
+const exitCap = property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE; // WRONG
+
+// CORRECT 1 — engine reads from DB (resolver guarantees it)
+const exitCap = property.exitCapRate; // always set by three-layer resolver
+
+// VIOLATION 2 — bracket default in TypeScript
+const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975; // WRONG even with a name
+
+// CORRECT 2 — value lives in icp_brackets row, bootstrapped by SQL:
+// INSERT INTO icp_brackets (slug, default_exit_cap_rate)
+// VALUES ('us-tertiary-boutique-resort', 0.0975); -- Source: CBRE 2024 + 75bp
+
+// VIOLATION 3 — service template rates as TS array
+export const DEFAULT_SERVICE_FEE_CATEGORIES = [
+  { name: "Marketing & Brand", rate: 0.02 }, // 2% is DB data, not code
+];
+// CORRECT 3 — these rows live in a DB table (service_fee_templates),
+// bootstrapped by migration SQL, editable by admin without a deploy.
+```
+
+Full taxonomy + legacy migration path: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
 
 ---
 
-## 3. Seed File Rule
+## 3. Seed File Rule (updated 2026-05-13)
 
-Seed files MUST import and reference `DEFAULT_*` constants or named `SEED_*` constants.
-**Never write a raw numeric literal in a seed file.** Raw literals break the
-single-source-of-truth chain and cause silent drift.
+**Migration SQL is the canonical source for bootstrap values.** TypeScript
+seed scripts invoke the resolver flow (`POST /api/properties`) and receive
+DB-populated values — they do NOT carry financial literals or named constants.
 
 ```ts
-// CORRECT
-const SEED_EXIT_CAP_RATE_US = 0.075;
+// CORRECT — seed calls resolver; values come from icp_brackets Layer 2
+await createProperty({ companyId, ...baseFields });
+// exitCapRate arrives from bracket overlay, not a TS constant
+
+// VIOLATION — TS constant in seed
+const SEED_EXIT_CAP_RATE_US = 0.075;   // WRONG — still a hardcoded value
 { exitCapRate: SEED_EXIT_CAP_RATE_US }
 
-// VIOLATION
-{ exitCapRate: 0.075 }
+// VIOLATION — raw literal in seed
+{ exitCapRate: 0.075 }  // WRONG
 ```
+
+When a per-entity confirmed override is required (e.g., Medellin Duplex
+strategic exit at 7.5%), use a SQL migration or a one-off script that writes
+a CONFIRMED-state DB row with a source comment — not a TS constant.
 
 ---
 

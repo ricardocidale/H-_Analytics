@@ -314,10 +314,16 @@ Why it's wrong:
 
 | What the number is | Right fix |
 |---|---|
-| A user assumption (inflation rate, tax rate, interest rate) | Trace to `getFactoryNumber(key, country)` from the model constants registry |
-| A seed/ramp-up default used only in the initial DB seed | Define a `DEFAULT_*` constant in `lib/shared/src/constants*.ts`; reference it from the seed file. **Never a raw literal in seed data.** Run `--init` after to lock the baseline. |
-| A domain constant for a specific algorithm (EDGAR row threshold, IMF band delta) | Named export in the relevant constants file (`constants-funding.ts`, `constants-benchmarks.ts`) |
-| A genuinely cross-file reused calibration | Named constant in `lib/shared/src/constants*.ts`, import everywhere it's used |
+| A user assumption (inflation rate, tax rate, interest rate) | `getFactoryNumber(key, country)` from the model constants registry — never a TS constant |
+| A financial default the admin controls (exit cap, LTV, fee rate, occupancy ceiling…) | DB row in `model_defaults` or `icp_brackets`, bootstrapped by migration SQL with source comment. Do NOT define a `DEFAULT_*` TS constant — the name is just a disguise for the same hardcoded value |
+| A per-entity value set at creation | Three-layer resolver populates Layer-3 at creation; engine reads `property.field` directly — no `?? DEFAULT_X` |
+| A domain constant for a pure algorithm (EDGAR threshold, IMF band delta — NOT a financial rate) | Named export in the relevant constants file; must be math/physics derivable, not a business policy |
+| A genuinely cross-file reused **non-financial** calibration | Named constant in `lib/shared/src/constants*.ts`, import everywhere it's used |
+
+> **The masking anti-pattern (2026-05-13 update):** Defining a `DEFAULT_*`
+> constant for a financial value was the old accepted pattern. It is now a
+> violation — the constant masks a hardcoded policy value that should be in
+> the DB. A named constant is not a fix; it is the same problem with a label.
 
 **When `--init` is the right answer**: After a cleanup pass that removes some magic numbers, the baseline improves. After a migration that introduces new seed-only literals that can't yet be traced to a registry, running `--init` locks in the accepted state so the ratchet tracks FUTURE regressions, not acknowledged pre-existing ones.
 

@@ -16,7 +16,7 @@ H+ Analytics is a hospitality-sector financial analytics platform. Full product 
 
 ## Inviolable Rules
 
-See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
+See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy **[Category 2 DEFAULT_* is legacy — all business values in DB, not TS constants — see §2 superseding rule]**; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
 
 **Quick-ref auth rules (also in CLAUDE.md):**
 1. **Secrets parity.** Every env var must exist in both Railway AND Replit secrets.
