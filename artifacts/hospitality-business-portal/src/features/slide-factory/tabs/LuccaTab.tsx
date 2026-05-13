@@ -1,13 +1,14 @@
 import { useCallback, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CancelButton } from "@/components/ui/cancel-button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { slotLabel } from "../SlideFactoryUtils";
 import type { SlideFactoryRun, SlotRowProps } from "../SlideFactoryTypes";
+import { FactoryProgressPill } from "./FactoryProgressPill";
 
 // ── Tab 4 — Lucca draft review ──────────────────────────────────────────────
 
@@ -176,15 +177,18 @@ export function FactoryLuccaTab({
   // Lucca is still running
   if (run.status === "drafting") {
     return (
-      <Card>
-        <CardContent className="py-10 flex flex-col items-center gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
-          <p className="text-sm font-medium">Lucca is drafting slide content…</p>
-          <p className="text-xs text-muted-foreground">
-            The pipeline advances automatically once all slots are ready.
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        {/* Skeleton shimmer — slot rows will appear here when done */}
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+        <FactoryProgressPill
+          label="Lucca · Drafting slide content"
+          caption="The pipeline advances automatically once all slots are ready."
+        />
+      </>
     );
   }
 
@@ -196,59 +200,57 @@ export function FactoryLuccaTab({
   const busy = approvingAll || triggeringBuild;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-base">Lucca Draft Review</CardTitle>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-muted-foreground">
-              {approvedCount} / {slots.length} approved
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void handleApproveAll()}
-              disabled={busy || allApproved}
-            >
-              {approvingAll && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
-              Approve all
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {slots.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No draft slots found.
-          </p>
-        ) : (
-          slots.map(([key, slotDraft]) => (
-            <SlotRow
-              key={key}
-              slotKey={key}
-              draft={slotDraft}
-              onApprove={handleApproveSlot}
-              onSaveValue={handleSaveValue}
-              disabled={busy}
-            />
-          ))
-        )}
-
-        <div className="pt-2 flex items-center gap-3">
+    <div className="space-y-2">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-3 mb-3">
+        <p className="text-base font-semibold">Lucca Draft Review</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-muted-foreground">
+            {approvedCount} / {slots.length} approved
+          </span>
           <Button
-            onClick={() => void handleTriggerBuild()}
-            disabled={!allApproved || busy}
+            size="sm"
+            variant="outline"
+            onClick={() => void handleApproveAll()}
+            disabled={busy || allApproved}
           >
-            {triggeringBuild && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Proceed to build
+            {approvingAll && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+            Approve all
           </Button>
-          {!allApproved && slots.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Approve all slots before proceeding.
-            </p>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {slots.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No draft slots found.
+        </p>
+      ) : (
+        slots.map(([key, slotDraft]) => (
+          <SlotRow
+            key={key}
+            slotKey={key}
+            draft={slotDraft}
+            onApprove={handleApproveSlot}
+            onSaveValue={handleSaveValue}
+            disabled={busy}
+          />
+        ))
+      )}
+
+      <div className="pt-2 flex items-center gap-3">
+        <Button
+          onClick={() => void handleTriggerBuild()}
+          disabled={!allApproved || busy}
+        >
+          {triggeringBuild && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          Proceed to build
+        </Button>
+        {!allApproved && slots.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Approve all slots before proceeding.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

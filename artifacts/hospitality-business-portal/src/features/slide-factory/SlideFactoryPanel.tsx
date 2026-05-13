@@ -17,7 +17,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { FACTORY_TABS } from "./SlideFactoryConstants";
 import { statusBadge, statusToTab } from "./SlideFactoryUtils";
@@ -52,8 +52,16 @@ export function SlideFactoryPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-32" />
+        <div className="flex gap-1">
+          {[80, 64, 72, 56, 68, 80].map((w, i) => (
+            <Skeleton key={i} className="h-8 rounded-md" style={{ width: `${w}px` }} />
+          ))}
+        </div>
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-16 w-3/4" />
       </div>
     );
   }

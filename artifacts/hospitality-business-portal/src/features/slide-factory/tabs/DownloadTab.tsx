@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconDownload } from "@/components/icons";
-import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
+import { IconCheckCircle } from "@/components/icons/status-icons";
 import type { SlideFactoryRun } from "../SlideFactoryTypes";
 import { FactoryOverridePanel } from "./AgentsOverridePanel";
+import { FactoryErrorPill } from "./FactoryErrorPill";
+import { FactoryProgressPill } from "./FactoryProgressPill";
 
 // ── Tab 6 — Download (complete) ──────────────────────────────────────────────
 
@@ -63,96 +65,81 @@ export function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun;
     }
   };
 
+  // Error state — floating error pill
   if (run.status === "error") {
     return (
-      <Card>
-        <CardContent className="py-6">
-          <div className="flex items-start gap-3">
-            <IconAlertCircle weight="fill" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Build failed</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                One or more slides were rejected. Review the Agents tab for details.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <FactoryErrorPill message="Build failed — review the Agents tab for details" />
+    );
+  }
+
+  // Rebuilding state — skeleton shimmer + floating progress pill
+  if (run.status === "rebuilding") {
+    return (
+      <>
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-36 rounded-md" />
+          <Skeleton className="h-10 w-36 rounded-md" />
+        </div>
+        <FactoryProgressPill label="Rebuilding PDF…" />
+      </>
     );
   }
 
   return (
     <div className="space-y-4" data-testid={`download-tab-${run.id}`}>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            {run.status === "rebuilding" ? (
-              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
-            ) : (
-              <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
+      {/* Borderless success section */}
+      <div className="space-y-3">
+        {/* Inline success row */}
+        <div className="flex items-center gap-2">
+          <IconCheckCircle weight="fill" className="w-4 h-4 text-success shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Deck ready</p>
+            {run.completedAt && (
+              <p className="text-xs text-muted-foreground">
+                Completed {new Date(run.completedAt).toLocaleDateString()} at{" "}
+                {new Date(run.completedAt).toLocaleTimeString()}
+              </p>
             )}
-            <CardTitle className="text-sm font-semibold">
-              {run.status === "rebuilding" ? "Rebuilding PDF…" : "Deck ready"}
-            </CardTitle>
           </div>
-          {run.completedAt && run.status !== "rebuilding" && (
-            <p className="text-xs text-muted-foreground">
-              Completed {new Date(run.completedAt).toLocaleDateString()} at{" "}
-              {new Date(run.completedAt).toLocaleTimeString()}
-            </p>
-          )}
-        </CardHeader>
-        <CardContent>
-          {run.status === "rebuilding" ? (
-            <p className="text-xs text-muted-foreground">
-              A new version of the deck is being generated…
-            </p>
-          ) : hasDeck || hasPptx ? (
-            <div className="flex flex-wrap gap-2">
-              {hasDeck && (
-                <Button
-                  onClick={() => void handleDownload("pdf")}
-                  disabled={downloadingPdf}
-                  data-testid="download-pdf-button"
-                >
-                  {downloadingPdf ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <IconDownload className="w-4 h-4 mr-2" />
-                  )}
-                  Download PDF
-                </Button>
-              )}
-              {hasPptx && (
-                <Button
-                  variant="outline"
-                  onClick={() => void handleDownload("pptx")}
-                  disabled={downloadingPptx}
-                  data-testid="download-pptx-button"
-                >
-                  {downloadingPptx ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <IconDownload className="w-4 h-4 mr-2" />
-                  )}
-                  Download PPTX
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-4">
-              <IconAlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">Deck not yet rendered</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  The build completed but no output files were generated. Please contact your
-                  administrator.
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Download buttons or deck-missing floating pill */}
+        {hasDeck || hasPptx ? (
+          <div className="flex flex-wrap gap-2">
+            {hasDeck && (
+              <Button
+                onClick={() => void handleDownload("pdf")}
+                disabled={downloadingPdf}
+                data-testid="download-pdf-button"
+              >
+                {downloadingPdf ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <IconDownload className="w-4 h-4 mr-2" />
+                )}
+                Download PDF
+              </Button>
+            )}
+            {hasPptx && (
+              <Button
+                variant="outline"
+                onClick={() => void handleDownload("pptx")}
+                disabled={downloadingPptx}
+                data-testid="download-pptx-button"
+              >
+                {downloadingPptx ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <IconDownload className="w-4 h-4 mr-2" />
+                )}
+                Download PPTX
+              </Button>
+            )}
+          </div>
+        ) : (
+          <FactoryErrorPill message="Deck not yet rendered · Contact your administrator" />
+        )}
+      </div>
 
       <FactoryOverridePanel run={run} onRunUpdate={onRunUpdate} />
     </div>
