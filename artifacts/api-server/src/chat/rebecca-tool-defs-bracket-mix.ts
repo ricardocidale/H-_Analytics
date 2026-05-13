@@ -45,7 +45,8 @@ export function getBracketMixTools(): ToolParam[] {
         type: "object",
         properties: {
           peerId: {
-            type: "number",
+            type: "integer",
+            minimum: 1,
             description: "The icp_peer_companies.id of the peer to refresh.",
           },
         },
@@ -66,15 +67,17 @@ export function getBracketMixTools(): ToolParam[] {
         type: "object",
         properties: {
           companyId: {
-            type: "number",
+            type: "integer",
+            minimum: 1,
             description: "The global_assumptions.id of the Mgmt-Co row to override.",
           },
           compSetSlugs: {
             type: "array",
+            minItems: 1,
             description:
               "Peer slugs to research for this override (e.g. ['auberge-resorts','kimpton']). " +
               "Must contain at least one slug.",
-            items: { type: "string" },
+            items: { type: "string", minLength: 1 },
           },
         },
         required: ["companyId", "compSetSlugs"],
@@ -93,7 +96,8 @@ export function getBracketMixTools(): ToolParam[] {
         type: "object",
         properties: {
           companyId: {
-            type: "number",
+            type: "integer",
+            minimum: 1,
             description: "The global_assumptions.id of the Mgmt-Co row to clear.",
           },
         },

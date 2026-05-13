@@ -35,6 +35,7 @@ Plus the per-user demo passwords (`PASSWORD_*`) used by the dev-style auth fallb
 - `STORAGE_PROVIDER=r2`
 - `AUTH_PROVIDER=replit`
 - `CI=true`
+- `BRACKET_MIX_PHASE_B` — Phase B ICP bracket-mix feature flag (optional). Explicit values: `on`/`true`/`1` enable the peer-derived path; `off`/`false`/`0` disable. Unset defaults to **on** in dev/staging/test and **off** in production (per `services/bracketMix/featureFlag.ts`). Must be set in **both** Railway service variables and Replit secrets when an explicit override is desired — CLAUDE.md §"Inviolable login / auth rules" #1 (Railway ↔ Replit parity).
 
 ## Build externals
 

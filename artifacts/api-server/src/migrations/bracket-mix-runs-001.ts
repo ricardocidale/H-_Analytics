@@ -79,6 +79,12 @@ export async function runBracketMixRuns001(): Promise<void> {
       IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
         WHERE conname = 'global_assumptions_bracket_mix_override_run_id_fk'
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'global_assumptions'
+          AND column_name = 'bracket_mix_override_run_id'
       ) THEN
         ALTER TABLE "global_assumptions"
           ADD CONSTRAINT "global_assumptions_bracket_mix_override_run_id_fk"
@@ -89,6 +95,12 @@ export async function runBracketMixRuns001(): Promise<void> {
       IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
         WHERE conname = 'icp_peer_companies_last_research_run_id_fk'
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'icp_peer_companies'
+          AND column_name = 'last_research_run_id'
       ) THEN
         ALTER TABLE "icp_peer_companies"
           ADD CONSTRAINT "icp_peer_companies_last_research_run_id_fk"
