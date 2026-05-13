@@ -67,10 +67,18 @@ that it is hardcoded. These values belong in the database:
 **The three-layer resolver guarantees Layer-3 is always set**, so engine code
 reads `property.exitCapRate` directly — never `?? DEFAULT_EXIT_CAP_RATE`.
 
+The DB schema enforces the invariant: new columns are added as
+`NOT NULL DEFAULT <value>` in migration SQL. The literal in the SQL is
+both the bootstrap value and the not-null enforcement — existing rows are
+backfilled automatically by the DEFAULT clause. This makes TS fallback
+constants structurally unnecessary, not just stylistically bad.
+
 **The ONLY numbers allowed in TypeScript:**
 - Category 1: math/physics absolutes (12, 365, 30.5, π, 86400, etc.)
 - Structural clamps/indices: `0`, `1`, `-1`
-- One-time migration SQL literals (the canonical bootstrap source, with source comment)
+- Algorithm calibration constants: non-financial, non-admin-configurable parameters (IRS/GAAP-derived engine parameters like `NOL_UTILIZATION_CAP = 0.8`; rule-ordering integers like `PRIORITY_* = 100`)
+- `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) — bootstrap-only, source citation required, never imported by runtime code
+- Test assertion / fixture values (`*.test.ts`, `*.spec.ts`) — checker skips these files entirely
 
 **Three violation examples with correct fixes:**
 ```ts
@@ -429,7 +437,9 @@ Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/
 
 ### Number taxonomy — the permanent law (never re-derive)
 
-Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — use `?? DEFAULT_X` or `?? getFactoryNumber(key, 'US')`; (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` outside `lib/shared/src/constants*.ts` or `lib/db/src/constants.ts`.
+Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — the fix is NOT `?? DEFAULT_X` (also a violation); use `getFactoryNumber(key, country)` for country-specific rates or rely on the three-layer resolver guarantee (no fallback needed); (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` — a named constant doesn't fix the violation.
+
+**Confirmed exceptions (2026-05-13):** Algorithm calibration constants (non-financial ordering / IRS-derived parameters like `NOL_UTILIZATION_CAP`, `PRIORITY_*`) stay in TypeScript. `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) are acceptable bootstrap-only values with source citations. Test files (`*.test.ts`, `*.spec.ts`) are fully exempt from the checker.
 
 Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local assumption constants.
 
@@ -492,6 +502,8 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full reference (routes, schema, finance, slots, Admin UI) |
 | `docs/slide-system/canonical/coding-agent-instructions.md` | Slide agent workflow — §15 mandates canonical PNG comparison (PNG > JSON) |
 | `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` | Large-repo Shell + CodeRabbit + Compound operating mode (off by default; toggle: `.local/opmode/active`) |
+| `.agents/status/cc.md` | CC current session status (active branch, owned files, handoff notes) |
+| `.agents/status/replit.md` | Replit current session status (active branch, owned files, handoff notes) |
 
 ---
 
@@ -524,11 +536,36 @@ Never merge a PR whose diff contains files outside the stated scope without expl
 
 ---
 
+### Agent coordination — CC ↔ Replit (mandatory session gate)
+
+Two status files prevent work collisions between CC and Replit Agent:
+
+| File | Owner | Counterpart reads |
+|---|---|---|
+| `.agents/status/cc.md` | CC (sole writer) | Replit |
+| `.agents/status/replit.md` | Replit (sole writer) | CC |
+
+**Session start (mandatory):**
+1. Read `.agents/status/replit.md` — note `Active Branch` and `Files Replit Owns Right Now`.
+2. If Replit has an active branch that overlaps files you need, coordinate before touching them.
+3. Update `.agents/status/cc.md`: set `Status: active`, record branch, set `Updated` timestamp.
+
+**Session end (mandatory):**
+1. Set `Status: idle` (or `handoff-pending` if handing off to Replit).
+2. Fill `Handoff to Replit` section with specific pickup instructions if applicable.
+3. Commit the status file as part of your final commit (or standalone `chore(status)` commit).
+
+**Staleness clause:** if `Updated` is >24h old, treat as `idle` regardless of `Status` field.
+
+Full protocol, format spec, and surface restrictions: `agent-collab-status` skill.
+
+---
+
 ### Memory-file harmonization (mandatory shipping gate)
 
 `CLAUDE.md` and `replit.md` are dual memory files covering identical ground for two different agents. They drift by default. **Every session that modifies either file must harmonize the other before shipping.** This applies equally when `ce-work` ships code that affects `CLAUDE.md` content (architecture rules, skill routing, known issues, recent changes).
 
-Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `CLAUDE.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
+Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `CLAUDE.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass, TODO list format and cadence). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
 
 ---
 
@@ -547,6 +584,22 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 | "coderabbit loop help", "what are the loop commands" | `/coderabbit-loop-help` | `pnpm coderabbit-loop:help` |
 | "run coderabbit review loop", "review my working tree", "start review loop" | `/coderabbit-loop-review` | `pnpm coderabbit-loop:review` |
 | "run coderabbit autofix", "loop with autofix", "autofix my PR" | `/coderabbit-loop-autofix` | `pnpm coderabbit-loop:autofix` |
+
+---
+
+## Open TODOs — CC
+
+<!-- Check off when done · Add when identified · Prune [x] rows at next session start -->
+<!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
+| | Item | Scope |
+|---|---|---|
+| [ ] | Verify `global-assumptions.ts` + `bracket-assignment-minion.ts` don't access removed `defaultExitCapRate` / `defaultRefiMaxLtvToOriginal` fields | feat/seed-calibration-bracket-defaults |
+| [ ] | Create `properties-refi-ltv-cap-001.ts` runtime guard (`ADD COLUMN IF NOT EXISTS refi_max_ltv_to_original`) + register in `startup/migrations.ts` | feat/seed-calibration-bracket-defaults |
+| [ ] | Update `icp-brackets-004.ts` header comment — lines 14-17 reference removed `BRACKET_CATALOG` fields; mention `SEED_BRACKET_*` maps instead | feat/seed-calibration-bracket-defaults |
+| [ ] | U6: bracket-default seeding pathway at `POST /api/properties` (three-layer resolver writes icp_brackets Layer-2 values into new entity rows) | Plan 2026-05-13-001 |
+| [ ] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration | Plan 2026-05-13-001 |
+| [ ] | U8: verification — portfolio IRR in 25–30% band + docs | Plan 2026-05-13-001 |
+| [ ] | Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each constant as cleaned up) | Taxonomy cleanup |
 
 ---
 

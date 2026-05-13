@@ -112,11 +112,35 @@ const DAYS_PER_MONTH    = 30.5;   // 365/12, GAAP convention
 const SECONDS_PER_DAY   = 86_400; // 24 × 60 × 60
 ```
 
+**CORRECT — Algorithm calibration constants may remain in TypeScript:**
+```ts
+// CORRECT — IRS §382-derived algorithm parameter; admin does not configure this
+export const NOL_UTILIZATION_CAP = 0.8; // max 80% of taxable income offset per year (IRS §382)
+
+// CORRECT — priority ordering for a best-fit rule set; non-financial ordering
+const PRIORITY_LATAM_LUXURY_STR_SINGLE_KEY = 100; // most-specific rule fires first
+const PRIORITY_US_GATEWAY_BOUTIQUE         = 40;  // catch-all fires last
+```
+
+**CORRECT — SEED_* constants in migration guard files:**
+```ts
+// CORRECT — migration bootstrap only; SEED_* prefix; source citation in comment
+// File: artifacts/api-server/src/migrations/icp-brackets-004.ts
+const SEED_BRACKET_EXIT_CAP_RATE: Record<BracketId, number> = {
+  [BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT]: 0.0975, // CBRE 2024, tertiary US + 75bp hold premium
+  [BRACKET_ID_US_GATEWAY_BOUTIQUE]:         0.0850, // CBRE 2024, gateway US
+};
+// After this guard runs, the values live in icp_brackets rows.
+// The SEED_* const exists ONLY to bootstrap the table — not used at runtime.
+```
+
 ### Migration path for existing DEFAULT_* constants
 
-The existing `DEFAULT_*` constants in `lib/shared/src/constants*.ts` are
-**legacy debt**. They were correct before the three-layer resolver existed.
-They are now violations waiting to be cleaned up. The cleanup discipline:
+**Confirmed 2026-05-13: ALL `DEFAULT_*` constants are violations — remove them
+entirely over time, including from Drizzle schema `.default()` calls.** The
+Drizzle schema should use an inline literal matching the SQL migration's
+`DEFAULT` clause (the checker doesn't scan `lib/db/src`). The cleanup
+discipline:
 
 1. Identify the constant and every caller.
 2. Ensure the `model_defaults` DB table has a row for the value (or the
@@ -124,10 +148,13 @@ They are now violations waiting to be cleaned up. The cleanup discipline:
 3. Verify the three-layer resolver writes the value into every entity row at
    creation time.
 4. Remove the `?? DEFAULT_X` fallback from the engine / route.
-5. Delete the TypeScript constant.
-6. Run the magic numbers check and typecheck — both must pass.
+5. In the Drizzle schema, replace `.default(DEFAULT_X)` with the matching
+   inline literal (e.g., `.default(0.70)`) — the SQL migration's `DEFAULT 0.70`
+   is the single source of truth.
+6. Delete the TypeScript `DEFAULT_*` constant.
+7. Run the magic numbers check and typecheck — both must pass.
 
-Do NOT remove a `DEFAULT_*` constant before completing steps 2–4. Removing
+Do NOT remove a `DEFAULT_*` constant before completing steps 2–3. Removing
 the fallback before the DB guarantee is in place causes null-dereference bugs.
 
 ---
@@ -210,18 +237,16 @@ field. It does NOT override already-confirmed assumption variables.
 | `DEFAULT_INTEREST_RATE` | 0.075 | Debt interest rate fallback (lives in `constants-funding.ts`) |
 | `DEFAULT_TERM_YEARS` | 25 | Amortization term |
 
-**Code rules:**
+**Code rules (historical — DEFAULT_* is legacy debt being removed):**
 - Prefix: always `DEFAULT_`
 - Location: `lib/shared/src/constants*.ts` — nowhere else
-- Usage as null-coalescing fallback: `property.field ?? DEFAULT_FIELD`
-- **Never use the raw literal** when a `DEFAULT_*` constant exists
-- **Never duplicate a `DEFAULT_*` value** in two files — the constant is
-  the single source of truth
-- **Seed files MUST reference `DEFAULT_*` constants** — never write a raw
-  literal in seed data. The flow is: `DEFAULT_X` defined in constants → seed
-  file imports `DEFAULT_X` → DB row initialised with `DEFAULT_X`. A raw
-  literal in a seed file breaks the single-source-of-truth chain and causes
-  silent drift the moment the constant is recalibrated.
+- **The `?? DEFAULT_X` fallback pattern is a VIOLATION** under the superseding
+  rule. The three-layer resolver guarantees every entity field is non-null
+  before the engine runs — no TypeScript fallback is needed or correct.
+- **Never create new `DEFAULT_*` constants for financial values.** The entire
+  category is being migrated to DB rows.
+- **`DEFAULT_*` in Drizzle schema `.default()` is also a violation** —
+  transition to the inline literal matching the SQL migration's `DEFAULT` clause.
 
 **Country-specific rates are a special case.** Tax rates, inflation baselines,
 and depreciation lives vary by country. They must use `getFactoryNumber()`,
@@ -327,13 +352,17 @@ const DEFAULT_COLOMBIA_INFLATION = 0.06;
 | The number is… | Use… | Location |
 |---|---|---|
 | Calendar math (12 months, 365 days, 30.5 days/month) | True constant, formula comment | `constants.ts` IMMUTABLE section or inline |
+| An IRS/GAAP-derived algorithm parameter (NOL cap, depreciation method) | Named constant, regulatory citation in comment | `lib/shared/src/constants*.ts` or inline in engine |
+| A rule-ordering / priority integer (non-financial algorithm calibration) | Named `PRIORITY_*` constant near its rule definitions | Same file as the rules it orders (seed-only code) |
 | A financial default the admin controls | DB row in `model_defaults` | Bootstrapped by migration SQL with source comment |
 | A bracket-level overlay (exit cap, LTV by tier) | DB row in `icp_brackets` | Bootstrapped by migration SQL with source comment |
 | A country-specific rate (tax, inflation, depreciation) | `getFactoryNumber(key, country)` | Registry lookup |
 | A per-entity user-configurable value | DB column on `properties` / `companies` | Always populated by three-layer resolver at creation |
 | Engine / calc function reading an entity value | `property.field` — no `?? DEFAULT_X` | DB value guaranteed by resolver |
-| A bootstrap value in a migration SQL file | Inline SQL literal with source comment | Migration SQL only — never copied into TS |
+| A bootstrap value in a migration SQL file | Inline SQL literal with source comment | Migration SQL only |
+| A bootstrap value in a migration guard .ts file | `SEED_*` named constant with source comment | `artifacts/api-server/src/migrations/*.ts` only |
 | `0` used as a structural floor/clamp | Inline `0` is fine | Inline |
+| A test assertion or fixture value | Inline literal is fine | `*.test.ts` / `*.spec.ts` — checker skips these files |
 
 ---
 
@@ -365,12 +394,35 @@ table-sourced value.
 |---|---|---|
 | `0.03` (inflation) | No | `getFactoryNumber('inflationRate', country)` |
 | `0.21` (US income tax) | No | `getFactoryNumber('taxRate', 'United States')` |
-| `0.085` (mgmt fee) | No | `DEFAULT_BASE_MANAGEMENT_FEE_RATE` |
-| `0.075` (interest rate) | No | `DEFAULT_INTEREST_RATE` (in `constants-funding.ts`) |
-| `0.30` (F&B share) | No | `DEFAULT_REV_SHARE_FB` |
+| `0.085` (mgmt fee) | No — legacy `DEFAULT_*` violation | DB row in `model_defaults` |
+| `0.075` (interest rate) | No — legacy `DEFAULT_*` violation | DB row in `model_defaults` |
+| `0.30` (F&B share) | No — legacy `DEFAULT_*` violation | DB row in `model_defaults` |
+| `0.70` (refi LTV cap) | No | DB column on `properties` (three-layer resolver) |
+| `0.0975` (bracket exit cap) | No | DB row in `icp_brackets` (seeded by migration guard) |
 | `39` (depreciation years) | No | `getFactoryNumber('depreciationYears', country)` |
-| `30.5` (days/month) | Yes | `DAYS_PER_MONTH` — formula: `365/12` |
-| `12` (months/year) | Yes | `MONTHS_PER_YEAR` |
+| `30.5` (days/month) | Yes — math | `DAYS_PER_MONTH` — formula: `365/12` |
+| `12` (months/year) | Yes — math | `MONTHS_PER_YEAR` |
+| `0.8` (NOL utilization cap) | Yes — IRS §382 algorithm parameter | `NOL_UTILIZATION_CAP` in `constants.ts` |
+| `100`, `90`, `70`… (bracket priority) | Yes — non-financial ordering | `PRIORITY_*` constants near their rule set |
+
+---
+
+## Magic-numbers checker exclusions (confirmed 2026-05-13)
+
+The `check-magic-numbers.ts` ratchet intentionally skips these paths because
+they are bootstrap or test contexts where raw literals are correct:
+
+| Excluded path/pattern | Why |
+|---|---|
+| `*.test.ts`, `*.spec.ts` | Test assertions and fixture inputs are exempt — they document computed expectations, not business rules |
+| `artifacts/api-server/src/migrations/*.ts` | Runtime guard files may contain `SEED_*` named bootstrap constants |
+| `lib/db/migrations/*.sql` | Bootstrap SQL — the *source* of truth for DB values, not a consumer |
+| `lib/db/src/schema/*.ts` | Drizzle schema `.default()` literals mirror their SQL migration; `lib/db/src` is not in SCAN_DIRS |
+
+**Algorithm calibration constants are also exempt** from the "must live in DB"
+rule: non-financial ordering or IRS/GAAP-derived algorithm parameters (priority
+integers, NOL caps) may stay in TypeScript as named constants with regulatory
+citations.
 
 ---
 

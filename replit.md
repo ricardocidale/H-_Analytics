@@ -16,7 +16,7 @@ H+ Analytics is a hospitality-sector financial analytics platform. Full product 
 
 ## Inviolable Rules
 
-See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy **[Category 2 DEFAULT_* is legacy — all business values in DB, not TS constants — see §2 superseding rule]**; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
+See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy **[Category 2 DEFAULT_* is legacy — ALL DEFAULT_* are violations, remove entirely; `?? DEFAULT_X` fallback is a violation; algorithm calibration constants like `NOL_UTILIZATION_CAP` / `PRIORITY_*` stay in TS; `SEED_*` in migration guards OK; test files exempt from checker — see §2 + `hplus-variable-taxonomy` skill]**; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
 
 **Quick-ref auth rules (also in CLAUDE.md):**
 1. **Secrets parity.** Every env var must exist in both Railway AND Replit secrets.
@@ -35,6 +35,36 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 - **`executeSql` tool hits the wrong database.** The code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <auth-cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script using `process.env.POSTGRES_URL` with the `pg` client from `artifacts/api-server/node_modules/pg`.
 - **Drizzle migration state can lag the journal.** After manually applying DDL, sync `drizzle.__drizzle_migrations`: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`). Full migration + seed runbook (three-folder topology, runtime guards, drift recovery, Helium-vs-Neon `executeSql` gotcha): `docs/runbooks/schema-migrations.md`.
 - **Replit Agent commits land on whatever branch is currently checked out.** When CC leaves a PR branch open (waiting for CI / CodeRabbit), Replit Agent commits will accumulate there under the CC PR title. Before merging any CC PR, run `git log origin/main..origin/<branch> --oneline` and verify every commit belongs to the intended scope. If Replit Agent commits are mixed in, cherry-pick the CC-only commits onto a fresh branch. Full workflow + orphan-commit recovery (reflog): `CLAUDE.md` § "CC branch hygiene" and `docs/solutions/workflow-issues/cc-replit-branch-hygiene-2026-05-10.md`.
+
+---
+
+## Agent Coordination — Replit ↔ CC (mandatory session gate)
+
+Two status files prevent work collisions between Replit Agent and CC:
+
+| File | Owner | Counterpart reads |
+|---|---|---|
+| `.agents/status/replit.md` | Replit (sole writer) | CC |
+| `.agents/status/cc.md` | CC (sole writer) | Replit |
+
+**Session start (mandatory):**
+1. Read `.agents/status/cc.md` — note `Active Branch` and `Files CC Owns Right Now`.
+2. If CC has an active branch that overlaps files you need, do NOT commit to that branch.
+3. Update `.agents/status/replit.md`: set `Status: active`, record branch, set `Updated` timestamp.
+
+**Session end (mandatory):**
+1. Set `Status: idle` (or `handoff-pending` if handing off to CC).
+2. Fill `Handoff to CC` section if applicable.
+3. Commit the status file as part of your final commit.
+
+**Staleness clause:** if `Updated` is >24h old, treat as `idle` regardless of `Status` field.
+
+**Surfaces permanently off-limits to Replit (even when CC is idle):**
+- `lib/engine/src/`, `lib/calc/src/`, `lib/shared/src/constants*.ts`
+- `lib/db/src/`, `artifacts/api-server/src/finance/`, `artifacts/api-server/src/report/`
+- `artifacts/api-server/src/migrations/*.ts`, `artifacts/api-server/src/tests/proof/`, `tests/engine/`
+
+Full protocol + format spec: `agent-collab-status` skill.
 
 ---
 
@@ -98,7 +128,8 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 | Slide renderer contract | `lb-slides-renderer` skill |
 | Research trigger buttons | `analyst-research-buttons` skill |
 | Intelligence display components | `analyst-intelligence-display` skill |
-| Memory file harmonization | `agent-memory-files` skill |
+| Memory file harmonization + TODO list discipline | `agent-memory-files` skill |
+| CC ↔ Replit coordination (status files, session gate, collision avoidance) | `agent-collab-status` skill |
 | Inflation policy (USD-base calc) | `inflation-cascade` skill — **supersedes prior country cascade** |
 | Integration-health audit (Costantino) | `costantino-data-custodian` skill |
 | Agent naming + reserved names | `slide-factory` skill |
@@ -126,6 +157,16 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 | "coderabbit loop help", "what are the loop commands" | `/coderabbit-loop-help` | `pnpm coderabbit-loop:help` |
 | "run coderabbit review loop", "review my working tree", "start review loop" | `/coderabbit-loop-review` | `pnpm coderabbit-loop:review` |
 | "run coderabbit autofix", "loop with autofix", "autofix my PR" | `/coderabbit-loop-autofix` | `pnpm coderabbit-loop:autofix` |
+
+---
+
+## Open TODOs — Replit Agent
+
+<!-- Check off when done · Add when identified · Prune [x] rows at next session start -->
+<!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
+| | Item | Scope |
+|---|---|---|
+| [ ] | U3: add refi LTV cap field to `DebtSection.tsx` (new `refiMaxLtvToOriginal` column is live; wire UI input + save) | Plan 2026-05-13-001 |
 
 ---
 
