@@ -19,6 +19,12 @@
  *   - Descriptions follow the same rule but additionally fall back to the
  *     legacy `description` column for backwards compatibility.
  *
+ * Plan 2026-05-13-002 U7 — All descriptor reads route through the
+ * `property-descriptor-accessor` so JSONB blobs (`descriptors_purchased` /
+ * `descriptors_improved`) and the typed-column dual-write window both feed
+ * the same priority chain. The accessor is the migration seam that will
+ * survive the U8 typed-column drop.
+ *
  * The fields covered here (fbVenues / fbSeats / eventSpaceSqft /
  * totalBuildingSqft / description) are descriptors consumed by ICP analysis,
  * the slide factory, the Rebecca property tools, and the report export
@@ -30,6 +36,12 @@
  * ensures every consumer agrees on the cut-over year and applies the same
  * fallback rules.
  */
+import {
+  getEffectiveDescriptor,
+  getImprovedDescriptor,
+  getPurchasedDescriptor,
+  type PropertyRow,
+} from '@workspace/db/property-descriptor-accessor';
 import type { PropertyInput } from '../types';
 
 export type RenovationState = 'as_purchased' | 'as_improved';
@@ -43,7 +55,21 @@ export interface ResolvedPropertyFacts {
   description: string | null;
 }
 
-type RenovationFactsInput = Pick<
+/**
+ * Inputs accepted by the renovation-facts helpers. We intentionally widen the
+ * type to `PropertyRow` so the helpers work against both:
+ *   - The engine's `PropertyInput` shape (typed columns at the camelCase
+ *     surface). Dual-write keeps these in sync with the JSONB blobs.
+ *   - Raw DB rows with the JSONB blobs (`descriptorsPurchased` /
+ *     `descriptorsImproved`).
+ * The accessor's `readJsonbBlob` returns `{}` when the blob is missing, so
+ * typed-column-only rows still resolve through the dual-write fallback.
+ *
+ * The narrowed `Pick<PropertyInput, ...>` type below documents the engine's
+ * historical column-level dependencies so type errors at consumer sites
+ * still surface useful field names while we migrate.
+ */
+type RenovationFactsInput = PropertyRow & Partial<Pick<
   PropertyInput,
   | 'fbVenues'
   | 'fbSeats'
@@ -57,36 +83,74 @@ type RenovationFactsInput = Pick<
   | 'totalBuildingSqftImproved'
   | 'plannedReopeningYear'
   | 'descriptionImproved'
->;
+>>;
+
+// ─── Coercion helpers ────────────────────────────────────────────────────
+// The accessor returns `unknown` (JSONB blobs are loosely typed). Narrow at
+// each call site so the public ResolvedPropertyFacts shape stays strict.
+
+function asNumberOrNull(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function asStringOrNull(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === 'string') return v;
+  return null;
+}
 
 /**
  * Returns the As-Purchased descriptor snapshot. Used by report exports and
  * Rebecca tools that need to surface the acquisition-state facts explicitly.
+ *
+ * Reads route through `getPurchasedDescriptor` so the JSONB blob is preferred
+ * over the typed column when both are present (dual-write window — once U8
+ * lands and drops the typed columns, only the blob path remains).
+ *
+ * Descriptions retain a tail fallback to the legacy un-versioned `description`
+ * column for rows seeded before `description_purchased` existed.
  */
 export function resolveAsPurchasedFacts(property: RenovationFactsInput): ResolvedPropertyFacts {
   return {
     state: 'as_purchased',
-    fbVenues: property.fbVenues ?? null,
-    fbSeats: property.fbSeats ?? null,
-    eventSpaceSqft: property.eventSpaceSqft ?? null,
-    totalBuildingSqft: property.totalBuildingSqft ?? null,
-    description: property.descriptionPurchased ?? property.description ?? null,
+    fbVenues: asNumberOrNull(getPurchasedDescriptor(property, 'fbVenues')),
+    fbSeats: asNumberOrNull(getPurchasedDescriptor(property, 'fbSeats')),
+    eventSpaceSqft: asNumberOrNull(getPurchasedDescriptor(property, 'eventSpaceSqft')),
+    totalBuildingSqft: asNumberOrNull(getPurchasedDescriptor(property, 'totalBuildingSqft')),
+    description:
+      asStringOrNull(getPurchasedDescriptor(property, 'description'))
+        ?? asStringOrNull(property.description as unknown)
+        ?? null,
   };
 }
 
 /**
  * Returns the As-Improved descriptor snapshot, falling back to As-Purchased
  * for any field that has not yet been captured.
+ *
+ * Implemented by reading the effective (improved-then-purchased) view through
+ * `getEffectiveDescriptor` — that single call subsumes the historical
+ * `improved ?? purchased` chain. The description tail fallback to the legacy
+ * `description` column is preserved for the rare row where neither side has a
+ * descriptor-catalog entry populated.
  */
 export function resolveAsImprovedFacts(property: RenovationFactsInput): ResolvedPropertyFacts {
-  const purchased = resolveAsPurchasedFacts(property);
   return {
     state: 'as_improved',
-    fbVenues: property.fbVenuesImproved ?? purchased.fbVenues,
-    fbSeats: property.fbSeatsImproved ?? purchased.fbSeats,
-    eventSpaceSqft: property.eventSpaceSqftImproved ?? purchased.eventSpaceSqft,
-    totalBuildingSqft: property.totalBuildingSqftImproved ?? purchased.totalBuildingSqft,
-    description: property.descriptionImproved ?? purchased.description,
+    fbVenues: asNumberOrNull(getEffectiveDescriptor(property, 'fbVenues')),
+    fbSeats: asNumberOrNull(getEffectiveDescriptor(property, 'fbSeats')),
+    eventSpaceSqft: asNumberOrNull(getEffectiveDescriptor(property, 'eventSpaceSqft')),
+    totalBuildingSqft: asNumberOrNull(getEffectiveDescriptor(property, 'totalBuildingSqft')),
+    description:
+      asStringOrNull(getEffectiveDescriptor(property, 'description'))
+        ?? asStringOrNull(property.description as unknown)
+        ?? null,
   };
 }
 
@@ -101,7 +165,7 @@ export function resolvePropertyFactsForYear(
   property: RenovationFactsInput,
   calendarYear: number,
 ): ResolvedPropertyFacts {
-  const reopen = property.plannedReopeningYear;
+  const reopen = asNumberOrNull(getImprovedDescriptor(property, 'plannedReopeningYear'));
   if (reopen == null || calendarYear < reopen) {
     return resolveAsPurchasedFacts(property);
   }
@@ -112,14 +176,19 @@ export function resolvePropertyFactsForYear(
  * Returns true when the operator has captured at least one As-Improved
  * descriptor (any field or planned reopening year). Used by report and
  * slide consumers to decide whether to render a "post-renovation" block.
+ *
+ * Implemented via `getImprovedDescriptor` per catalog field so the predicate
+ * sees both JSONB blob entries and typed-improved-column values.
  */
 export function hasRenovationHypothesis(property: RenovationFactsInput): boolean {
-  return (
-    property.plannedReopeningYear != null ||
-    property.fbVenuesImproved != null ||
-    property.fbSeatsImproved != null ||
-    property.eventSpaceSqftImproved != null ||
-    property.totalBuildingSqftImproved != null ||
-    (property.descriptionImproved != null && property.descriptionImproved.trim().length > 0)
-  );
+  if (getImprovedDescriptor(property, 'plannedReopeningYear') != null) return true;
+  if (getImprovedDescriptor(property, 'fbVenues') != null) return true;
+  if (getImprovedDescriptor(property, 'fbSeats') != null) return true;
+  if (getImprovedDescriptor(property, 'eventSpaceSqft') != null) return true;
+  if (getImprovedDescriptor(property, 'totalBuildingSqft') != null) return true;
+
+  const desc = asStringOrNull(getImprovedDescriptor(property, 'description'));
+  if (desc != null && desc.trim().length > 0) return true;
+
+  return false;
 }

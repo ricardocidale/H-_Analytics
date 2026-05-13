@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./property-descriptor-accessor": "./src/property-descriptor-accessor.ts"
   },
   "scripts": {
     "lint": "eslint src --cache --cache-location .eslintcache",
