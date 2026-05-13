@@ -1,0 +1,260 @@
+---
+title: "feat: Seed calibration and bracket-default extension"
+type: feat
+status: active
+date: 2026-05-13
+---
+
+# feat: Seed calibration and bracket-default extension
+
+## Summary
+
+Bring the demo portfolio's combined IRR from the current ~50%+ band into a defensible 25–30% boutique value-add target, while fixing the structural causes that produced the unrealistic seed in the first place. Three coordinated work streams: (1) **Tactical seed corrections** in the live DB — exit caps and Duplex occupancy; (2) **Engine + UI changes** for a configurable refi-LTV-to-original cap that prevents inflated mid-projection cash-out spikes; (3) **Structural bracket-default extension** that wires `exit_cap_rate` and `refi_max_ltv_to_original` into the bracket-default template pathway introduced in `docs/concepts/bracket-mix.md` § 6a, so future seeds and new entities inherit market-anchored values automatically.
+
+The tactical fix unblocks the demo; the structural fix prevents the same drift from recurring. IRR continues to be computed as today (single combined-portfolio figure) — no view changes in scope.
+
+**Canonical flow (locked in 2026-05-13, layered model = Option C):** No number used by the engine or shown in the UI may originate from a TypeScript literal, a `DEFAULT_*` constant, or a hardcoded seed assignment. Defaults are resolved through three DB-backed layers, each visible in admin:
+
+```
+LAYER 1 — Universal default
+  model_defaults table, row keyed e.g. property.template.exitCapRate, scope = NULL/NULL/NULL/NULL
+  Surfaces in:  Admin → Steady State → Property (PropertyUnderwritingTab)
+                Admin → Steady State → Management Co. (CompanyTab)
+                Admin → Steady State → Constants (ModelConstantsTab)  ← + model_constant_overrides for TS-factory departures
+                Admin → Steady State → Analyst Tables / Reference Ranges  ← market-data tables some defaults derive from
+                          ↓
+LAYER 2 — Bracket overlay (resolved at entity creation)
+  icp_brackets row carries default-value template (per docs/concepts/bracket-mix.md §6a).
+  POST /api/properties resolves the company's bracket mix, weight-blends each templated
+  field across mix entries, and overlays the result on top of Layer 1.
+                          ↓
+LAYER 3 — Per-entity value (DEFAULT → ASSUMPTION → CONFIRMED)
+  The blended value is written onto the new property row in DEFAULT state per
+  hplus-assumption-lifecycle. User edit → ASSUMPTION → confirm → CONFIRMED.
+  Per-entity strategic overrides (Duplex exit_cap_rate = 0.075) live here as CONFIRMED
+  deviations from the bracket-blended value, with provenance metadata.
+                          ↓
+Engine reads Layer 3 (the entity's own column), never Layer 1 or 2 directly.
+```
+
+**Read-time precedence:** Layer 3 (entity row) > Layer 2 (bracket overlay at create) > Layer 1 (universal model_defaults). The engine only ever sees Layer 3.
+
+**Write-time precedence:** Bracket-overlay (Layer 2) writes happen ONLY at entity creation, never retroactively (per `hplus-assumption-lifecycle`). Admin edits to Layer 1 or to bracket templates affect future entity creations only.
+
+**Dev seed parity:** The dev seed script invokes the same `POST /api/properties` handler logic, so dev-environment values flow through the exact same three-layer pipeline. No literals.
+
+This means the bracket-default work (U5 → U6 → U7 in critical-path order) MUST land **before** the demo properties get their corrected values — otherwise we'd be doing exactly the hardcoded-literal anti-pattern this plan exists to fix.
+
+---
+
+## Problem Frame
+
+Investigation on 2026-05-13 confirmed:
+- **Engine math is correct.** `lib/analytics/src/returns/irr.ts` (Newton-Raphson with relative-tolerance fallback) and `lib/engine/src/aggregation/yearlyAggregator.ts` correctly construct cash-flow vectors and compute IRR. No engine fix is in scope.
+- **Seed assumptions are systematically off.** Three compounding causes: (a) every property's exit cap is tight to market by 100–600 bp and ignores the standard 75 bp 10-year hold-period premium (HVS / PwC / CBRE 2025 convention); (b) the Medellin Duplex's `max_occupancy` of 0.65 contradicts its $1,500 ADR ultra-luxury positioning, which mathematically requires 20–35% steady-state occupancy; (c) the refinance pass uses `NOI / exit_cap × refi_LTV` with no constraint relative to the original loan, producing $7–11M cash-out spikes in years 5–7.
+- **The Duplex is structurally invisible to the dashboard.** Three blind spots stack: room-weighted averages give it 0.87% influence (1 of 115 rooms), `Full Equity` properties are silently skipped by ~5 financed-only branches in the calculation checker, and `vrbo_owner_managed` business-model routing diverges from hotel paths. Out of scope here (separate follow-up); noted because it explains why the bad Duplex assumptions went unnoticed.
+- **No structural pathway exists for market-anchored defaults.** Per `docs/concepts/bracket-mix.md` § 6a (added 2026-05-13), bracket catalog rows should carry default-value templates that seed both the dev environment AND new entities at creation. Today, exit cap and refi LTV are not part of that template — they are set ad hoc at property-creation time, which is how the seed drifted off market in the first place.
+
+User direction (2026-05-13):
+- Target portfolio IRR: **25–30%** (typical boutique value-add).
+- Show LP / asset / sponsor IRR side-by-side.
+- Exit cap policy: **market going-in + 75 bp** for 10-year holds.
+- Refinance: conservative, only refi if new loan ≤ user-configurable LTV × original loan; **default 70%**.
+- Hold period: 10 years for all (institutional convention).
+- Duplex exit cap may stay lower than market 11% to reflect strategic package-sale-to-Cartagena-guests thesis; document the rationale rather than fight it.
+
+---
+
+## Requirements
+
+- **R1.** After U5/U6/U7 land, the seven demo properties' `exit_cap_rate` values arrive at U1's expected table by re-running the dev seed through the bracket-default pathway — NOT by direct UPDATE. The two Duplex deviations (`exit_cap_rate = 0.075`, `max_occupancy = 0.30`) are applied as CONFIRMED-state per-entity overrides on top, with provenance metadata.
+- **R2.** No hardcoded number representing a default exit cap, refi LTV, or any other bracket-level default may exist in code — neither in seed scripts, nor in `DEFAULT_*` constants, nor as TypeScript literals in route handlers. All such values originate from `icp_brackets` rows in the DB.
+- **R3.** Add a user-editable property-level field `refi_max_ltv_to_original` (numeric, default 0.70). Surface in `client/src/pages/PropertyEdit` debt section. Type: DEFAULT VARIABLE per `hplus-variable-taxonomy`.
+- **R4.** The refinance pass in `lib/engine/src/property/refinance-pass.ts` must compute its target new-loan amount as today (`NOI / exit_cap × refi_LTV`) but then **cap** it at `original_loan × refi_max_ltv_to_original`. If the cap binds, log the binding through the existing engine diagnostic channel; do not silently produce an inflated cash-out.
+- **R5.** Extend `icp_brackets` schema with two new numeric columns: `default_exit_cap_rate` and `default_refi_max_ltv_to_original`. Add a parallel pair of `model_defaults` rows (`property.template.exitCapRate`, `property.template.refiMaxLtvToOriginal`) seeded with universal Layer-1 fallback values. Both bracket columns participate as Layer 2 (bracket overlay) per the canonical flow; both `model_defaults` rows are visible/editable under Admin → Steady State → Property.
+- **R6.** Backfill the seven `icp_brackets` rows with market-anchored values for both new columns per the U1 recommendation table. The backfill is the only write to Layer 2; the dev-seed re-run in U1 propagates these to the demo properties through the layered resolver.
+- **R7.** `POST /api/properties` implements the three-layer resolver per the canonical-flow diagram: Layer 1 (universal `model_defaults`) → Layer 2 (bracket-mix-weight-blended overlay from `icp_brackets`) → write Layer 3 (DEFAULT-state property row). Per-entity overrides are written separately as CONFIRMED-state values. Resolver code lives in a single shared helper used by both the route handler and the dev-seed script — no parallel implementations, no hardcoded literals.
+- **R8.** After all DB changes, run `/api/finance/compute` against the demo company and verify combined portfolio IRR lands in **25–30%**. Document the before/after IRR table in the plan's completion notes. IRR computation itself is unchanged — single combined-portfolio figure as today.
+
+---
+
+## Non-Goals (Deferred)
+
+- **Engine algorithm changes.** IRR Newton-Raphson, NOI roll-up, and exit-value formula stay as-is. Only inputs change.
+- **Three-IRR / LP-vs-asset-vs-sponsor view.** Out of scope. Pure IRR — one figure — as today.
+- **GP/LP equity split, waterfall, preferred return, or promote.** Out of scope. Pure IRR on the consolidated cash flow vector. No equity-share gymnastics.
+- **Dashboard "show the Duplex" fixes.** The room-weighted blind-spot, financed-only-skip, and STR-routing issues are real but distinct; track as a separate follow-up. This plan only fixes the Duplex's *values*, not its visibility.
+- **Confirmed → Default reconciliation.** Per `hplus-assumption-lifecycle`, existing entity values are owned by the entity and bracket-template changes do not retroactively update them. The seven demo properties are updated by direct DB write in U1; no auto-cascade.
+- **Cap-rate research automation.** The market-anchored values in U1 come from manual research synthesizing HVS / PwC / CBRE / Airbnb / Tripadvisor 2024–2025 data. A future plan can wire this into a Pietro / Costantino periodic refresh.
+- **Hold-period flexibility.** Holds remain 10-yr for all per user direction. A configurable hold period per property is out of scope.
+- **Mgmt Co fee or vendor pass-through recalibration.** Out of scope; if combined IRR still lands above 30% after U1–U7 land, revisit in a follow-up.
+
+---
+
+## Implementation Units
+
+### U1: Re-seed demo properties through the new bracket-default pathway
+
+**Prerequisite:** U5, U6, U7 MUST land first (bracket-default schema + seeding pathway + market-value backfill). This unit cannot be done as a "tactical direct UPDATE" — that would violate the canonical flow.
+
+**Files:**
+- Dev seed script (located in U6) — re-run end-to-end against the demo company. Properties either get re-created OR have their DEFAULT-state values reset to the bracket-blended values resolved through `POST /api/properties` logic.
+- `scripts/src/apply-per-entity-overrides-2026-05-13.ts` (new, one-off) — applies the two per-entity strategic overrides as if a user had edited and confirmed them: writes `Medellin Duplex.exit_cap_rate = 0.075` (CONFIRMED state) and `Medellin Duplex.max_occupancy = 0.30` (CONFIRMED state). Both with provenance metadata pointing at this plan + runbook for rationale.
+
+**Per-entity overrides applied on top of bracket defaults** (NOT bracket-level — these are deliberate CONFIRMED-state deviations from the bracket-blended values, per `hplus-assumption-lifecycle`):
+
+| Property | Field | Bracket-blended default | Per-entity override | Rationale |
+|---|---|---|---|---|
+| Medellin Duplex | exit_cap_rate | ~11.0% (LatAm luxury STR) | **7.5%** | Strategic package-sale-to-Cartagena-guests exit thesis — trophy buyer pays compressed cap |
+| Medellin Duplex | max_occupancy | ~0.50 (LatAm luxury STR) | **0.30** | Ultra-luxury $1500 ADR positioning — 20–35% steady-state per user direction |
+
+**Bracket-blended values for the other six properties land naturally** through U6's seeding pathway from the U7-backfilled `icp_brackets` rows. The expected exit caps land at:
+
+| Property | Bracket(s) → blended exit cap |
+|---|---|
+| Belleayre Mountain | US tertiary boutique resort → 9.75% |
+| Loch Sheldrake | US tertiary boutique resort → 9.75% |
+| Lakeview Haven Lodge | US tertiary boutique resort → 9.75% |
+| Scott's House | US tertiary boutique resort → 9.75% |
+| Jano Grande Ranch | LatAm rural / illiquid → 12.00% |
+| "San Diego" Cartagena | LatAm prime urban boutique → 10.50% |
+
+**Acceptance:**
+- Demo company's properties hold the values shown above WITHOUT any literal in code paths.
+- The two Duplex overrides are stored as CONFIRMED-state per-entity values with provenance metadata.
+- Re-running the dev seed produces deterministic values (idempotent: same bracket rows → same blended defaults).
+- A short markdown note in `docs/runbooks/seed-calibration-2026-05-13.md` records the before/after IRR table and the rationale for the Duplex per-entity overrides (so a future engineer doesn't "correct" the 7.5% to market 11%).
+
+**Tests:** Manual — re-run `GET /api/finance/compute` and confirm combined IRR moves into 25–30% band. This is the calibration sanity check that gates U2/U3 and U8.
+
+### U2: Refi LTV cap — schema + engine
+
+**Files:**
+- `lib/db/src/schema/properties.ts` — add column `refi_max_ltv_to_original numeric default 0.70 not null`.
+- `lib/db/migrations/` — new migration file (next sequential number; check `drizzle/migrations/__drizzle_migrations` per `docs/runbooks/schema-migrations.md`).
+- `lib/engine/src/property/refinance-pass.ts` — read `refi_max_ltv_to_original` from property context; cap target loan at `original_loan_amount × refi_max_ltv_to_original`; emit diagnostic when cap binds.
+- `lib/engine/src/property/resolve-assumptions.ts` — surface field on property context.
+- `artifacts/api-server/src/routes/properties.ts` — accept and validate field on PATCH/POST.
+
+**Tests:**
+- `lib/engine/src/property/__tests__/refinance-pass.test.ts` — three scenarios: (a) cap does not bind (refi target < cap, behavior unchanged); (b) cap binds at 70% default (target = original × 0.70); (c) custom 50% cap binds tighter.
+- `lib/engine/src/property/__tests__/resolve-assumptions.test.ts` — default value 0.70 applied when field absent.
+
+**Acceptance:** Engine never produces a refinance loan amount above `original_loan × refi_max_ltv_to_original`. Diagnostic logged when cap binds. Test suite green.
+
+### U3: Refi LTV cap — UI
+
+**Files:**
+- `artifacts/hospitality-business-portal/src/components/property-edit/DebtSection.tsx` (or wherever the existing refi LTV field lives — confirm in research) — add input for `refi_max_ltv_to_original` next to existing `refi_ltv` field. Default 70%, 0–100% range, helper text: "Maximum new loan as % of original loan basis. Caps cash-out refinance to prevent inflated mid-projection spikes."
+
+**Tests:** Manual — load a property's edit page, confirm field renders with default 0.70, save round-trips correctly.
+
+**Acceptance:** Field editable, saves to DB, engine reads it on next compute.
+
+### U5: Bracket-default schema extension
+
+**Files:**
+- `lib/db/src/schema/icp-brackets.ts` (or wherever bracket-default templates live — `artifacts/api-server/src/ai/icp/bracket-catalog.ts` per `important_files`) — add `default_exit_cap_rate numeric` and `default_refi_max_ltv_to_original numeric default 0.70` to whatever DB-row + Zod schema models the bracket template.
+- `lib/db/migrations/` — sequential migration adding the two columns.
+- Admin editor for bracket catalog (locate in research, likely under `artifacts/hospitality-business-portal/src/pages/admin/brackets/`) — add two numeric inputs.
+
+**Tests:**
+- `lib/db/__tests__/icp-brackets-schema.test.ts` (extend existing) — round-trip new fields.
+- Admin editor: manual save/load round-trip.
+
+**Acceptance:** Both fields editable in admin, persisted in DB, available on bracket-row reads.
+
+### U6: Bracket-default seeding pathway
+
+**Files:**
+- `artifacts/api-server/src/routes/properties.ts` `POST /api/properties` handler — after resolving company bracket mix, weight-blend `default_exit_cap_rate` and `default_refi_max_ltv_to_original` across mix entries and write into the new property's columns.
+- ManCo creation handler (locate via `rg "POST.*companies" artifacts/api-server/src/routes/`) — same blending applied to any ManCo-level defaults that consume these.
+- Dev seed script (locate via `rg "icp_brackets" artifacts/api-server/src/seed/` or `lib/db/seed/`) — read bracket rows for both fields; remove any hardcoded exit cap or refi LTV literals.
+
+**Tests:**
+- Integration test against `POST /api/properties` with a known bracket mix → asserts the new property's exit cap and refi LTV match the weight-blended bracket-template values.
+- Re-run dev seed; confirm seven demo properties end up with U1's exit-cap values purely from bracket templates (no hardcoded literals in seed code).
+
+**Acceptance:** Creating a new property in dev/staging/prod inherits market-anchored exit cap and refi LTV from the active bracket mix. Dev seed is fully bracket-driven.
+
+### U7: Bracket catalog backfill
+
+**Files (data):** UPDATE the seven `icp_brackets` rows so each carries the right `default_exit_cap_rate` and `default_refi_max_ltv_to_original` for its tier:
+
+| Bracket tier | default_exit_cap_rate | default_refi_max_ltv_to_original |
+|---|---|---|
+| US tertiary boutique resort | 9.75% | 0.70 |
+| US gateway boutique | 8.50% | 0.70 |
+| Latin America prime urban boutique | 10.50% | 0.65 |
+| Latin America rural / illiquid | 12.00% | 0.60 |
+| Latin America luxury STR (single-key) | 11.00% (note: Duplex uses overridden 7.50% per package-sale exception) | 0.70 |
+| (and any other existing brackets — enumerate during U7 from `artifacts/api-server/src/ai/icp/bracket-catalog.ts`) | (research at U7 start) | (research at U7 start) |
+
+**Acceptance:** All bracket rows carry both fields. The dev seed re-run from U6 produces the U1 exit caps for the seven demo properties (modulo the Duplex package-sale override, which is set per-entity not per-bracket).
+
+### U8: Verification + documentation
+
+**Files:**
+- `docs/runbooks/seed-calibration-2026-05-13.md` (created in U1) — append before/after IRR table for all 7 properties + portfolio combined.
+- `docs/concepts/bracket-mix.md` § 6a — add a sentence to the "Why this matters operationally" callout pointing at this plan as the first concrete bracket-default fields beyond the original list.
+
+**Acceptance:**
+- Combined portfolio IRR lands in **25–30%** band.
+- Per-property IRRs all defensible: outliers (Jano, Loch Sheldrake) brought below 50%; Duplex IRR may sit lower (10–15%) consistent with the strategic package-sale exit and the corrected occupancy.
+- IRR computation unchanged from today — single combined-portfolio figure surfaced as before.
+- Documentation reflects the new defaults pathway.
+
+---
+
+## Sequencing
+
+```
+U5 (bracket-default schema) ──► U6 (seeding pathway, no-literals) ──► U7 (catalog backfill with market values)
+                                                                                  │
+                                                                                  ▼
+                                                                   U1 (re-seed demo + Duplex per-entity overrides)
+                                                                                  │
+                                                                                  ▼
+                                                                  sanity-check combined IRR in 25-30% band
+                                                                                  │
+                                                                                  ├──► U2 (refi cap engine) ──► U3 (refi cap UI)
+                                                                                  │
+                                                                                  └──► U8 (verify + doc)
+```
+
+**U5 → U6 → U7 → U1 is the critical path** because the canonical flow forbids hardcoded property values. U2/U3 (refi cap) is independent of the bracket-default chain and can run in parallel with U5–U7. U1 cannot start until U5–U7 are done. U8 is the final close-out.
+
+---
+
+## Key Technical Decisions
+
+- **Refi LTV cap is a per-property DEFAULT VARIABLE, not a TRUE CONSTANT.** Default 0.70 lives in the bracket-default template; per-property override is allowed (per `hplus-variable-taxonomy`).
+- **Duplex exit cap stays at 7.5% per user direction** — this is a per-entity strategic-exit override, NOT a market-anchored default. The bracket-default template for "Latin America luxury STR (single-key)" carries 11% as the market-anchored value; the Duplex's 7.5% is documented as a deliberate deviation in U1's runbook note.
+- **IRR computation is unchanged — pure IRR (levered / equity).** Single combined-portfolio IRR per current code paths (`computeIRR(consolidatedFlows, 1)` in `lib/engine/src/aggregation/yearlyAggregator.ts`). "Pure IRR" here means the standard textbook IRR formula on a single net cash flow vector — equity outlay out, (NOI − debt service + refi proceeds) in, (sale − loan payoff) at exit. **This is levered / equity IRR, NOT unlevered project IRR** (confirmed with user 2026-05-13). One IRR figure only — no GP/LP split, no waterfall overlay, no preferred return, no promote tiers, no LP/asset/sponsor variants. The `lpEquityPct` field and `computeWaterfall` machinery exist in the codebase but are out of scope. The 25–30% target band is calibrated to this levered/equity IRR figure.
+- **No hardcoded literals anywhere per `no-magic-numbers` and the canonical flow.** This applies to every layer: route handlers, engine modules, admin UI, dev seed. Default values flow through the three-layer resolver (universal `model_defaults` → bracket overlay → per-entity row); see canonical flow in Summary. Per-entity overrides (Duplex 7.5%) are CONFIRMED-state values written to the property row with provenance, NOT literals in the seed script.
+- **Layered precedence locked as Option C (2026-05-13).** Universal `model_defaults` row → bracket overlay at create → per-entity value. Engine reads only the per-entity value. Bracket overlay writes happen ONLY at entity creation, never retroactively. Admin can edit any layer; edits affect future creations only (per `hplus-assumption-lifecycle`).
+- **Admin surface for default editing is Admin → Steady State** (legacy internal name "Model Defaults"; user-facing label "Steady State"; sub-tabs: Management Co., Property, Constants, Analyst Tables, Reference Ranges). It is NOT under `AI → Intelligence → Knowledge & Resources` — that's a separate area for analyst-facing tables. New default fields surface in Steady State → Property or Steady State → Management Co. as appropriate.
+- **Migrations follow `docs/runbooks/schema-migrations.md`.** Both U2 and U5 add a sequential migration; verify the journal sync state after applying.
+
+---
+
+## Risks
+
+- **Engine refi-cap regression.** The cap could mis-trigger on edge cases (no original loan, full-equity refi, etc.). Mitigation: test cases U2 cover three branches; engine diagnostic when cap binds is the safety net.
+- **Bracket mix weight-blending math drift.** If two brackets in a mix have very different exit caps, weight-blending the numeric value may not match what a user intuitively expects. Mitigation: U6 integration test pins the blending math; admin can always override per-property post-creation.
+- **Duplex package-sale rationale degrades over time.** A future engineer may "correct" the 7.5% cap to market 11% without context. Mitigation: the U1 runbook note + a comment on the Duplex's `exit_cap_rate` row in `properties` (via DB COMMENT) documenting the package-sale rationale.
+- **Combined IRR may land below 25% after all changes.** If so, two follow-up levers are available: (a) tighten exit caps closer to going-in (drop the 75 bp hold premium toward 50 bp), or (b) revisit Mgmt Co fees / vendor pass-throughs which are explicitly out of scope here. Document the as-landed IRR in U8 and call out the lever choice if needed.
+- **`Drizzle migration journal lag` per `replit.md` gotcha.** After U2 and U5 migrations apply, verify `drizzle.__drizzle_migrations` is in sync per the runbook; do not assume `drizzle-kit push` succeeded silently.
+
+---
+
+## References
+
+- `docs/concepts/bracket-mix.md` § 6a — defaults-template flow this plan operationalizes.
+- `docs/runbooks/schema-migrations.md` — migration discipline for U2 and U5.
+- `hplus-variable-taxonomy` skill — DEFAULT vs ASSUMPTION variable classification.
+- `hplus-assumption-lifecycle` skill — why bracket changes do not retroactively update existing entities.
+- `no-magic-numbers` skill — why seed code must not carry hardcoded exit caps.
+- `front-of-app-admin-isolation` skill — bracket-template editing must live in admin only.
+- HVS, PwC Investor Survey 2025, CBRE — exit-cap convention sources backing the +75 bp hold-period premium.
+- Prior IRR investigation (this conversation, 2026-05-13) — engine math verified clean; seed identified as the cause.
