@@ -195,6 +195,15 @@ export async function runSchemaMigrations() {
     await runIcpBrackets002();
     await markMigrationApplied("icp_brackets_002");
   }
+
+  // Plan 2026-05-13-001 U5 — Layer-2 default-overlay columns on icp_brackets.
+  // Belt-and-suspenders companion to 0063_icp_brackets_default_overlay.sql.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS for both columns.
+  if (!(await isMigrationApplied("icp_brackets_003"))) {
+    const { runIcpBrackets003 } = await import("../migrations/icp-brackets-003");
+    await runIcpBrackets003();
+    await markMigrationApplied("icp_brackets_003");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

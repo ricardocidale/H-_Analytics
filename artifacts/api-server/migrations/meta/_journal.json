@@ -407,6 +407,13 @@
       "when": 1747353600000,
       "tag": "0059_research_runs_constant_latest_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1778889600000,
+      "tag": "0063_icp_brackets_default_overlay",
+      "breakpoints": true
     }
   ]
 }

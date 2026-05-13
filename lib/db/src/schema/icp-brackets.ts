@@ -35,6 +35,15 @@ export const icpBrackets = pgTable("icp_brackets", {
   sourceNote: text("source_note"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+
+  // ── Layer-2 default-value template (per docs/concepts/bracket-mix.md §6a) ──
+  // Both columns are NULL-able. NULL = "this bracket carries no opinion on this
+  // field; fall through to the universal Layer-1 model_defaults row." Populated
+  // values participate in the weight-blended overlay applied at entity creation
+  // by POST /api/properties (the layered resolver — see plan 2026-05-13-001).
+  defaultExitCapRate: real("default_exit_cap_rate"),
+  defaultRefiMaxLtvToOriginal: real("default_refi_max_ltv_to_original"),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -1,0 +1,21 @@
+-- 0063_icp_brackets_default_overlay
+--
+-- Plan 2026-05-13-001 (feat seed-calibration-bracket-defaults-and-irr-views) U5.
+-- Mirror of lib/db/migrations/0056_icp_brackets_default_overlay.sql.
+--
+-- Adds two NULL-able real columns to icp_brackets so each bracket can carry an
+-- optional Layer-2 overlay value for the layered defaults resolver:
+--   default_exit_cap_rate              (overlays mc.tax_exit.exitCapRate)
+--   default_refi_max_ltv_to_original   (overlays mc.funding.refiMaxLtvToOriginal)
+--
+-- NULL = "this bracket carries no opinion on this field; fall through to the
+-- universal Layer-1 model_defaults row." Populated values participate in the
+-- weight-blended overlay applied at entity creation by POST /api/properties.
+--
+-- Belt-and-suspenders runtime guard: icp-brackets-003.ts (re-applies these
+-- ALTERs on every boot via ADD COLUMN IF NOT EXISTS — handles dev DBs whose
+-- _journal.json has drifted).
+--
+-- Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS. Safe to re-run.
+ALTER TABLE "icp_brackets" ADD COLUMN IF NOT EXISTS "default_exit_cap_rate" real;
+ALTER TABLE "icp_brackets" ADD COLUMN IF NOT EXISTS "default_refi_max_ltv_to_original" real;
