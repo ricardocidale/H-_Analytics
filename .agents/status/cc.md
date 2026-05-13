@@ -4,12 +4,12 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T17:45:00Z
-Status: idle
+Updated: 2026-05-13T23:30:00Z
+Status: active
 
 ## Active Branch
 
-feat/financial-defaults-irr-calibration
+main
 
 ## Last Commit on Branch
 
