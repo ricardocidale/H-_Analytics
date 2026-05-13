@@ -136,8 +136,9 @@ export async function runFundingV1Path(userId: number) {
   try {
     if (properties.length > 0) {
       const globalInput = gaToGlobalInput(overlaidGa as unknown as Record<string, unknown>, DEFAULT_PROJECTION_YEARS);
+      const hydratedProperties = await withFinancialHydration(properties as unknown as Record<string, unknown>[]);
       const { companyMonthly } = computeCompanyProjection({
-        properties: properties as unknown as PropertyInput[],
+        properties: hydratedProperties as unknown as PropertyInput[],
         globalAssumptions: globalInput,
         projectionYears: DEFAULT_PROJECTION_YEARS,
       });
