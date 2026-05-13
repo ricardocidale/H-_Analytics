@@ -78,6 +78,7 @@ import {
   DEFAULT_SIZING_OVERSHOOT_PCT,
   DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
   DEFAULT_BURN_FLEX_DOWN_PCT,
+  DEFAULT_REFI_MAX_LTV_TO_ORIGINAL,
 } from "@shared/constants-funding";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
@@ -139,6 +140,16 @@ export const SPECS: SeedSpec[] = [
   { key: "sizingOvershootPct",     card: "funding", subTab: "funding", value: DEFAULT_SIZING_OVERSHOOT_PCT,     unit: "%",      label: "Sizing overshoot" },
   { key: "revenueRampDelayMonths", card: "funding", subTab: "funding", value: DEFAULT_REVENUE_RAMP_DELAY_MONTHS, unit: "months", label: "Revenue ramp delay" },
   { key: "burnFlexDownPct",        card: "funding", subTab: "funding", value: DEFAULT_BURN_FLEX_DOWN_PCT,        unit: "%",      label: "Burn flex-down %" },
+
+  // Layer-1 universal default for the per-property refi-LTV-to-original cap.
+  // Engine reads the per-property column (Layer 3); this row is the fallback
+  // applied at POST /api/properties when no bracket overlay (Layer 2) supplies
+  // a value. Plan 2026-05-13-001 R5/R7. Lives under the funding card alongside
+  // the other refi knobs (refiLtv, refiClosingCostRate, refiPeriodYears).
+  // subTab="funding" — joins the funding-cascade group above so the Funding-tab
+  // admin query (`WHERE sub_tab='funding'`) and the parity test surface this
+  // row as part of the cascade, not as a generic management_company default.
+  { key: "refiMaxLtvToOriginal",   card: "funding", subTab: "funding", value: DEFAULT_REFI_MAX_LTV_TO_ORIGINAL, unit: "%", label: "Refinance LTV cap (% of original loan amount)" },
 
   // ── Revenue Model ────────────────────────────────────────────────────
   { key: "baseManagementFeeRate",       card: "revenue_model", value: DEFAULT_BASE_MANAGEMENT_FEE_RATE,      unit: "%",     label: "Base management fee (% of total revenue)" },

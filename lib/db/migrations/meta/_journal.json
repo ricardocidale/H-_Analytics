@@ -379,6 +379,13 @@
       "when": 1778880000000,
       "tag": "0055_assumption_guardrails",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1778889600000,
+      "tag": "0056_icp_brackets_default_overlay",
+      "breakpoints": true
     }
   ]
 }

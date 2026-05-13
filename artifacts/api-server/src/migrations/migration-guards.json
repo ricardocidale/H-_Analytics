@@ -240,6 +240,11 @@
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
       "reason": "Task #1437 — single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
+    },
+    "0063_icp_brackets_default_overlay": {
+      "status": "guarded",
+      "guard": "icp-brackets-003.ts",
+      "reason": "Plan 2026-05-13-001 U5 — adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
     }
   }
 }

@@ -76,6 +76,29 @@ export const DEFAULT_SIZING_OVERSHOOT_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.siz
 export const DEFAULT_REVENUE_RAMP_DELAY_MONTHS = 9;
 export const DEFAULT_BURN_FLEX_DOWN_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.burnFlexDownPctMid;
 
+/**
+ * Universal Layer-1 default for the per-property refinance LTV cap relative to
+ * the ORIGINAL acquisition loan amount. Used by the layered defaults resolver
+ * (plan 2026-05-13-001 — feat seed-calibration-bracket-defaults-and-irr-views).
+ *
+ * This is a DEFAULT VARIABLE per `hplus-variable-taxonomy`, NOT a true
+ * constant. Day-zero seed value lands in `model_defaults` under the canonical
+ * key `mc.funding.refiMaxLtvToOriginal` (universal scope: country / subdivision
+ * / businessType / sizeBand all NULL). After seed, the DB row is the source of
+ * truth — `seed-model-defaults.ts` is the only consumer of this TS literal.
+ *
+ * Bracket-specific overlays land in `icp_brackets.default_refi_max_ltv_to_original`
+ * (Layer 2). Per-property values live on the property row (Layer 3).
+ *
+ * Value rationale: 0.70 caps the refi proceeds at 70% of the ORIGINAL loan
+ * principal, preventing the inflated mid-projection cash-out spikes that
+ * drove the demo portfolio combined IRR to ~50%+ (see plan Problem Frame).
+ * The pre-existing `DEFAULT_REFI_LTV` (0.65) governs the refi-LTV applied to
+ * the new appraised value; `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL` is a separate,
+ * additional cap on the resulting cash-out as a multiple of original debt.
+ */
+export const DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
+
 export const SEED_DEBT_ASSUMPTIONS = {
   acqLTV: 0.75,             // Acquisition loan-to-value (75% LTV means 25% equity down)
   refiLTV: 0.75,            // Refinance loan-to-value
