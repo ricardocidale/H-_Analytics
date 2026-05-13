@@ -10,7 +10,7 @@
 
 **Why this is a handoff:**
 1. **Authoring boundary.** Per CLAUDE.md §156, edits to `lib/engine/src/company/**` and adjacent engine code may only be authored from a shell CC session. The plan is engineered to keep the new write/read path *outside* the engine (`artifacts/api-server/src/services/bracketMix/effective.ts`), but if implementation reveals a true engine touch (Risk #1 in the plan), only you can land it.
-2. **Branch authority.** Replit Agent's sandbox blocks `git branch -m`, `git checkout -b`, and `git push` — every potentially-destructive ref operation is rejected. Replit Agent is currently committed-on-`main` as of this brief; you start by branching off `origin/main`.
+2. **Branch authority.** Replit Agent's sandbox blocks `git branch -m`, `git checkout -b`, and `git push` — every potentially-destructive ref operation is rejected. Replit Agent is currently committed-on-`main` as of this brief; you start by branching off `origin/main`. **Read `docs/solutions/workflow-issues/cc-replit-branch-hygiene-2026-05-10.md` first** — Replit Agent commits can accumulate on whatever branch is checked out, so verify the branch is clean before opening the PR.
 3. **Scope — `ce.work` of a multi-unit plan with 4 new tables/columns, a Specialist + a Minion, an LLM-backed grounded research pipeline, route changes, parity-mapped Rebecca tools, and a feature flag — is well past the Replit Agent ceiling for a single session.
 
 ---
@@ -37,7 +37,7 @@ The plan's `## Implementation Units` section (lines 130–376 of `docs/plans/202
 
 | Unit | Brief adds |
 |---|---|
-| **U1** | Mirror `artifacts/api-server/src/migrations/icp-brackets-001.ts` exactly for the guarded-`DO` shape. Add the new entry to `migration-guards.json` *in the same commit* — `check:migration-guards` is a separate workflow and will fail loudly if you forget. |
+| **U1** | Mirror `artifacts/api-server/src/migrations/icp-brackets-001.ts` exactly for the guarded-`DO` shape. Add the new entry to `migration-guards.json` *in the same commit* — `check:migration-guards` is a separate workflow and will fail loudly if you forget. **Read `docs/runbooks/schema-migrations.md` and `docs/solutions/workflow-issues/seed-pipeline-drift-dual-migration-folders-and-uncalled-medellin-duplex-2026-05-12.md` BEFORE writing the migration** — there are two migration folders in this repo and prior work has drifted into the wrong one. |
 | **U2** | The override sentinel column is a `nullable FK to bracket_mix_runs.id` — define both new tables in the same migration so the FK target exists on first apply. Cold-start invariant: U2 only creates structure; U5 is responsible for ensuring the engine and `effectiveBracketMix` agree on day one (see plan U5 Approach paragraph 2). |
 | **U3** | `ai/ambient/specialists/` does not exist today. Create it; do **not** add a barrel `index.ts` until a second specialist module lands. Both entry points (`runForPeer`, `runForCompanyOverride`) return the same `BracketMixSpecialistOutput`. Carlo-style Zod validation BEFORE persisting any DB row. |
 | **U4** | Pure deterministic function — no IO except the optional caller-driven `bracket_mix_runs` insert. Cold-start path returns `{ provisional: true }` and **does not** insert a row; the orchestrator (U5) inserts the provisional row instead. |
@@ -82,9 +82,12 @@ pnpm run typecheck
 pnpm --filter @workspace/calc run test
 
 # 4. Parity gate (covers R17)
-# Path TBD at implementation time per parity-audit skill — confirm the test exists
-# and runs as part of the standard gate; the U6 parity map test must fail the build
-# if any new mutation route lacks a Rebecca tool.
+# Locate the existing parity test and confirm it runs as part of the standard gate:
+#   rg -l "parity" artifacts/api-server/src/chat/__tests__/ scripts/src/
+# If a test file exists (e.g. rebecca-tool-parity.test.ts), extend it in U6 with the
+# four new bracket-mix routes; if no test exists, create one in U6 (the parity-audit
+# skill is the canonical reference). The U6 parity map test must fail the build if
+# any new mutation route lacks a Rebecca tool.
 
 # 5. Smoke validation (manual, post-build)
 pnpm --filter @workspace/api-server run dev          # in one shell
@@ -126,7 +129,7 @@ The handoff is complete when **all** of the following are true:
 4. **PR open against `main`** with body that:
    - Links the plan and origin brainstorm.
    - Lists the 7 units and their R-ID coverage.
-   - Names Tiago + Hugo as new members of the agent roster (with a checkbox confirming `slide-factory` SKILL.md was updated).
+   - Names Tiago + Hugo as new members of the agent roster (with a checkbox confirming `slide-factory` SKILL.md was **updated to add them** — they are not on the roster today and U3 / U4 are responsible for adding them).
    - States the feature flag default per environment (`BRACKET_MIX_PHASE_B = on` for dev/staging, `off` for prod).
    - Calls out the override-aware writer audit (which existing writers were rerouted through `writeEffectiveBracketMix`).
    - Confirms zero edits under `lib/engine/src/company/**` (or, if that constraint had to be relaxed, names the separate sub-task that authored those edits).
