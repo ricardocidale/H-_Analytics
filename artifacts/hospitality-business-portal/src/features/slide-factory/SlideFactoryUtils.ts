@@ -66,6 +66,7 @@ export function statusToTab(status: FactoryStatus | undefined): FactoryTab {
     case "draft_review":
       return "f-lucca";
     case "building":
+    case "error":
       return "f-agents";
     case "complete":
     case "rebuilding":

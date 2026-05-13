@@ -11,6 +11,13 @@ import { FactoryPropertySelector } from "./SharedComponents";
 
 // ── Tab 3 — Properties ──────────────────────────────────────────────────────
 
+// Canonical L+B deck slot → slide number mapping. Slide 4 (Hazelnis spotlight)
+// and slide 6 (income statement) are auto-generated and not picked here.
+const SPOTLIGHT_SLIDE = 1;
+const GALLERY_SLIDE = 2;
+const INVESTMENT_MODEL_SLIDE = 3;
+const FINANCIAL_SNAPSHOT_SLIDE = 5;
+
 export function FactoryPropertiesTab({
   run,
   onRunUpdate,
@@ -29,11 +36,16 @@ export function FactoryPropertiesTab({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const body: Record<string, number | null> = {};
-      if (s1 != null) body.slide1PropertyId = s1;
-      if (s2 != null) body.slide2PropertyId = s2;
-      if (s3 != null) body.slide3PropertyId = s3;
-      if (s5 != null) body.slide5PropertyId = s5;
+      // Send every slot as an explicit value (number or null). Skipping null
+      // keys would not preserve existing assignments anyway — the server
+      // coerces `undefined` to `null` (see slide-factory.ts handler) — so we
+      // send nulls explicitly to make the intent legible at the call site.
+      const body: Record<string, number | null> = {
+        slide1PropertyId: s1,
+        slide2PropertyId: s2,
+        slide3PropertyId: s3,
+        slide5PropertyId: s5,
+      };
 
       const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/properties`, body);
       return r.json() as Promise<SlideFactoryRun>;
@@ -75,7 +87,7 @@ export function FactoryPropertiesTab({
         </p>
 
         <FactoryPropertySelector
-          slideNum={1}
+          slideNum={SPOTLIGHT_SLIDE}
           description="Pipeline Spotlight · hero photo + specs"
           value={s1}
           onChange={setS1}
@@ -83,7 +95,7 @@ export function FactoryPropertiesTab({
           disabled={propsLoading || saveMutation.isPending}
         />
         <FactoryPropertySelector
-          slideNum={2}
+          slideNum={GALLERY_SLIDE}
           description="Photo Gallery · 2×2 photo showcase"
           value={s2}
           onChange={setS2}
@@ -91,7 +103,7 @@ export function FactoryPropertiesTab({
           disabled={propsLoading || saveMutation.isPending}
         />
         <FactoryPropertySelector
-          slideNum={3}
+          slideNum={INVESTMENT_MODEL_SLIDE}
           description="Investment Model · concept + market rationale"
           value={s3}
           onChange={setS3}
@@ -99,7 +111,7 @@ export function FactoryPropertiesTab({
           disabled={propsLoading || saveMutation.isPending}
         />
         <FactoryPropertySelector
-          slideNum={5}
+          slideNum={FINANCIAL_SNAPSHOT_SLIDE}
           description="Financial Snapshot · transformation plan"
           value={s5}
           onChange={setS5}

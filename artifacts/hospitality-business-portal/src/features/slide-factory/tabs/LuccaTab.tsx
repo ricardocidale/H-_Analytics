@@ -11,6 +11,10 @@ import type { SlideFactoryRun, SlotRowProps } from "../SlideFactoryTypes";
 
 // ── Tab 4 — Lucca draft review ──────────────────────────────────────────────
 
+/** Default visible row count for the slot draft textarea — keeps the edit
+ *  affordance compact while still showing enough context to scan. */
+const SLOT_EDIT_TEXTAREA_ROWS = 3;
+
 function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(draft.value);
@@ -50,7 +54,7 @@ function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowPr
               <Textarea
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                rows={3}
+                rows={SLOT_EDIT_TEXTAREA_ROWS}
                 className="text-sm"
                 disabled={saving}
               />
