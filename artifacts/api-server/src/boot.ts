@@ -240,7 +240,16 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     serverLog(`[costantino-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
   });
 
-  // Phase 3m (minion-self-test scheduler) is started inside the migration
+  // ── Phase 3m: DB retention — health checks + specialist quality snapshots ────────
+  // Daily cleanup: resource_health_checks older than 7 days (~56K rows/day growth),
+  // specialist_research_quality_snapshots older than 30 days. See db-storage-audit-2026-05-14.md.
+  import("./jobs/db-retention-scheduler").then(({ startDbRetentionScheduler }) => {
+    startDbRetentionScheduler();
+  }).catch(err => {
+    serverLog(`[db-retention-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+  });
+
+  // Phase 3n (minion-self-test scheduler) is started inside the migration
   // `.then()` block above — it must wait for migrations 0051/0052 and the
   // `admin_resources` cadence row before its first tick.
 
