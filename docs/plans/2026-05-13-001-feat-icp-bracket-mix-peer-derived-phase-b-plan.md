@@ -1,7 +1,7 @@
 ---
 title: "feat: ICP bracket-mix peer-derived rebuild — Phase B"
 type: feat
-status: active
+status: completed
 date: 2026-05-13
 origin: docs/brainstorms/2026-05-13-icp-bracket-mix-peer-derived-phase-b-requirements.md
 ---

@@ -81,6 +81,11 @@ The scheduler uses a **self-rescheduling `setTimeout` chain**, not `setInterval`
 2. Update the `write_finding` tool's `kind` enum.
 3. Document the meaning in the system prompt's responsibility 4 ("Open findings").
 
+### Known finding kinds
+
+- `probe_failed`, `missing_recipe`, `missing_secret`, `schema_mismatch`, `stale_feed`, `unknown` — original Step 0 set covering admin_resources health probes and the national-feed freshness check.
+- `peer_research_stale` — Phase B U7. Opened when an `icp_peer_companies` row's `last_researched_at` is older than the effective staleness threshold (per-peer `costantino_config.staleAfterDays` override → `admin_resources.config.peerFreshness.staleAfterDays` default 90d → hardcoded 90d fallback). Caller queues re-research via `Tiago.runForPeer`. `targetKind='icp_peer'`, `targetId=<peer id>`.
+
 ## Testing — dry-cycle script
 
 `scripts/src/costantino-dry-cycle.ts` runs `runCostantinoCycle()` end-to-end against the dev DB with a stubbed LLM (deterministic canned tool calls) and a stubbed fetch (always returns 200). Zero external cost. Use this to verify code-path coverage after any change to the agent, tools, or scheduler:

@@ -9,16 +9,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { isPhaseBBracketMixEnabled } from "../services/bracketMix/featureFlag";
 
+// These tests manipulate process.env in `beforeEach` to exercise both branches
+// of `isProductionDeployment()`. Only the env vars this suite actually mutates
+// are saved/restored — Replit-specific signals are deliberately excluded so the
+// `check:replit-independence` gate stays clean.
 const ORIGINAL_PHASE_B = process.env.BRACKET_MIX_PHASE_B;
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 const ORIGINAL_RAILWAY = process.env.RAILWAY_SERVICE_ID;
-const ORIGINAL_REPLIT_DEPLOYMENT = process.env.REPLIT_DEPLOYMENT;
 
 function reset(): void {
   delete process.env.BRACKET_MIX_PHASE_B;
   delete process.env.NODE_ENV;
   delete process.env.RAILWAY_SERVICE_ID;
-  delete process.env.REPLIT_DEPLOYMENT;
 }
 
 beforeEach(reset);
@@ -28,7 +30,6 @@ afterEach(() => {
   if (ORIGINAL_PHASE_B !== undefined) process.env.BRACKET_MIX_PHASE_B = ORIGINAL_PHASE_B;
   if (ORIGINAL_NODE_ENV !== undefined) process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   if (ORIGINAL_RAILWAY !== undefined) process.env.RAILWAY_SERVICE_ID = ORIGINAL_RAILWAY;
-  if (ORIGINAL_REPLIT_DEPLOYMENT !== undefined) process.env.REPLIT_DEPLOYMENT = ORIGINAL_REPLIT_DEPLOYMENT;
 });
 
 describe("isPhaseBBracketMixEnabled — explicit env-var values", () => {

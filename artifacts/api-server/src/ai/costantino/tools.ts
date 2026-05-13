@@ -50,6 +50,10 @@ const FINDING_KINDS = [
   "missing_secret",
   "schema_mismatch",
   "stale_feed",
+  // Phase B U7: per-peer freshness probe surfaces peers whose
+  // last_researched_at is older than the configured staleness threshold.
+  // Caller queues re-research via Tiago.runForPeer (R13, AE6).
+  "peer_research_stale",
   "unknown",
 ] as const;
 
@@ -183,7 +187,15 @@ export function getCostantinoTools(): ToolParam[] {
         properties: {
           kind: {
             type: "string",
-            enum: ["probe_failed", "missing_recipe", "missing_secret", "schema_mismatch", "unknown"],
+            enum: [
+              "probe_failed",
+              "missing_recipe",
+              "missing_secret",
+              "schema_mismatch",
+              "stale_feed",
+              "peer_research_stale",
+              "unknown",
+            ],
           },
           severity: {
             type: "string",
