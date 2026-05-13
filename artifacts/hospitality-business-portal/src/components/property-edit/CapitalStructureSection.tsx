@@ -86,7 +86,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className="relative p-6 space-y-5">
+      <div className="relative p-6 space-y-6">
         <div>
           <h3 className="text-xl font-display text-foreground">Capital Structure</h3>
           <p className="text-muted-foreground text-sm label-text">Purchase and investment details</p>
