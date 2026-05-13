@@ -19,7 +19,7 @@ const PHASES = [
     label: "sourcing data",
     range: [0, 20] as [number, number],
     lines: [
-      "Pulling STR trend reports for comp set",
+      "Pulling hotel benchmark trend reports",
       "Querying FRED for 10Y treasury spreads",
       "Ingesting CBRE cap rate survey Q3",
       "Tapping HVS transaction database",
@@ -35,7 +35,7 @@ const PHASES = [
     range: [20, 40] as [number, number],
     lines: [
       "Aligning comp set against subject asset",
-      "Reconciling STR data with brand reports",
+      "Reconciling benchmark data with brand reports",
       "Mapping NOI margins across vintages",
       "Triangulating ADR with occupancy curves",
       "Matching trade comps by RevPAR tier",
@@ -79,7 +79,7 @@ const PHASES = [
     label: "validating",
     range: [80, 100] as [number, number],
     lines: [
-      "Auditing RevPAR against STR rebench",
+      "Auditing RevPAR against benchmarking data",
       "Verifying cap rate against recent trades",
       "Checking NOI for USALI compliance",
       "Reconciling DSCR under downside case",

@@ -139,7 +139,7 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 ## User Preferences
 
 - **File storage:** All project files stay local to this MacBook. Do not use Google Drive or Dropbox for any project files, assets, or outputs.
-- **Plain language:** When explaining design or technical decisions, translate variable names and code terms into normal human language and industry terms. Say "card shadow" not `shadow-lg`, "border color" not `hsl(var(--border))`, "rounded corners" not `border-radius: 8px`, etc.
+- **Plain language:** When explaining design or technical decisions, translate variable names and code terms into normal human language and industry terms. Say "card shadow" not `shadow-lg`, "border color" not `hsl(var(--border))`, "rounded corners" not `border-radius: 8px`, etc. Standard hospitality terms like ADR and RevPAR are fine as-is. Less universal abbreviations (e.g. STR the benchmarking company, USALI, DSCR) should be spelled out or described plainly.
 
 ---
 
