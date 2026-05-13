@@ -259,48 +259,59 @@ export default function AnalystProgressHUDDemo() {
   }, [visible, done]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f1f4", position: "relative", overflow: "hidden" }}>
 
-      {/* ── Simulated app content (blurred, dark) ── */}
-      <div style={{ opacity: 0.35, filter: "blur(0.5px)", padding: "32px", display: "flex", flexDirection: "column", gap: "24px", userSelect: "none", pointerEvents: "none" }}>
+      {/* ── Simulated app content (light page, slightly dimmed to show HUD focus) ── */}
+      <div style={{ opacity: 0.55, padding: "28px 32px", display: "flex", flexDirection: "column", gap: "20px", userSelect: "none", pointerEvents: "none" }}>
         {/* Fake header */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(245,158,11,0.3)" }} />
-          <div style={{ width: 180, height: 16, borderRadius: 4, background: "rgba(255,255,255,0.12)" }} />
-          <div style={{ marginLeft: "auto", width: 80, height: 32, borderRadius: 6, background: "rgba(255,255,255,0.07)" }} />
-          <div style={{ width: 80, height: 32, borderRadius: 6, background: "rgba(245,158,11,0.15)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fff", borderRadius: 10, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.07)" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(245,158,11,0.85)" }} />
+          <div style={{ width: 160, height: 13, borderRadius: 4, background: "#e2e3e8" }} />
+          <div style={{ width: 90, height: 13, borderRadius: 4, background: "#ebebef", marginLeft: 24 }} />
+          <div style={{ width: 90, height: 13, borderRadius: 4, background: "#ebebef" }} />
+          <div style={{ marginLeft: "auto", width: 76, height: 30, borderRadius: 6, background: "#f3f4f6", border: "1px solid #e2e3e8" }} />
+          <div style={{ width: 76, height: 30, borderRadius: 6, background: "rgba(245,158,11,0.18)", border: "1px solid rgba(245,158,11,0.3)" }} />
         </div>
 
         {/* Fake KPI cards row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          {["RevPAR", "ADR", "Occupancy", "NOI"].map(label => (
-            <div key={label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "16px" }}>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>{label}</div>
-              <div style={{ width: 80, height: 22, borderRadius: 4, background: "rgba(255,255,255,0.1)" }} />
-              <div style={{ width: 50, height: 12, borderRadius: 3, background: "rgba(255,255,255,0.06)", marginTop: 6 }} />
+          {[
+            { label: "RevPAR", val: "$187", delta: "+12%" },
+            { label: "ADR", val: "$248", delta: "+8%" },
+            { label: "Occupancy", val: "75.4%", delta: "+3%" },
+            { label: "NOI", val: "$2.1M", delta: "+18%" },
+          ].map(({ label, val, delta }) => (
+            <div key={label} style={{ background: "#fff", border: "1px solid #e6e7ec", borderRadius: 10, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontFamily: "system-ui" }}>{label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "#111", fontFamily: "system-ui", marginBottom: 4 }}>{val}</div>
+              <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "system-ui" }}>{delta}</div>
             </div>
           ))}
         </div>
 
         {/* Fake two-column layout */}
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "20px", height: 260 }}>
-            <div style={{ width: 160, height: 14, borderRadius: 3, background: "rgba(255,255,255,0.1)", marginBottom: 16 }} />
-            {[100, 70, 85, 60, 90, 50].map((h, i) => (
-              <div key={i} style={{ width: "100%", height: 2, background: "rgba(255,255,255,0.06)", marginBottom: 8, borderRadius: 1 }}>
-                <div style={{ width: `${h}%`, height: "100%", background: "rgba(245,158,11,0.4)", borderRadius: 1 }} />
+          <div style={{ background: "#fff", border: "1px solid #e6e7ec", borderRadius: 10, padding: "20px", height: 240, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div style={{ width: 140, height: 12, borderRadius: 3, background: "#e9eaee", marginBottom: 20 }} />
+            {[100, 72, 88, 61, 94, 53].map((w, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 28, height: 8, borderRadius: 2, background: "#f0f1f4" }} />
+                <div style={{ flex: 1, height: 8, background: "#f0f1f4", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${w}%`, height: "100%", background: "rgba(245,158,11,0.55)", borderRadius: 4 }} />
+                </div>
               </div>
             ))}
           </div>
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "20px" }}>
-            <div style={{ width: 100, height: 14, borderRadius: 3, background: "rgba(255,255,255,0.1)", marginBottom: 16 }} />
+          <div style={{ background: "#fff", border: "1px solid #e6e7ec", borderRadius: 10, padding: "18px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div style={{ width: 90, height: 12, borderRadius: 3, background: "#e9eaee", marginBottom: 16 }} />
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(255,255,255,0.06)" }} />
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: "#f0f1f4", flexShrink: 0 }} />
                 <div>
-                  <div style={{ width: 80, height: 10, borderRadius: 2, background: "rgba(255,255,255,0.08)", marginBottom: 4 }} />
-                  <div style={{ width: 50, height: 8, borderRadius: 2, background: "rgba(255,255,255,0.05)" }} />
+                  <div style={{ width: 88, height: 9, borderRadius: 2, background: "#e4e5ea", marginBottom: 5 }} />
+                  <div style={{ width: 54, height: 8, borderRadius: 2, background: "#eeeff3" }} />
                 </div>
+                <div style={{ marginLeft: "auto", width: 44, height: 9, borderRadius: 2, background: "#e4e5ea" }} />
               </div>
             ))}
           </div>
