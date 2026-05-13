@@ -5,17 +5,18 @@
  * on every boot, silently dropping HTTP spans / per-request error context.
  *
  * Do NOT collapse this back into `index.ts` or drop the `--import` flag in
- * `package.json` / `.replit-artifact/artifact.toml`. The whole point of this
- * file is that it runs in its own tick before any other module is evaluated.
+ * `package.json` / `Dockerfile` CMD. The whole point of this file is that it
+ * runs in its own tick before any other module is evaluated.
  */
 import * as Sentry from "@sentry/node";
 
 const DSN = process.env.SENTRY_DSN;
 
 if (DSN) {
-  // NODE_ENV is the portable signal — `[services.production.run.env]` in
-  // `.replit-artifact/artifact.toml` already sets NODE_ENV=production, so we
-  // deliberately do NOT read any REPLIT_* env vars here (replit-independence).
+  // NODE_ENV is the portable signal — the Dockerfile sets NODE_ENV=production
+  // on the runtime stage (and `.replit` `[userenv.shared]` sets it for the dev
+  // workspace), so we deliberately do NOT read any REPLIT_* env vars here
+  // (replit-independence).
   const isProduction = process.env.NODE_ENV === "production";
 
   Sentry.init({
