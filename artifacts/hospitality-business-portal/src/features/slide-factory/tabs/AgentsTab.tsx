@@ -13,6 +13,8 @@ import {
   DINO_VERDICT_LABEL,
   MAYA_VERDICT_CLASS,
   MAYA_VERDICT_LABEL,
+  PIXEL_DIFF_DECIMALS_BADGE,
+  PIXEL_DIFF_DECIMALS_TOOLTIP,
   TOTAL_DECK_SLIDES,
 } from "../SlideFactoryConstants";
 import { deriveSlotStatus, dinoPctVerdict } from "../SlideFactoryUtils";
@@ -128,9 +130,9 @@ export function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
                       return (
                         <span
                           className={`text-[10px] px-1.5 py-px rounded leading-none font-medium ${DINO_VERDICT_CLASS[verdict]}`}
-                          title={`${MINIONS.dino.role}: ${result.pixelDiffPct.toFixed(2)}% pixel diff`}
+                          title={`${MINIONS.dino.role}: ${result.pixelDiffPct.toFixed(PIXEL_DIFF_DECIMALS_TOOLTIP)}% pixel diff`}
                         >
-                          {MINIONS.dino.label} · {result.pixelDiffPct.toFixed(1)}% · {DINO_VERDICT_LABEL[verdict]}
+                          {MINIONS.dino.label} · {result.pixelDiffPct.toFixed(PIXEL_DIFF_DECIMALS_BADGE)}% · {DINO_VERDICT_LABEL[verdict]}
                         </span>
                       );
                     })()}
