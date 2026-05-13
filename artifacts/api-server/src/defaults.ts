@@ -1,5 +1,5 @@
 /**
- * server/defaults.ts — DB-backed reader for the Steady State → Defaults page.
+ * server/defaults.ts — DB-backed reader for the Model Defaults → Defaults page.
  *
  * The `model_defaults` table holds the admin-managed seed values that become
  * a user's starting assumptions (see `lib/db/src/schema/model-defaults.ts`). The

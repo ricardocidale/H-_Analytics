@@ -91,7 +91,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   sources:               { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models" },
   "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
   "default-assignments": { title: "Default Assignments",      subtitle: "Assign default scenarios per user with property toggles" },
-  // Defaults section (Steady State navigation)
+  // Defaults section (Model Defaults navigation)
   "defaults-management-company": { title: "Management Company Defaults", subtitle: "Default financial parameters seeded into new entities at the management-company level" },
   "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
   "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },

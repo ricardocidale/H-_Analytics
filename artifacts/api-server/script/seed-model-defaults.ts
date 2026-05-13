@@ -2,7 +2,7 @@
  * Seed `model_defaults` from the TypeScript canonical sources.
  *
  * Counterpart to `seed-model-constants.ts`. This script lands day-zero
- * Defaults rows for the Management Company tab of Steady State → Defaults,
+ * Defaults rows for the Management Company tab of Model Defaults → Defaults,
  * following the card taxonomy in `docs/architecture/STEADY-STATE.md` §2.1
  * and the Q1/Q2/Q5 answers locked in §7.3 (pure DB-backed, universal at
  * MVP via nullable scope, analyst-proposes/admin-disposes).

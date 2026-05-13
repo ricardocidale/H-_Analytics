@@ -59,7 +59,7 @@ export const TAB_LABELS: Record<TabKey, string> = {
  *   - costOfEquity lives in `funding` (DCF discount rate / WACC Re)
  *   - exitCapRate / salesCommissionRate / industryVertical /
  *     exitRevenueMultiple / property USALI ratios are admin-edited on
- *     Admin → Steady State → Property Underwriting (the legacy
+ *     Admin → Model Defaults → Property Underwriting (the legacy
  *     `property-defaults` tab here was removed). All five surfaces still
  *     write to the same `globalAssumptions` row the engine reads, so the
  *     move is behavior-neutral.
@@ -402,7 +402,7 @@ export function useCompanyAssumptionsForm(
     }
 
     // Note: the exit-multiple band check used to live here too, but that
-    // tab moved to Admin → Steady State → Property Underwriting. The
+    // tab moved to Admin → Model Defaults → Property Underwriting. The
     // PropertyExitDefaultsCard on the admin side runs the inline check;
     // this page no longer owns the field, so it no longer fetches the
     // bands or surfaces a save-time warning for it.
