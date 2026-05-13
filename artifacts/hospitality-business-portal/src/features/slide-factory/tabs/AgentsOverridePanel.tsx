@@ -144,12 +144,13 @@ function SlotEditor({
                 variant="ghost"
                 size="icon"
                 onClick={() => {
+                  if (saving) return;
                   setLocalValue("");
                   // Pass "" explicitly — React state batching means localValue
                   // would still hold the old URL inside handleSave's closure.
                   void handleSave("");
                 }}
-                disabled={disabled}
+                disabled={disabled || saving}
                 className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center p-0"
                 title="Clear photo override"
                 aria-label="Clear photo override"

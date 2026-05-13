@@ -37,6 +37,12 @@ export const DINO_WARN_THRESHOLD_PCT = 5;
 /** Pixel-diff percentage at which Dino's verdict downgrades from warn → fail */
 export const DINO_FAIL_THRESHOLD_PCT = 15;
 
+/** Decimal places shown in the compact pixel-diff badge ("4.2%"). */
+export const PIXEL_DIFF_DECIMALS_BADGE = 1;
+/** Decimal places shown in the tooltip hover ("4.18% pixel diff") — finer
+ *  precision because the tooltip is the deliberate-inspection surface. */
+export const PIXEL_DIFF_DECIMALS_TOOLTIP = 2;
+
 export const DINO_VERDICT_CLASS: Record<DinoVerdict, string> = {
   pass: "text-emerald-700 bg-emerald-50",
   warn: "text-amber-700 bg-amber-50",
