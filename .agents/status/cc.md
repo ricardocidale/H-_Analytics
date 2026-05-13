@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T00:30:00Z
+Updated: 2026-05-14T01:15:00Z
 Status: idle
 
 ## Active Branch
@@ -13,16 +13,20 @@ main
 
 ## Last Commit on Branch
 
-`fb27bcf2d` — "fix(property-edit): P4 — display refi LTV cap as 70% not 0.70×"
+`05c953830` — "feat(seed-calibration): Plan 2026-05-13-001 U1 — demo property exit-cap overrides + bracket slug fix"
 
 ## What CC Did This Session
 
-- U6 bracket Layer-2 defaults overlay (`applyBracketLayerDefaults`) at POST /api/properties (65a1194f7): weight-blends exitCapRate + refiMaxLtvToOriginal from icp_brackets; runs before Layer-1 hydration; non-fatal wrapper
-- Plan 2026-05-13-005 all four phases:
-  - P1 (cefcacf65): SEED_REFI_MAX_LTV_TO_ORIGINAL 1.00 → 0.70 in property-data.ts
-  - P2 (560eb1717): `properties-refi-ltv-recalibration-001.ts` migration + registered in startup/migrations.ts (isMigrationApplied gate, one-time)
-  - P3 (b66cfad62): "Max Loan vs. Purchase Price" admin field in PropertyUnderwritingTab.tsx Refinance Terms section
-  - P4 (fb27bcf2d): CapitalStructureSection.tsx display fix — badge 70%, tooltip reworded, helper "Max refi loan:", slider max 150
+- Plan 2026-05-13-005 all four phases (prior session): P1–P4 shipped
+- Plan 2026-05-13-001 U1 (this session):
+  - `icp-brackets-004.ts` (05c953830): renames 3 mismatched bracket slugs to match
+    bracket-catalog.ts IDs (branded-full-service-hotel→soft-brand-boutique,
+    performance-str-cluster→performance-managed-str,
+    agritourism-experiential-lodge→agritourism-experiential); backfills
+    default_exit_cap_rate + default_refi_max_ltv_to_original on all 4 brackets
+  - `properties-demo-seed-overrides-001.ts` (05c953830): calibrated exit_cap_rate
+    on 6 INITIAL properties (US tertiary 9.75%, Jano 12.0%, Cartagena 10.5%),
+    Duplex exit_cap 7.5% + max_occupancy 0.30
 
 ## Files CC Owns Right Now
 
@@ -30,15 +34,14 @@ None — all committed to main.
 
 ## Handoff to Replit
 
-Nothing pending — Plan 2026-05-13-005 is fully shipped. Next items from CLAUDE.md open TODOs:
-- U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
+Nothing pending. Next CC items from CLAUDE.md open TODOs:
 - U8: verification — portfolio IRR in 25–30% band + docs
+- Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
 
 ## Pending CC Work (do NOT touch — CC will handle)
 
-1. U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
-2. U8: verification — IRR 25–30% band + docs
-3. Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
+1. U8: verification — IRR 25–30% band + docs
+2. Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
 
 ## Do Not Touch
 
