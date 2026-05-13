@@ -4,38 +4,41 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T15:30:00Z
+Updated: 2026-05-13T17:00:00Z
 Status: idle
 
 ## Active Branch
 
-main
+feat/financial-defaults-irr-calibration
 
 ## Last Commit on Branch
 
-`8daaa68f5` — "feat(slide-factory): wire U7 PPTX substitution pipeline + seed admin_resources source row (#149)"
+`3026ee00f` — "fix(financial-defaults): Phase 5 — wire refiMaxLtvToOriginal cap in engine refi sizing"
 
 ## What CC Did This Session
 
-- Ran CodeRabbit review on Replit's spinner/error-card sweep (committed diff); applied 1 ARIA fix (`OperatingStructureComparison.tsx`)
-- Audited R2 canonical files; deleted 25 orphaned past-run outputs
-- Extracted bare PPTX template from v7 ZIP → uploaded to R2 at `canonical/lb-6-slide/templates/lb-v7-template.pptx`
-- Seeded `admin_resources` source row via migration guard `admin-resources-013.ts`
-- Wired U7 PPTX substitution + soffice PDF pipeline in `marco.ts` (post-Marco try/catch block)
-- All on new branch `feat/factory-v2-u7-wire`, pushed
+Executed all 5 phases of plan `docs/plans/2026-05-13-003-fix-financial-defaults-integrity-and-irr-calibration-plan.md`:
+
+- **Phase 1** (812eaff8e): startup guard — `assertRequiredModelDefaults()` in `seeds.ts`; seed insert-or-skip already done in prior session
+- **Phase 2** (085bad967): wired `withFinancialHydration` in analyst runner funding compute path; prior session wired routes/finance.ts, structure-comparison, properties.ts
+- **Phase 3** (5e38cacf7): SEED_EXIT_CAP_RATE_LUXURY 0.062→0.085; extracted SEED_* constants from property-data.ts; fixed `refinanceLtv`→`refinanceLTV` casing on 3 SYNC properties; added refiMaxLtvToOriginal to all refi-eligible Full Equity seeds
+- **Phase 4** (1d1540f9a — auto-checkpoint): null assertions in `loanCalculations.ts` for refinanceLTV and exitCapRate; `calculateExitValue` signature tightened; `computePropertyDefaults` accepts optional maxOccupancy override
+- **Phase 5** (3026ee00f): added `refiMaxLtvToOriginal` to engine `PropertyInput` + `LoanParams`; wired cap in `refinance-pass.ts` (main engine path) and `loanCalculations.ts` (exit-scenario path); 3 vitest proof tests pass
 
 ## Files CC Owns Right Now
 
-None
+None — all committed and pushed to branch.
 
 ## Handoff to Replit
 
-**PR #149 merged to main.** Slide factory U7 pipeline is now wired.
+Branch `feat/financial-defaults-irr-calibration` is ready for PR/merge review. Key changes:
+- Engine now prevents equity-stripping refi when `refiMaxLtvToOriginal` is set
+- Startup guard prevents boot with missing model_defaults keys
+- All compute routes hydrate null fields from model_defaults before engine call
+- Luxury cap rate corrected (0.062 → 0.085)
 
-- PPTX template live in R2 at `canonical/lb-6-slide/templates/lb-v7-template.pptx`
-- `admin-resources-013.ts` guard seeds the source row on next boot
-- U7 block in `marco.ts` runs after Marco completes (PPTX substitution → soffice PDF → pptxR2Key written to run row)
-- E2E PDF conversion (soffice) requires Railway — Replit preview logs a U7 error and continues normally
+**Replit blocked items** (per plan):
+- U3 UI: Add `refiMaxLtvToOriginal` field to `DebtSection.tsx` — now safe to implement (Phase 5 wired the engine side)
 
 ## Pending CC Work (do NOT touch — CC will handle)
 
