@@ -22,7 +22,6 @@
 
 import { pathToFileURL } from "url";
 import { resolve } from "path";
-import { sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { modelDefaults } from "@workspace/db";
 import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE } from "@shared/constants-business-models";
@@ -227,28 +226,7 @@ export async function seedModelDefaults(opts: { silent?: boolean } = {}): Promis
         lastSetReason: "Initial migration from shared/constants.ts",
         lastSetAt: insertedAt,
       })
-      .onConflictDoUpdate({
-        target: [
-          modelDefaults.defaultKey,
-          modelDefaults.country,
-          modelDefaults.countrySubdivision,
-          modelDefaults.businessType,
-          modelDefaults.sizeBand,
-        ],
-        set: {
-          // sub_tab is part of the cascade contract (Funding rows must land
-          // under sub_tab="funding"). Update on conflict so dev DBs that pre-date
-          // the per-spec subTab override migrate forward on next seed.
-          subTab: sql`EXCLUDED.sub_tab`,
-          cardKey: sql`EXCLUDED.card_key`,
-          value: sql`EXCLUDED.value`,
-          unit: sql`EXCLUDED.unit`,
-          label: sql`EXCLUDED.label`,
-          lastSetSource: sql`EXCLUDED.last_set_source`,
-          lastSetReason: sql`EXCLUDED.last_set_reason`,
-          lastSetAt: sql`EXCLUDED.last_set_at`,
-        },
-      });
+      .onConflictDoNothing();
 
     byCard.set(spec.card, (byCard.get(spec.card) ?? 0) + 1);
   }

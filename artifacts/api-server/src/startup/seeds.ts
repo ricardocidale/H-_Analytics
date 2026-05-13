@@ -7,9 +7,12 @@
  *
  * All paths use `../` because this file lives in src/startup/ not src/.
  */
+import { inArray } from "drizzle-orm";
 import { seedAdminUser } from "../auth";
 import { storage } from "../storage";
 import { log as serverLog } from "../logger";
+import { db } from "../db";
+import { modelDefaults } from "@workspace/db";
 
 /** Mirror of the exported `log` from index.ts — logs to the "express" source. */
 const log = (message: string) => serverLog(message, "express");
