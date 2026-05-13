@@ -110,10 +110,10 @@ const SEED_REV_SHARE_OTHER_HIGH = 0.08;    // premium ancillary capture (Jano Gr
 const SEED_REV_SHARE_OTHER_MID = 0.07;     // standard ancillary (Belleayre Mountain)
 const SEED_REV_SHARE_OTHER_LOW = 0.06;     // limited ancillary (Cartagena / San Diego)
 const SEED_REV_SHARE_OTHER_MINIMAL = 0.05; // minimal ancillary (Lakeview Haven Lodge)
-// Refi LTV-to-original cap: refi loan may not exceed original purchase price.
-// 1.00 is the conservative floor; stricter ratios (0.70–0.90) make normal-year
-// refis infeasible for income-capped properties. Source: Plan 2026-05-13-003.
-const SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00;
+// Refi LTV-to-original cap: refi loan may not exceed 70% of original purchase price.
+// Recalibrated from 1.00 → 0.70 per Plan 2026-05-13-005 to prevent equity stripping.
+// Matches DEFAULT_REFI_MAX_LTV_TO_ORIGINAL in constants-funding.ts. Source: Plan 2026-05-13-005.
+const SEED_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
 
 // Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
 // (US baseline = 0.012). Same source-of-truth used by the schema column default.
