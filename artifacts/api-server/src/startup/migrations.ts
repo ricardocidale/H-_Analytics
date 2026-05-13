@@ -222,6 +222,25 @@ export async function runSchemaMigrations() {
     await runPropertiesRefiLtvRecalibration001();
     await markMigrationApplied("properties_refi_ltv_recalibration_001");
   }
+
+  // Plan 2026-05-13-001 Path A — fix bracket slug mismatch + backfill Layer-2 overlay values.
+  // Renames 3 of 4 icp_brackets slugs to match bracket-catalog.ts IDs so
+  // applyBracketLayerDefaults() can resolve all four entries. Also populates
+  // default_exit_cap_rate and default_refi_max_ltv_to_original on all brackets.
+  if (!(await isMigrationApplied("icp_brackets_004"))) {
+    const { runIcpBrackets004 } = await import("../migrations/icp-brackets-004");
+    await runIcpBrackets004();
+    await markMigrationApplied("icp_brackets_004");
+  }
+
+  // Plan 2026-05-13-001 U1 — demo property exit-cap calibration + Duplex overrides.
+  // Sets calibrated exit_cap_rate on 6 INITIAL properties + Medellin Duplex, and
+  // corrects Duplex max_occupancy. Targets the 25–30% IRR band for the demo portfolio.
+  if (!(await isMigrationApplied("properties_demo_seed_overrides_001"))) {
+    const { runPropertiesDemoSeedOverrides001 } = await import("../migrations/properties-demo-seed-overrides-001");
+    await runPropertiesDemoSeedOverrides001();
+    await markMigrationApplied("properties_demo_seed_overrides_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
