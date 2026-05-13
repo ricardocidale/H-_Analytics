@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T14:15:00Z
+Updated: 2026-05-13T15:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,21 +13,17 @@ main
 
 ## Last Commit on Branch
 
-sweep: replace all page-level spinners/error cards with floating states
+plan: financial defaults integrity + IRR calibration fix (for CC)
 
 ## What Replit Did This Session
 
-Completed full spinner/error-card sweep across the portal:
-- Added `PageLoadingState` and `PageErrorState` shared components (previous session)
-- Replaced all full-page `<Layout>`-wrapped spinners/error blocks across 11 pages:
-  Company, CompanyResearch, Portfolio, Scenarios, PropertyPhotos, PropertyEdit,
-  CompanyGuidance, PropertyResearchCriteria, CompanyAssumptions, CompanyBracketMix
-  (loading + error → PageLoadingState / PageErrorState throughout)
-- PropertyEdit: fixed both the isLoading, !property, and !draft spinner blocks
-- OperatingStructureComparison: replaced `<Alert variant="destructive">` with compact
-  inline chip (icon + text + retry link) — no more large red error card
-- KnowledgeRegistryPage, SpecialistsDirectoryPage, SlideFactoryDetail: replaced
-  Loader2 spinners in sub-components with skeleton shimmer bars; error text made muted
+Diagnosed IRR 50%+ root causes and produced a structured implementation plan for CC:
+- Identified 3 architectural gaps (model_defaults bypass, engine TS fallbacks, seed calibration)
+- Ran architect analysis to validate sequencing and calibration recommendations
+- Produced `docs/plans/2026-05-13-003-fix-financial-defaults-integrity-and-irr-calibration-plan.md`
+- Plan covers 5 ordered phases: seed ownership lock → server hydration layer →
+  seed calibration + magic-number cleanup → remove engine DEFAULT_* fallbacks →
+  wire refiMaxLtvToOriginal cap (U3)
 
 ## Files Replit Owns Right Now
 
@@ -35,11 +31,19 @@ None — session complete.
 
 ## Handoff to CC
 
-(none pending)
+**Plan for execution:** `docs/plans/2026-05-13-003-fix-financial-defaults-integrity-and-irr-calibration-plan.md`
+
+Key facts CC must know:
+1. `SEED_EXIT_CAP_RATE_LUXURY = 0.062` → recalibrate to 0.085 (lib/shared/src/constants.ts)
+2. `refinanceLtv` casing bug on 3 properties (property-data.ts lines 545-547) — fix to `refinanceLTV`
+3. `refiMaxLtvToOriginal` column exists in DB schema but engine ignores it; Phase 5 wires it
+4. All five phases must run in order — Phase 4 (fallback removal) will break things if run before Phases 1-3
+5. Architect says: seed ownership fix (insert-or-skip) must happen BEFORE anything else to prevent
+   CI/boot cycles from overwriting admin-managed model_defaults rows
 
 ## Pending Replit Work
 
-- U3: Add refi LTV cap field to `DebtSection.tsx` — see `replit.md → Open TODOs — Replit Agent`
+- U3 UI: Add refi LTV cap field to `DebtSection.tsx` — blocked on CC completing Phase 5 engine wiring
 
 ## Do Not Touch (CC-owned surfaces)
 
