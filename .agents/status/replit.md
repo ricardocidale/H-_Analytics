@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T20:30:00Z
+Updated: 2026-05-14T23:50:00Z
 Status: idle
 
 ## Active Branch
@@ -13,17 +13,19 @@ main
 
 ## Last Commit on Branch
 
-chore(nav): rename Dashboard → Portfolio Overview in sidebar
+fix(auth): add /api/system/login-config to public API paths
 
 ## What Replit Did This Session
 
-- Ran dashboard UI/UX audit using Figma MCP (authenticated as Ricardo, Norfolk AI Team Pro)
-  - Generated FigJam diagram: H+ Analytics — Main Dashboard UI/UX Audit
-  - Identified 3 design issues: hero KPIs buried in accordion, single card = no hierarchy, ALL CAPS labels
-- Found 4 KPI hero mockup variants in mockup sandbox (Swiss, Animated, Glass, Bento) — built previously but never graduated to main app
-- Placed all 4 mockup variants on canvas for side-by-side comparison below existing H+ Analytics iframe
-- Renamed "Dashboard" → "Portfolio Overview" in desktop sidebar nav (Layout.tsx line 282)
-- Renamed "Dashboard" → "Portfolio" in mobile bottom nav (Layout.tsx line 542)
+- Ran dashboard UI/UX audit using Figma MCP → FigJam diagram created
+- Found 4 KPI hero mockup variants (Swiss, Animated, Glass, Bento) in mockup sandbox
+- Placed 4 KPI variant iframes on canvas for side-by-side comparison
+- Created Compare.tsx mockup page showing all 4 variants together
+- Took screenshots of all 4 variants; uploaded to Figma file "H+ KPI Hero — Design Comparison"
+- Renamed "Dashboard" → "Portfolio Overview" in desktop sidebar nav
+- Renamed "Dashboard" → "Portfolio" in mobile bottom nav
+- Fixed bug: /api/system/login-config was missing from PUBLIC_API_PATHS, causing 401 on the public login-config endpoint; login screen toggle now works correctly
+- Set loginScreenEnabled=false in seed_defaults — login page now shows "Access Restricted"
 
 ## Files Replit Owns Right Now
 
