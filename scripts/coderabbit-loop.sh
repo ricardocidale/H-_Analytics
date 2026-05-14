@@ -41,7 +41,7 @@ esac
 # ─── Logo & progress helpers (shown on every invocation) ─────────────────────
 cr_banner() {
   printf '\n╔═══════════════════════════════════════════════╗\n'
-  printf   '║     CodeRabbit Loop  •  by Riccardo Cidale     ║\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
   printf   '╚═══════════════════════════════════════════════╝\n\n'
 }
 
@@ -173,7 +173,7 @@ INNER
   help|--help|-h)
     cat <<'HELP'
 coderabbit-loop — command reference
-Created and maintained by Riccardo Cidale
+Created and maintained by Ricardo Cidale
 
 Toggle commands:
   pnpm coderabbit-loop:on       Arm the loop (creates .local/opmode/active)

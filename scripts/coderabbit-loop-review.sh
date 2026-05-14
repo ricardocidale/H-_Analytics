@@ -24,7 +24,7 @@ scratch="$repo_root/.local/coderabbit-loop"
 # ─── Banner & progress helpers (shown on every invocation) ───────────────────
 cr_banner() {
   printf '\n╔═══════════════════════════════════════════════╗\n'
-  printf   '║     CodeRabbit Loop  •  by Riccardo Cidale     ║\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
   printf   '╚═══════════════════════════════════════════════╝\n\n'
 }
 
@@ -412,7 +412,7 @@ print_logo() {
   printf >&2 "  │   /\\ /\\    ${B}${G}CodeRabbit${R} ${B}Loop${R}                 │\n"
   printf >&2 "  │  ( •.• )   ${D}iterative working-tree review${R}   │\n"
   printf >&2 "  │   > ^ <    ${D}powered by CodeRabbit CLI${R}       │\n"
-  printf >&2 "  │            ${D}created by Riccardo Cidale${R}       │\n"
+  printf >&2 "  │            ${D}created by Ricardo Cidale${R}       │\n"
   printf >&2 '  │                                            │\n'
   printf >&2 '  ╰────────────────────────────────────────────╯\n'
   printf >&2 '\n'
