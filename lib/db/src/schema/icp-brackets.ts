@@ -44,6 +44,21 @@ export const icpBrackets = pgTable("icp_brackets", {
   defaultExitCapRate: real("default_exit_cap_rate"),
   defaultRefiMaxLtvToOriginal: real("default_refi_max_ltv_to_original"),
 
+  // ── Best-fit match rules (Plan 2026-05-13-001 U7 — DB-driven so the rule
+  // set can evolve without a code change). Davi (per-property best-fit
+  // classifier minion, artifacts/api-server/src/ai/ambient/minions/davi.ts)
+  // loads these rows and picks the highest-priority match per property.
+  //
+  // Predicates are AND-ed within a row. NULL or empty array = wildcard
+  // (no constraint on that dimension). matchPriority is a positive integer;
+  // higher fires first, ties broken by id.
+  matchCountries: jsonb("match_countries").$type<string[]>(),
+  matchBusinessModels: jsonb("match_business_models").$type<string[]>(),
+  matchQualityTiers: jsonb("match_quality_tiers").$type<string[]>(),
+  matchKeywords: jsonb("match_keywords").$type<string[]>(),
+  matchPriority: integer("match_priority").notNull().default(0),
+  matchRationale: text("match_rationale"),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

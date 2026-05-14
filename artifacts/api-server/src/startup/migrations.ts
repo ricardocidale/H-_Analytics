@@ -299,6 +299,15 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("properties_full_equity_refi_rule_001");
   }
 
+  // Plan 2026-05-13-001 U7 — Davi best-fit match-rule columns on icp_brackets.
+  // Adds 6 columns so Davi (per-property classifier minion) can match properties
+  // to brackets using DB-stored rules (no code change needed when rules evolve).
+  if (!(await isMigrationApplied("icp_brackets_005"))) {
+    const { runIcpBrackets005 } = await import("../migrations/icp-brackets-005");
+    await runIcpBrackets005();
+    await markMigrationApplied("icp_brackets_005");
+  }
+
   // DB audit fix 2026-05-14 — model_defaults NULLS NOT DISTINCT unique index.
   // Prevents duplicate rows on every boot when scope columns are all NULL.
   // PostgreSQL NULL ≠ NULL inside standard unique indexes; NULLS NOT DISTINCT

@@ -260,6 +260,11 @@
       "status": "guarded",
       "guard": "mgmt-co-fees-tables-001.ts",
       "reason": "Plan 2026-05-13-006 U2 \u2014 drops partial unique index on business_brands.slug, makes slug NOT NULL + adds full UNIQUE constraint (FK target for brand_fees), creates management_company_fees (global Tier-A fee schedule) and brand_fees (per-flag fee schedule) tables, seeds base_mgmt 8.5% + incentive 12% rows, seeds H+ Hotel brand stack (5 rows) + H+ STR Ultra-Luxury OTA fees (5 rows), assigns Medellin Duplex to STR flag. Guarded by mgmt-co-fees-tables-001.ts which re-applies all DDL idempotently (IF NOT EXISTS / DO $$ blocks) and seeds via ON CONFLICT DO NOTHING."
+    },
+    "0067_icp_brackets_match_rules": {
+      "status": "guarded",
+      "guard": "icp-brackets-005.ts",
+      "reason": "Plan 2026-05-13-001 U7 \u2014 adds six match-rule columns to icp_brackets (match_countries, match_business_models, match_quality_tiers, match_keywords jsonb; match_priority integer NOT NULL DEFAULT 0; match_rationale text). All ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-005.ts which re-applies the same ALTERs at boot for dev DBs whose _journal.json has drifted past 0067."
     }
   }
 }

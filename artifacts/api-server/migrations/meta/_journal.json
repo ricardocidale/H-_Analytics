@@ -435,6 +435,13 @@
       "when": 1779148800000,
       "tag": "0066_create_mgmt_co_and_brand_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1779235200000,
+      "tag": "0067_icp_brackets_match_rules",
+      "breakpoints": true
     }
   ]
 }
