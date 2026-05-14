@@ -501,7 +501,6 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |
 | `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full reference (routes, schema, finance, slots, Admin UI) |
 | `docs/slide-system/canonical/coding-agent-instructions.md` | Slide agent workflow — §15 mandates canonical PNG comparison (PNG > JSON) |
-| `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` | Large-repo Shell + CodeRabbit + Compound operating mode (off by default; toggle: `.local/opmode/active`) |
 | `.agents/status/cc.md` | CC current session status (active branch, owned files, handoff notes) |
 | `.agents/status/replit.md` | Replit current session status (active branch, owned files, handoff notes) |
 
@@ -566,24 +565,6 @@ Full protocol, format spec, and surface restrictions: `agent-collab-status` skil
 `CLAUDE.md` and `replit.md` are dual memory files covering identical ground for two different agents. They drift by default. **Every session that modifies either file must harmonize the other before shipping.** This applies equally when `ce-work` ships code that affects `CLAUDE.md` content (architecture rules, skill routing, known issues, recent changes).
 
 Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `CLAUDE.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass, TODO list format and cadence). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
-
----
-
-## Natural-language commands — CodeRabbit loop
-
-Six slash commands for iterative CR review loops. Install globally once from H+ Analytics:
-`pnpm coderabbit-loop:install`  — copies commands → `~/.claude/commands/`, helpers → `~/.local/share/coderabbit-loop/`
-
-Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
-
-| Natural-language phrase | Slash command | pnpm equivalent |
-|---|---|---|
-| "turn coderabbit loop on", "arm the loop", "enable coderabbit" | `/coderabbit-loop-on` | `pnpm coderabbit-loop:on` |
-| "turn coderabbit loop off", "disarm the loop", "disable coderabbit" | `/coderabbit-loop-off` | `pnpm coderabbit-loop:off` |
-| "coderabbit loop status", "is the loop on", "loop state" | `/coderabbit-loop-status` | `pnpm coderabbit-loop:status` |
-| "coderabbit loop help", "what are the loop commands" | `/coderabbit-loop-help` | `pnpm coderabbit-loop:help` |
-| "run coderabbit review loop", "review my working tree", "start review loop" | `/coderabbit-loop-review` | `pnpm coderabbit-loop:review` |
-| "run coderabbit autofix", "loop with autofix", "autofix my PR" | `/coderabbit-loop-autofix` | `pnpm coderabbit-loop:autofix` |
 
 ---
 
