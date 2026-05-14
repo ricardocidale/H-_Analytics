@@ -2223,10 +2223,8 @@
     "artifacts/api-server/src/pdf/table-render.tsx",
     "artifacts/api-server/src/routes/market-rates.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-funding.ts"
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "0.70": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2237,7 +2235,8 @@
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
-    "lib/shared/src/constants-benchmarks.ts"
+    "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/constants-funding.ts"
   ],
   "0.80": [
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
@@ -2260,7 +2259,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-quant-panel-prompt.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],

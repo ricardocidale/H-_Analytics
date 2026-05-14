@@ -4,24 +4,20 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T13:00:00Z
-Status: idle
+Updated: 2026-05-14T14:30:00Z
+Status: active
 
 ## Active Branch
 
-feat/mgmt-co-fees-phase-1
+feat/plan-001-u1-seed-calibration (PR #154 open)
 
 ## Last Commit on Branch
 
-2dac8904e  fix(mgmt-co-fees): U6 — remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback
-
-## Last Commit on Branch
-
-design(mgmt-co-fees): post-coding design review — input styling + card shadows
+813fd8928  docs(solutions): document ICP bracket slug mismatch + Layer-2 overlay inert fix
 
 ## What CC Did This Session
 
-Plan 006 Phase 1 — ALL 6 UNITS COMPLETE + design review DONE
+Plan 001 U1 + DB audit fixes — cherry-picked from fix/db-audit-and-seed-calibration onto clean main branch
 
 - U1: Extend business_brands + data migration (already done prior session)
 - U2: Create management_company_fees + brand_fees tables + seed (already done prior session)
@@ -43,32 +39,29 @@ Plan 006 Phase 1 — ALL 6 UNITS COMPLETE + design review DONE
 
 ## Files CC Owns Right Now (uncommitted, working tree)
 
-- `.claude/settings.local.json` — minor tweak
+None — all committed and pushed to PR #154.
 
-## What's Left for Plan 006
+## Plan 001 Status
 
-### Phase 2 (separate PR, depends on Phase 1 verified in prod)
+- U5 (icp_brackets schema columns): DONE ✅ (on main)
+- U6 (applyBracketLayerDefaults seeding pathway): DONE ✅ (on main)
+- U1 (demo property exit-cap overrides + bracket slug fix): DONE ✅ (PR #154)
+- U8 (Duplex full-equity refi rule): DONE ✅ (PR #154 — properties-demo-seed-overrides-002)
+- U7 (bracket catalog backfill with market values): NOT done — icp-brackets-004 only fixes slug renames + applies overlay; full geography-tier catalog (Davi classifier) is on origin/feat/seed-calibration-bracket-defaults, not yet merged
+- IRR verification (25–30% band): NOT done — depends on U7 + U1 landing in prod
 
-- U7: Engine bypass cleanup at company-engine.ts:195 (CC-only, §9)
-  - Remove ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE at company-engine.ts:195
-  - Verify all 7 demo properties still produce correct cash flows
-- U8: Delete DEFAULT_* business constants (CC-only, §9)
-  - lib/shared/src/constants*.ts migration of remaining DEFAULT_* constants
+## What's Pending
 
-### Testing outstanding
-
-- U2 migration test: artifacts/api-server/src/tests/migrations/mgmt-co-fees-seed.test.ts
-
-### Design review
-
-- U4 admin tabs: design review DONE ✅ (input styling + shadow-sm fixes applied)
-- U5 company tab: design review DONE ✅ (shadow-sm fixes applied)
+- Merge PR #154 after review
+- Decide whether to land origin/feat/seed-calibration-bracket-defaults (geography-tier Davi classifier) — bigger lift, separate PR
+- IRR verification after prod boot runs the migrations
+- Plan 006 Phase 2 (DEFAULT_* constants cleanup) still outstanding
 
 ## Handoff to Replit
 
-Branch ready for PR review. Phase 1 code complete. Replit can:
-- Run the app and smoke-test the new Admin → Model Defaults → Management Co Fees tab
-- Run the app and smoke-test the Company Assumptions → Mgmt Co Fees tab
+PR #154 open. Replit can smoke-test after merge:
+- Check that icp_brackets rows have correct slugs (soft-brand-boutique, performance-managed-str, agritourism-experiential)
+- Check that demo properties have updated exit_cap_rate values
 - Do NOT touch any files in the Do Not Touch list below
 
 ## Do Not Touch
