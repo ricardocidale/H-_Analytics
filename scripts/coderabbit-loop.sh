@@ -146,6 +146,7 @@ INNER
   help|--help|-h)
     cat <<'HELP'
 coderabbit-loop — command reference
+Created and maintained by Ricardo Cidale
 
 Toggle commands:
   pnpm coderabbit-loop:on       Arm the loop (creates .local/opmode/active)

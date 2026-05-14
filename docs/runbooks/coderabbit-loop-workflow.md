@@ -11,6 +11,7 @@ tags:
 ---
 
 # CodeRabbit Loop Workflow
+*Created and maintained by Ricardo Cidale*
 
 Runbook for the six `coderabbit-loop` commands: global install, prerequisites, the two iterative session variants, the §9 protected-surface policy, wall-time expectations, natural-language triggers, and troubleshooting.
 
