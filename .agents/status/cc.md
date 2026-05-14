@@ -4,57 +4,50 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T18:20:00Z
+Updated: 2026-05-14T21:10:00Z
 Status: idle
 
 ## Active Branch
 
-main (7425b26ae — U7 merged)
+main (a551078c9 — pushed to origin)
 
 ## Last Commit on Branch
 
-7425b26ae  feat(u7): geography-tier bracket catalog + Davi classifier integration
+a551078c9  Update loan calculation to include closing costs and basis (Replit checkpoint)
 
 ## What CC Did This Session
 
-- Audited remaining DEFAULT_* constants (all have active call sites — none dead after c7faaead7)
-- U7 geography-tier catalog rewrite — shipped on feat/u7-geography-tier-catalog, PR #155
-  - bracket-catalog.ts: 5 new bracket IDs (US Tertiary Resort, US Gateway, LATAM Prime Urban, LATAM Rural, LATAM Luxury STR)
-  - bracket-assignment-minion.ts: rewired to call Davi per-property, handles null via US Gateway fallback
-  - global-assumptions.ts (POST /bracket-mix/assign): queries icpBrackets match rules, passes to assignBrackets
-  - icp-brackets-006.ts runtime guard: DELETE 4 old service-profile brackets, UPSERT 5 geography-tier brackets with Layer-2 defaults + match rules
-  - startup/migrations.ts: registered icp_brackets_006
-  - Typecheck ✅, magic-numbers ✅, migration-guards 63/63 ✅
-- Branch cleaned: stripped Replit auto-checkpoint commits + coderabbit-loop noise; PR #155 now contains only U7 product commits
-
-## Files CC Owns Right Now (uncommitted, working tree)
-
-None — all committed and pushed to origin/feat/u7-geography-tier-catalog.
-
-## Plan 001 Status
-
-- U5 (icp_brackets schema columns): DONE ✅
-- U6 (applyBracketLayerDefaults seeding pathway): DONE ✅
-- U1 (demo property exit-cap overrides): DONE ✅
-- U8 (Duplex full-equity refi rule + LTV recalibration): DONE ✅
-- U7 FOUNDATION (Davi minion + match-rule columns): DONE ✅ — on main
-- U7 CATALOG REWRITE (geography-tier brackets + bracket-assignment-minion): DONE ✅ — on main
-- IRR verification (25–30% band): NOT done — prod boot first, then verify
+- Added MOTD (message of the day) feature:
+  - Admin → System → Login: new "Message of the Day" card with enable/disable toggle + textarea + 280-char limit
+  - Login page right panel: shows italic quote when enabled (desktop only)
+  - Backend: `seed_defaults` rows `motd_enabled` + `motd_text` under system/auth entity
+- Added developer auto-login bypass:
+  - Admin → System → Login: new "Developer Auto-Login" card (super-admin only, default OFF)
+  - Login page: auto-calls `/api/auth/dev-login` on mount when `autoLoginEnabled` is true
+  - Server-gated: public endpoint only returns `autoLoginEnabled=true` when `!isPublishedDeployment()`
+  - Allows Replit agents and screenshotter tools to bypass login in dev environments
+- Fixed 6 failing proof tests in `engine-integrity-fixes.test.ts`:
+  - Root cause: `refinanceClosingCostRate` added as required engine field after tests were written
+  - Fix: added `refinanceClosingCostRate: 0.03` to all refi fixtures
+  - Fix: added `refinanceBasis: 'appreciated_asset'` to Finding #2 (tests 2, 3) and Phase 5 fixtures — income-cap behavior is now gated behind this field
+  - All 160 proof tests pass ✅
+- Pushed to origin/main
 
 ## What's Pending
 
-- Merge feat/u7-geography-tier-catalog → main (typecheck ✅, magic-numbers ✅)
-- IRR verification after prod boot (icp-brackets-006 seeds 5 brackets with Davi rules)
-- Plan 006 Phase 2 (DEFAULT_* constants migration to DB) — long-term incremental project
-  - ~50 ?? DEFAULT_* fallbacks remain in engine/calc layers (§9 protected)
-  - Each requires: remove ?? fallback + verify resolver guarantees the value + delete constant
+- IRR verification on LIVE demo properties:
+  - IRR showing ~mid-30%s on refi properties (non-refi properties are fine)
+  - `refiMaxLtvToOriginal` cap was added to engine but needs to be SET on the actual property rows in DB
+  - Verify by checking `refiMaxLtvToOriginal` column on demo properties; if null, the cap is not applied and income-cap can inflate IRR
+  - Task file: `.local/tasks/debug-irr-59pct.md`
 
-## Handoff to Replit
+- Open PRs to review/merge: #145, #146, #147, #148, #150
 
-U7 merged to main (7425b26ae). Next prod boot (Railway) will run `icp_brackets_006`:
-- DELETE 4 old service-profile brackets
-- UPSERT 5 geography-tier brackets with Davi match rules (atomic transaction)
-After boot, verify IRR hits 25–30% band on demo portfolio. Do NOT touch Do Not Touch files below.
+- Plan 006 Phase 2 (DEFAULT_* constants → DB) — long-term incremental
+
+## Files CC Owns Right Now
+
+None — all committed and pushed.
 
 ## Do Not Touch
 
