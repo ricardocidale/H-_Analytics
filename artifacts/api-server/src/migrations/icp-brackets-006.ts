@@ -86,194 +86,212 @@ const US_RESORT_KEYWORDS = JSON.stringify([
 export async function runIcpBrackets006(): Promise<void> {
   logger.info(`${TAG} — replacing service-profile brackets with geography-tier catalog`);
 
-  // ── Step 1: DELETE old service-profile brackets ───────────────────────────
-  const deleted = await db.execute(sql`
-    DELETE FROM icp_brackets
-    WHERE slug IN (
-      'boutique-upscale-hotel',
-      'soft-brand-boutique',
-      'performance-managed-str',
-      'agritourism-experiential'
-    )
-  `);
-  logger.info(`${TAG} — deleted ${(deleted as { rowCount?: number }).rowCount ?? 0} old service-profile bracket(s)`);
+  try {
+    await db.transaction(async (tx) => {
+      // ── Step 1: DELETE old service-profile brackets ─────────────────────────
+      const deleted = await tx.execute(sql`
+        DELETE FROM icp_brackets
+        WHERE slug IN (
+          'boutique-upscale-hotel',
+          'soft-brand-boutique',
+          'performance-managed-str',
+          'agritourism-experiential'
+        )
+      `);
+      logger.info(`${TAG} — deleted ${(deleted as { rowCount?: number }).rowCount ?? 0} old service-profile bracket(s)`);
 
-  // ── Step 2: UPSERT 5 geography-tier brackets ──────────────────────────────
+      // ── Step 2: UPSERT 5 geography-tier brackets ────────────────────────────
 
-  // US Tertiary Boutique Resort (matchPriority=50; resort-keyword + US-country)
-  await db.execute(sql`
-    INSERT INTO icp_brackets (
-      slug, name, archetype_label,
-      customer_type, service_consumption_profile,
-      description, sort_order, is_active,
-      default_exit_cap_rate, default_refi_max_ltv_to_original,
-      match_countries, match_keywords,
-      match_priority, match_rationale
-    ) VALUES (
-      'us-tertiary-boutique-resort',
-      'US Tertiary Boutique Resort',
-      'US tertiary boutique resort',
-      'hotel', 'full',
-      'Independently branded boutique hotels and resorts in US tertiary and drive-to vacation destinations.',
-      10, true,
-      ${SEED_EXIT_CAP_US_TERTIARY_RESORT}, ${SEED_REFI_LTV_STD},
-      '["US"]'::jsonb, ${US_RESORT_KEYWORDS}::jsonb,
-      50, 'US property with resort/vacation-destination keyword in market, city, or name'
-    )
-    ON CONFLICT (slug) DO UPDATE SET
-      name                          = EXCLUDED.name,
-      archetype_label               = EXCLUDED.archetype_label,
-      customer_type                 = EXCLUDED.customer_type,
-      service_consumption_profile   = EXCLUDED.service_consumption_profile,
-      description                   = EXCLUDED.description,
-      default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
-      default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
-      match_countries               = EXCLUDED.match_countries,
-      match_keywords                = EXCLUDED.match_keywords,
-      match_priority                = EXCLUDED.match_priority,
-      match_rationale               = EXCLUDED.match_rationale,
-      updated_at                    = NOW()
-  `);
+      // US Tertiary Boutique Resort (matchPriority=50; resort-keyword + US-country)
+      await tx.execute(sql`
+        INSERT INTO icp_brackets (
+          slug, name, archetype_label,
+          customer_type, service_consumption_profile,
+          description, sort_order, is_active,
+          default_exit_cap_rate, default_refi_max_ltv_to_original,
+          match_countries, match_keywords,
+          match_priority, match_rationale
+        ) VALUES (
+          'us-tertiary-boutique-resort',
+          'US Tertiary Boutique Resort',
+          'US tertiary boutique resort',
+          'hotel', 'full',
+          'Independently branded boutique hotels and resorts in US tertiary and drive-to vacation destinations.',
+          10, true,
+          ${SEED_EXIT_CAP_US_TERTIARY_RESORT}, ${SEED_REFI_LTV_STD},
+          '["US"]'::jsonb, ${US_RESORT_KEYWORDS}::jsonb,
+          50, 'US property with resort/vacation-destination keyword in market, city, or name'
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          name                          = EXCLUDED.name,
+          archetype_label               = EXCLUDED.archetype_label,
+          customer_type                 = EXCLUDED.customer_type,
+          service_consumption_profile   = EXCLUDED.service_consumption_profile,
+          description                   = EXCLUDED.description,
+          sort_order                    = EXCLUDED.sort_order,
+          is_active                     = EXCLUDED.is_active,
+          default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
+          default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
+          match_countries               = EXCLUDED.match_countries,
+          match_keywords                = EXCLUDED.match_keywords,
+          match_priority                = EXCLUDED.match_priority,
+          match_rationale               = EXCLUDED.match_rationale,
+          updated_at                    = NOW()
+      `);
 
-  // US Gateway Boutique (matchPriority=10; US catch-all)
-  await db.execute(sql`
-    INSERT INTO icp_brackets (
-      slug, name, archetype_label,
-      customer_type, service_consumption_profile,
-      description, sort_order, is_active,
-      default_exit_cap_rate, default_refi_max_ltv_to_original,
-      match_countries,
-      match_priority, match_rationale
-    ) VALUES (
-      'us-gateway-boutique',
-      'US Gateway Boutique',
-      'US gateway city boutique hotel',
-      'hotel', 'full',
-      'Boutique hotels in US primary and secondary gateway city markets.',
-      20, true,
-      ${SEED_EXIT_CAP_US_GATEWAY_BOUTIQUE}, ${SEED_REFI_LTV_STD},
-      '["US"]'::jsonb,
-      10, 'US property not matched by a higher-priority US rule (gateway city catch-all)'
-    )
-    ON CONFLICT (slug) DO UPDATE SET
-      name                          = EXCLUDED.name,
-      archetype_label               = EXCLUDED.archetype_label,
-      customer_type                 = EXCLUDED.customer_type,
-      service_consumption_profile   = EXCLUDED.service_consumption_profile,
-      description                   = EXCLUDED.description,
-      default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
-      default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
-      match_countries               = EXCLUDED.match_countries,
-      match_priority                = EXCLUDED.match_priority,
-      match_rationale               = EXCLUDED.match_rationale,
-      updated_at                    = NOW()
-  `);
+      // US Gateway Boutique (matchPriority=10; US catch-all)
+      await tx.execute(sql`
+        INSERT INTO icp_brackets (
+          slug, name, archetype_label,
+          customer_type, service_consumption_profile,
+          description, sort_order, is_active,
+          default_exit_cap_rate, default_refi_max_ltv_to_original,
+          match_countries,
+          match_priority, match_rationale
+        ) VALUES (
+          'us-gateway-boutique',
+          'US Gateway Boutique',
+          'US gateway city boutique hotel',
+          'hotel', 'full',
+          'Boutique hotels in US primary and secondary gateway city markets.',
+          20, true,
+          ${SEED_EXIT_CAP_US_GATEWAY_BOUTIQUE}, ${SEED_REFI_LTV_STD},
+          '["US"]'::jsonb,
+          10, 'US property not matched by a higher-priority US rule (gateway city catch-all)'
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          name                          = EXCLUDED.name,
+          archetype_label               = EXCLUDED.archetype_label,
+          customer_type                 = EXCLUDED.customer_type,
+          service_consumption_profile   = EXCLUDED.service_consumption_profile,
+          description                   = EXCLUDED.description,
+          sort_order                    = EXCLUDED.sort_order,
+          is_active                     = EXCLUDED.is_active,
+          default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
+          default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
+          match_countries               = EXCLUDED.match_countries,
+          match_priority                = EXCLUDED.match_priority,
+          match_rationale               = EXCLUDED.match_rationale,
+          updated_at                    = NOW()
+      `);
 
-  // LATAM Prime Urban Boutique (matchPriority=200; LATAM + prime quality + urban keyword)
-  await db.execute(sql`
-    INSERT INTO icp_brackets (
-      slug, name, archetype_label,
-      customer_type, service_consumption_profile,
-      description, sort_order, is_active,
-      default_exit_cap_rate, default_refi_max_ltv_to_original,
-      match_countries, match_quality_tiers, match_keywords,
-      match_priority, match_rationale
-    ) VALUES (
-      'latam-prime-urban-boutique',
-      'LATAM Prime Urban Boutique',
-      'LATAM prime urban boutique hotel',
-      'hotel', 'full',
-      'Upscale boutique hotels in Latin America prime urban markets (Medellín, Bogotá, Mexico City, Lima, Buenos Aires, Santiago).',
-      30, true,
-      ${SEED_EXIT_CAP_LATAM_PRIME_URBAN}, ${SEED_REFI_LTV_STD},
-      ${LATAM_COUNTRIES}::jsonb, ${PRIME_QUALITY_TIERS}::jsonb, ${LATAM_URBAN_KEYWORDS}::jsonb,
-      200, 'LATAM property in a prime urban market with upscale/luxury quality tier'
-    )
-    ON CONFLICT (slug) DO UPDATE SET
-      name                          = EXCLUDED.name,
-      archetype_label               = EXCLUDED.archetype_label,
-      customer_type                 = EXCLUDED.customer_type,
-      service_consumption_profile   = EXCLUDED.service_consumption_profile,
-      description                   = EXCLUDED.description,
-      default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
-      default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
-      match_countries               = EXCLUDED.match_countries,
-      match_quality_tiers           = EXCLUDED.match_quality_tiers,
-      match_keywords                = EXCLUDED.match_keywords,
-      match_priority                = EXCLUDED.match_priority,
-      match_rationale               = EXCLUDED.match_rationale,
-      updated_at                    = NOW()
-  `);
+      // LATAM Prime Urban Boutique (matchPriority=200; LATAM + prime quality + urban keyword)
+      await tx.execute(sql`
+        INSERT INTO icp_brackets (
+          slug, name, archetype_label,
+          customer_type, service_consumption_profile,
+          description, sort_order, is_active,
+          default_exit_cap_rate, default_refi_max_ltv_to_original,
+          match_countries, match_quality_tiers, match_keywords,
+          match_priority, match_rationale
+        ) VALUES (
+          'latam-prime-urban-boutique',
+          'LATAM Prime Urban Boutique',
+          'LATAM prime urban boutique hotel',
+          'hotel', 'full',
+          'Upscale boutique hotels in Latin America prime urban markets (Medellín, Bogotá, Mexico City, Lima, Buenos Aires, Santiago).',
+          30, true,
+          ${SEED_EXIT_CAP_LATAM_PRIME_URBAN}, ${SEED_REFI_LTV_STD},
+          ${LATAM_COUNTRIES}::jsonb, ${PRIME_QUALITY_TIERS}::jsonb, ${LATAM_URBAN_KEYWORDS}::jsonb,
+          200, 'LATAM property in a prime urban market with upscale/luxury quality tier'
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          name                          = EXCLUDED.name,
+          archetype_label               = EXCLUDED.archetype_label,
+          customer_type                 = EXCLUDED.customer_type,
+          service_consumption_profile   = EXCLUDED.service_consumption_profile,
+          description                   = EXCLUDED.description,
+          sort_order                    = EXCLUDED.sort_order,
+          is_active                     = EXCLUDED.is_active,
+          default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
+          default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
+          match_countries               = EXCLUDED.match_countries,
+          match_quality_tiers           = EXCLUDED.match_quality_tiers,
+          match_keywords                = EXCLUDED.match_keywords,
+          match_priority                = EXCLUDED.match_priority,
+          match_rationale               = EXCLUDED.match_rationale,
+          updated_at                    = NOW()
+      `);
 
-  // LATAM Rural / Illiquid (matchPriority=100; LATAM catch-all)
-  await db.execute(sql`
-    INSERT INTO icp_brackets (
-      slug, name, archetype_label,
-      customer_type, service_consumption_profile,
-      description, sort_order, is_active,
-      default_exit_cap_rate, default_refi_max_ltv_to_original,
-      match_countries,
-      match_priority, match_rationale
-    ) VALUES (
-      'latam-rural-illiquid',
-      'LATAM Rural / Illiquid',
-      'LATAM rural or illiquid market property',
-      'hotel', 'mixed',
-      'Hotels, lodges, and experiential properties in Latin America secondary and rural markets.',
-      40, true,
-      ${SEED_EXIT_CAP_LATAM_RURAL}, ${SEED_REFI_LTV_STD},
-      ${LATAM_COUNTRIES}::jsonb,
-      100, 'LATAM property not matched by a higher-priority LATAM rule (rural/secondary catch-all)'
-    )
-    ON CONFLICT (slug) DO UPDATE SET
-      name                          = EXCLUDED.name,
-      archetype_label               = EXCLUDED.archetype_label,
-      customer_type                 = EXCLUDED.customer_type,
-      service_consumption_profile   = EXCLUDED.service_consumption_profile,
-      description                   = EXCLUDED.description,
-      default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
-      default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
-      match_countries               = EXCLUDED.match_countries,
-      match_priority                = EXCLUDED.match_priority,
-      match_rationale               = EXCLUDED.match_rationale,
-      updated_at                    = NOW()
-  `);
+      // LATAM Rural / Illiquid (matchPriority=100; LATAM catch-all)
+      await tx.execute(sql`
+        INSERT INTO icp_brackets (
+          slug, name, archetype_label,
+          customer_type, service_consumption_profile,
+          description, sort_order, is_active,
+          default_exit_cap_rate, default_refi_max_ltv_to_original,
+          match_countries,
+          match_priority, match_rationale
+        ) VALUES (
+          'latam-rural-illiquid',
+          'LATAM Rural / Illiquid',
+          'LATAM rural or illiquid market property',
+          'hotel', 'mixed',
+          'Hotels, lodges, and experiential properties in Latin America secondary and rural markets.',
+          40, true,
+          ${SEED_EXIT_CAP_LATAM_RURAL}, ${SEED_REFI_LTV_STD},
+          ${LATAM_COUNTRIES}::jsonb,
+          100, 'LATAM property not matched by a higher-priority LATAM rule (rural/secondary catch-all)'
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          name                          = EXCLUDED.name,
+          archetype_label               = EXCLUDED.archetype_label,
+          customer_type                 = EXCLUDED.customer_type,
+          service_consumption_profile   = EXCLUDED.service_consumption_profile,
+          description                   = EXCLUDED.description,
+          sort_order                    = EXCLUDED.sort_order,
+          is_active                     = EXCLUDED.is_active,
+          default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
+          default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
+          match_countries               = EXCLUDED.match_countries,
+          match_priority                = EXCLUDED.match_priority,
+          match_rationale               = EXCLUDED.match_rationale,
+          updated_at                    = NOW()
+      `);
 
-  // LATAM Luxury STR Single-Key (matchPriority=300; most specific LATAM rule)
-  await db.execute(sql`
-    INSERT INTO icp_brackets (
-      slug, name, archetype_label,
-      customer_type, service_consumption_profile,
-      description, sort_order, is_active,
-      default_exit_cap_rate, default_refi_max_ltv_to_original,
-      match_countries, match_business_models, match_quality_tiers,
-      match_priority, match_rationale
-    ) VALUES (
-      'latam-luxury-str-single-key',
-      'LATAM Luxury STR / Single-Key',
-      'LATAM luxury short-term rental single-key',
-      'str', 'str_only',
-      'Luxury and upscale short-term rental properties in Latin America (villas, penthouses, curated vacation homes).',
-      50, true,
-      ${SEED_EXIT_CAP_LATAM_LUXURY_STR}, ${SEED_REFI_LTV_STD},
-      ${LATAM_COUNTRIES}::jsonb, ${STR_BUSINESS_MODELS}::jsonb, ${LUXURY_QUALITY_TIERS}::jsonb,
-      300, 'LATAM STR (vrbo/vrbo_owner_managed) property with luxury or upper-upscale quality tier'
-    )
-    ON CONFLICT (slug) DO UPDATE SET
-      name                          = EXCLUDED.name,
-      archetype_label               = EXCLUDED.archetype_label,
-      customer_type                 = EXCLUDED.customer_type,
-      service_consumption_profile   = EXCLUDED.service_consumption_profile,
-      description                   = EXCLUDED.description,
-      default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
-      default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
-      match_countries               = EXCLUDED.match_countries,
-      match_business_models         = EXCLUDED.match_business_models,
-      match_quality_tiers           = EXCLUDED.match_quality_tiers,
-      match_priority                = EXCLUDED.match_priority,
-      match_rationale               = EXCLUDED.match_rationale,
-      updated_at                    = NOW()
-  `);
+      // LATAM Luxury STR Single-Key (matchPriority=300; most specific LATAM rule)
+      await tx.execute(sql`
+        INSERT INTO icp_brackets (
+          slug, name, archetype_label,
+          customer_type, service_consumption_profile,
+          description, sort_order, is_active,
+          default_exit_cap_rate, default_refi_max_ltv_to_original,
+          match_countries, match_business_models, match_quality_tiers,
+          match_priority, match_rationale
+        ) VALUES (
+          'latam-luxury-str-single-key',
+          'LATAM Luxury STR / Single-Key',
+          'LATAM luxury short-term rental single-key',
+          'str', 'str_only',
+          'Luxury and upscale short-term rental properties in Latin America (villas, penthouses, curated vacation homes).',
+          50, true,
+          ${SEED_EXIT_CAP_LATAM_LUXURY_STR}, ${SEED_REFI_LTV_STD},
+          ${LATAM_COUNTRIES}::jsonb, ${STR_BUSINESS_MODELS}::jsonb, ${LUXURY_QUALITY_TIERS}::jsonb,
+          300, 'LATAM STR (vrbo/vrbo_owner_managed) property with luxury or upper-upscale quality tier'
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          name                          = EXCLUDED.name,
+          archetype_label               = EXCLUDED.archetype_label,
+          customer_type                 = EXCLUDED.customer_type,
+          service_consumption_profile   = EXCLUDED.service_consumption_profile,
+          description                   = EXCLUDED.description,
+          sort_order                    = EXCLUDED.sort_order,
+          is_active                     = EXCLUDED.is_active,
+          default_exit_cap_rate         = EXCLUDED.default_exit_cap_rate,
+          default_refi_max_ltv_to_original = EXCLUDED.default_refi_max_ltv_to_original,
+          match_countries               = EXCLUDED.match_countries,
+          match_business_models         = EXCLUDED.match_business_models,
+          match_quality_tiers           = EXCLUDED.match_quality_tiers,
+          match_priority                = EXCLUDED.match_priority,
+          match_rationale               = EXCLUDED.match_rationale,
+          updated_at                    = NOW()
+      `);
 
-  logger.info(`${TAG} — geography-tier catalog ready (5 brackets seeded)`);
+      logger.info(`${TAG} — geography-tier catalog ready (5 brackets seeded)`);
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`${TAG} — migration failed, rolled back: ${errorMessage}`);
+    throw error;
+  }
 }
