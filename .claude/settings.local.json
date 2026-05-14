@@ -68,7 +68,10 @@
       "Bash(pnpm --filter @workspace/api-server exec vitest run src/tests/proof/)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('user',{}\\).get\\('email','no user'\\),d.get\\('error',''\\)\\)\")",
       "Bash(python3 -c ' *)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)[:30]\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)[:30]\\)\")",
+      "Bash(tsx script/debug-irr-refi.ts)",
+      "Bash(../../node_modules/.bin/tsx script/debug-irr-refi.ts)",
+      "Bash(node_modules/.bin/tsx script/debug-irr-refi.ts)"
     ]
   },
   "enabledMcpjsonServers": [
