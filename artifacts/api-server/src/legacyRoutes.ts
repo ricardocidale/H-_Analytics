@@ -34,6 +34,7 @@ import * as hotelRateRoutes from "./routes/hotel-rates";
 import { registerFinanceRoutes } from "./routes/finance";
 import { registerStructureComparisonRoutes } from "./routes/structure-comparison";
 import { registerPublicAssumptionGuardrailRoutes } from "./routes/admin/assumption-guardrails";
+import { registerPublicFeesRoutes } from "./routes/admin/fees";
 import healthRouter from "./routes/health";
 import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
@@ -111,6 +112,7 @@ export async function registerRoutes(
   propertyDdRoutes.register(app);
   marketSignalsRoutes.register(app);
   registerPublicAssumptionGuardrailRoutes(app);
+  registerPublicFeesRoutes(app);
 
   return httpServer;
 }

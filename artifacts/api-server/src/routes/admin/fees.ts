@@ -13,7 +13,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
 import { managementCompanyFees, brandFees, businessBrands } from "@workspace/db";
-import { requireAdmin } from "../../auth";
+import { requireAdmin, requireAuth } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
 import {
   HTTP_400_BAD_REQUEST,
@@ -23,6 +23,44 @@ import {
 const rateUpdateSchema = z.object({
   rate: z.number().min(0).max(1),
 });
+
+/**
+ * Non-admin authenticated routes — read-only access to fee tables for
+ * the Company Assumptions → Mgmt Co Assumptions tab.
+ */
+export function registerPublicFeesRoutes(app: Express) {
+  app.get("/api/management-company-fees", requireAuth, async (_req, res) => {
+    try {
+      const rows = await db.select().from(managementCompanyFees).orderBy(managementCompanyFees.sortOrder);
+      res.json(rows);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch management company fees", error, "PFEE-001");
+    }
+  });
+
+  app.get("/api/brands", requireAuth, async (_req, res) => {
+    try {
+      const rows = await db.select().from(businessBrands).orderBy(businessBrands.sortOrder);
+      res.json(rows);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch brands", error, "PFEE-002");
+    }
+  });
+
+  app.get("/api/brand-fees/:brandSlug", requireAuth, async (req, res) => {
+    try {
+      const brandSlug = String(req.params.brandSlug);
+      const rows = await db
+        .select()
+        .from(brandFees)
+        .where(eq(brandFees.brandSlug, brandSlug))
+        .orderBy(brandFees.sortOrder);
+      res.json(rows);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch brand fees", error, "PFEE-003");
+    }
+  });
+}
 
 export function registerAdminFeesRoutes(app: Express) {
   // ── Management company fees ─────────────────────────────────────────────────
