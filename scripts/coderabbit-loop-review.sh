@@ -374,6 +374,25 @@ PYEOF
 }
 
 # ─────────────────────────────────────────────────────────────
+# print-logo
+#
+# Prints the CodeRabbit Loop ASCII banner to stderr.
+# Called automatically at the start of run-review.
+# ─────────────────────────────────────────────────────────────
+print_logo() {
+  local G=$'\033[32m' B=$'\033[1m' D=$'\033[2m' R=$'\033[0m'
+  printf >&2 '\n'
+  printf >&2 '  ╭────────────────────────────────────────────╮\n'
+  printf >&2 '  │                                            │\n'
+  printf >&2 "  │   /\\ /\\    ${B}${G}CodeRabbit${R} ${B}Loop${R}                 │\n"
+  printf >&2 "  │  ( •.• )   ${D}iterative working-tree review${R}   │\n"
+  printf >&2 "  │   > ^ <    ${D}powered by CodeRabbit CLI${R}       │\n"
+  printf >&2 '  │                                            │\n'
+  printf >&2 '  ╰────────────────────────────────────────────╯\n'
+  printf >&2 '\n'
+}
+
+# ─────────────────────────────────────────────────────────────
 # run-review <ndjson-output-file>
 #
 # Runs `coderabbit review --type uncommitted --agent`, renders an
@@ -387,6 +406,7 @@ PYEOF
 # ─────────────────────────────────────────────────────────────
 run_review() {
   local ndjson_file="${1:?usage: run-review <ndjson-output-file>}"
+  print_logo
   export PATH="$HOME/.local/bin:$PATH"
 
   # Write the progress renderer to a temp file.
@@ -461,11 +481,12 @@ case "$subcommand" in
   check-changes)             check_changes ;;
   write-state)               write_state "$@" ;;
   run-review)                run_review "$@" ;;
+  print-logo)                print_logo ;;
   section9-check)            section9_check "$@" ;;
   section9-persist-precheck) section9_persist_precheck "$@" ;;
   section9-post-check)       section9_post_check "$@" ;;
   *)
-    echo "usage: $0 {parse-ndjson|gate-check|branch-hygiene|check-changes|write-state|run-review|section9-check|section9-persist-precheck|section9-post-check}" >&2
+    echo "usage: $0 {parse-ndjson|gate-check|branch-hygiene|check-changes|write-state|run-review|print-logo|section9-check|section9-persist-precheck|section9-post-check}" >&2
     exit 2
     ;;
 esac
