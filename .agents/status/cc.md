@@ -4,41 +4,62 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T00:30:00Z
-Status: idle
+Updated: 2026-05-14T04:00:00Z
+Status: active
 
 ## Active Branch
 
-main
+feat/mgmt-co-fees-phase-1
 
 ## Last Commit on Branch
 
-`fb27bcf2d` — "fix(property-edit): P4 — display refi LTV cap as 70% not 0.70×"
+(pending — committing U1 now)
 
 ## What CC Did This Session
 
-- U6 bracket Layer-2 defaults overlay (`applyBracketLayerDefaults`) at POST /api/properties (65a1194f7): weight-blends exitCapRate + refiMaxLtvToOriginal from icp_brackets; runs before Layer-1 hydration; non-fatal wrapper
-- Plan 2026-05-13-005 all four phases:
-  - P1 (cefcacf65): SEED_REFI_MAX_LTV_TO_ORIGINAL 1.00 → 0.70 in property-data.ts
-  - P2 (560eb1717): `properties-refi-ltv-recalibration-001.ts` migration + registered in startup/migrations.ts (isMigrationApplied gate, one-time)
-  - P3 (b66cfad62): "Max Loan vs. Purchase Price" admin field in PropertyUnderwritingTab.tsx Refinance Terms section
-  - P4 (fb27bcf2d): CapitalStructureSection.tsx display fix — badge 70%, tooltip reworded, helper "Max refi loan:", slider max 150
+- Hand-crafted SQL migrations for U1: business_brands multi-flag extension
+  - lib/db/migrations/0059_extend_business_brands_multi_flag.sql (idx 59)
+  - artifacts/api-server/migrations/0065_extend_business_brands_multi_flag.sql (idx 61)
+  - Updated both meta/_journal.json files
+- Wrote runtime guard: artifacts/api-server/src/migrations/business-brands-multi-flag-001.ts
+- Registered guard in artifacts/api-server/src/startup/migrations.ts
+- typecheck ✅, magic-numbers ✅
 
-## Files CC Owns Right Now
+## Files CC Owns Right Now (uncommitted, working tree)
 
-None — all committed to main.
+- `.claude/settings.local.json` — minor tweak
+- `docs/plans/2026-05-13-006-feat-mgmt-co-fees-centralization-and-multi-flag-brand-family-plan.md` — added
+- `docs/plans/2026-05-13-007-feat-str-specialist-and-pietro-ota-minions-plan.md` — added
+- `lib/db/src/schema/core.ts` — businessBrands extended
+- `lib/db/src/schema/properties.ts` — FK behavior changed to RESTRICT
 
 ## Handoff to Replit
 
-Nothing pending — Plan 2026-05-13-005 is fully shipped. Next items from CLAUDE.md open TODOs:
-- U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
-- U8: verification — portfolio IRR in 25–30% band + docs
+None — do NOT touch lib/db/src/schema/ or artifacts/api-server/src/migrations/ (CC-only surfaces).
 
 ## Pending CC Work (do NOT touch — CC will handle)
 
-1. U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
-2. U8: verification — IRR 25–30% band + docs
-3. Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
+### Plan 006 Phase 1 — in progress (feat/mgmt-co-fees-phase-1)
+
+**Task list lives in Claude Code task tracker (#1–#6).**
+
+- **U1 (Task #1, complete):** Extend business_brands + data migration — ALL DONE
+  - Schema changes: core.ts + properties.ts ✅
+  - SQL migrations: 0059 (lib/db) + 0065 (api-server) + both journals ✅
+  - Runtime guard: business-brands-multi-flag-001.ts registered in migrations.ts ✅
+  - Typecheck ✅, magic-numbers ✅
+  - NEXT: migration test (write test validating guard is idempotent)
+
+- **U2 (Task #2):** Create management_company_fees + brand_fees tables + seed
+- **U3 (Task #3):** Extend hydratePropertyFinancials + guardrails
+- **U4 (Task #4):** Admin UI tabs (can parallel with U5)
+- **U5 (Task #5):** Front-app Company Mgmt Co Assumptions tab (can parallel with U4)
+- **U6 (Task #6):** Convert ManagementFeesSection to read-only
+
+### Other pending
+
+- U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides (Plan 2026-05-13-001)
+- U8: verification — portfolio IRR in 25–30% band + docs
 
 ## Do Not Touch
 

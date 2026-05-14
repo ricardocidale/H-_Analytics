@@ -222,6 +222,16 @@ export async function runSchemaMigrations() {
     await runPropertiesRefiLtvRecalibration001();
     await markMigrationApplied("properties_refi_ltv_recalibration_001");
   }
+
+  // Plan 2026-05-13-006 U1 — extend business_brands for multi-flag brand family model.
+  // Belt-and-suspenders companion to 0065_extend_business_brands_multi_flag.sql.
+  // Adds slug, business_model, segment, sort_order, is_active, updated_at columns,
+  // flips FK on properties.brand_id to ON DELETE RESTRICT, backfills NULLs, sets NOT NULL.
+  if (!(await isMigrationApplied("business_brands_multi_flag_001"))) {
+    const { runBusinessBrandsMultiFlag001 } = await import("../migrations/business-brands-multi-flag-001");
+    await runBusinessBrandsMultiFlag001();
+    await markMigrationApplied("business_brands_multi_flag_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

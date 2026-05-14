@@ -64,26 +64,43 @@ export type InsertLogo = z.infer<typeof insertLogoSchema>;
 
 
 // --- BUSINESS BRANDS TABLE ---
-// Represents hospitality brands under which properties operate.
-// Single brand for now, but architecture supports multiple brands.
-// All properties reference a brand; the default brand is seeded on first run.
+// Represents H+ hospitality brand flags. Two property business models:
+//   "hotel" — branded hotel properties (H+ Hotel flag)
+//   "str"   — branded short-term rental properties (H+ STR flags)
+// Each flag carries its own Brand Stack (hotel) or STR fee schedule (str).
+// isDefault marks the fallback brand for properties that predate the multi-flag model.
 export const businessBrands = pgTable("business_brands", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  // slug: unique join key for brand_fees linkage (mirrors icp_brackets pattern)
+  slug: text("slug"),
   name: text("name").notNull(),
   description: text("description"),
   logoId: integer("logo_id").references(() => logos.id, { onDelete: "set null" }),
-  isDefault: boolean("is_default").notNull().default(true),
+  // isDefault: fallback brand marker for properties predating multi-flag model
+  isDefault: boolean("is_default").notNull().default(false),
+  // businessModel: "hotel" | "str" — drives which fee schedule applies
+  businessModel: text("business_model").notNull().default("hotel"),
+  // segment: optional brand tier (e.g., "ultra-luxury", "luxury", "upscale")
+  segment: text("segment"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   // FK index (Task #971): support ON DELETE SET NULL cascade from logos.
   index("business_brands_logo_id_idx").on(table.logoId),
 ]);
 
 export const insertBusinessBrandSchema = z.object({
+  slug: z.string().min(1).nullable().optional(),
   name: z.string().min(1),
   description: z.string().nullable().optional(),
   logoId: z.number().nullable().optional(),
   isDefault: z.boolean().optional(),
+  businessModel: z.string().optional(),
+  segment: z.string().nullable().optional(),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export type BusinessBrand = typeof businessBrands.$inferSelect;

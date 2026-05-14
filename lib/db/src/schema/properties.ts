@@ -237,7 +237,7 @@ export const properties = pgTable("properties", {
   // Platform fee rate for STR archetypes (Airbnb/VRBO commission %).
   // Nullable — NULL falls back to BUSINESS_MODEL_DEFAULTS[businessModel].platformFeeRate.
   platformFeeRate: real("platform_fee_rate"),
-  brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "set null" }),
+  brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "restrict" }),
 
   description: text("description"),
 
