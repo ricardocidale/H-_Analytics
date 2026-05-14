@@ -260,6 +260,7 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       refinanceLTV: 0.60,
       refinanceInterestRate: 0.055,
       refinanceTermYears: 25,
+      refinanceClosingCostRate: 0.03,
       exitCapRate: 0.08,
       costRateTaxes: 0.0,             // zero taxes to isolate revenue effect
       costRateInsurance: 0.0,
@@ -274,12 +275,10 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
     };
 
     const monthly = generatePropertyProForma(zeroRevProp, global, 36);
-    // With NOI ≈ 0 (no revenue), income-cap refi loan = (0 / 0.08) * 0.60 = $0
-    // Monthly refinancingProceeds should all be zero (or close) in year 2
+    // With zero revenue the new loan ($2M × 0.60 = $1.2M) is smaller than the
+    // existing debt (~$1.25M after 2yr amortization), so cash_out_to_equity = 0.
     const year2Months = monthly.slice(24, 36);
     const year2RefiProceeds = year2Months.reduce((s, m) => s + m.refinancingProceeds, 0);
-    // Under cost-basis: $2.5M * 0.60 = $1.5M → substantial proceeds even with zero NOI
-    // Under income-cap: NOI≈0 → refiLoan≈$0 → proceeds ≈ 0 (after paying off existing debt)
     expect(year2RefiProceeds).toBeCloseTo(0, -3); // within $1000 of zero
   });
 
@@ -307,6 +306,8 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       refinanceLTV: 0.70,
       refinanceInterestRate: 0.055,
       refinanceTermYears: 25,
+      refinanceClosingCostRate: 0.03,
+      refinanceBasis: 'appreciated_asset', // income-cap: loan scales with NOI
       exitCapRate: 0.08,
     });
 
@@ -365,6 +366,10 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       willRefinance: 'Yes',
       refinanceDate: '2026-01-01',    // refi at month 24 (year 3 start)
       refinanceLTV: 0.65,
+      refinanceInterestRate: 0.065,
+      refinanceTermYears: 25,
+      refinanceClosingCostRate: 0.03,
+      refinanceBasis: 'appreciated_asset', // income-cap: loan >> cost-basis for high-NOI property
       exitCapRate: 0.08,
     };
 
@@ -417,6 +422,8 @@ describe('Phase 5 — refiMaxLtvToOriginal cap (T013)', () => {
     refinanceLTV: 0.75,
     refinanceInterestRate: 0.075,
     refinanceTermYears: 25,
+    refinanceClosingCostRate: 0.03,
+    refinanceBasis: 'appreciated_asset', // income-cap: cap only meaningful on this basis
     exitCapRate: 0.085,
     refiMaxLtvToOriginal: REFI_MAX_LTV,
   };
