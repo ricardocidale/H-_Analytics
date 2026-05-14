@@ -4,16 +4,16 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T18:00:00Z
+Updated: 2026-05-14T18:20:00Z
 Status: idle
 
 ## Active Branch
 
-feat/u7-geography-tier-catalog (PR #155)
+main (7425b26ae — U7 merged)
 
 ## Last Commit on Branch
 
-9b09aa55f  feat(u7): geography-tier bracket catalog + Davi classifier integration
+7425b26ae  feat(u7): geography-tier bracket catalog + Davi classifier integration
 
 ## What CC Did This Session
 
@@ -38,8 +38,8 @@ None — all committed and pushed to origin/feat/u7-geography-tier-catalog.
 - U1 (demo property exit-cap overrides): DONE ✅
 - U8 (Duplex full-equity refi rule + LTV recalibration): DONE ✅
 - U7 FOUNDATION (Davi minion + match-rule columns): DONE ✅ — on main
-- U7 CATALOG REWRITE (geography-tier brackets + bracket-assignment-minion): DONE ✅ — PR #155
-- IRR verification (25–30% band): NOT done — merge PR + prod boot first
+- U7 CATALOG REWRITE (geography-tier brackets + bracket-assignment-minion): DONE ✅ — on main
+- IRR verification (25–30% band): NOT done — prod boot first, then verify
 
 ## What's Pending
 
@@ -51,10 +51,10 @@ None — all committed and pushed to origin/feat/u7-geography-tier-catalog.
 
 ## Handoff to Replit
 
-PR #155 ready to merge — all gates pass. U7 only (no coderabbit-loop commits).
-After merge, next prod boot will: DELETE 4 old service-profile brackets, UPSERT 5
-geography-tier brackets with Davi match rules. Existing bracket_mix JSONs gracefully
-fall through to Layer-1 until user re-assigns. Do NOT touch Do Not Touch files below.
+U7 merged to main (7425b26ae). Next prod boot (Railway) will run `icp_brackets_006`:
+- DELETE 4 old service-profile brackets
+- UPSERT 5 geography-tier brackets with Davi match rules (atomic transaction)
+After boot, verify IRR hits 25–30% band on demo portfolio. Do NOT touch Do Not Touch files below.
 
 ## Do Not Touch
 
