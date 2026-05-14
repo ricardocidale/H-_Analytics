@@ -91,7 +91,7 @@ function FeeRowEditor({
             max="100"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="pr-6 text-right text-sm h-8"
+            className="pr-6 text-right text-sm h-8 bg-card border-primary/30 text-foreground"
             data-testid={`fee-input-${row.feeType}`}
           />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
@@ -153,7 +153,7 @@ export function ManagementCoTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card border border-border/80">
+      <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">Tier A — Management Fees</CardTitle>
           <p className="text-sm text-muted-foreground">

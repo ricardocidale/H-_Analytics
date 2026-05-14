@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T04:00:00Z
-Status: active
+Updated: 2026-05-14T13:00:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,53 +13,63 @@ feat/mgmt-co-fees-phase-1
 
 ## Last Commit on Branch
 
-(pending — committing U1 now)
+2dac8904e  fix(mgmt-co-fees): U6 — remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback
+
+## Last Commit on Branch
+
+design(mgmt-co-fees): post-coding design review — input styling + card shadows
 
 ## What CC Did This Session
 
-- Hand-crafted SQL migrations for U1: business_brands multi-flag extension
-  - lib/db/migrations/0059_extend_business_brands_multi_flag.sql (idx 59)
-  - artifacts/api-server/migrations/0065_extend_business_brands_multi_flag.sql (idx 61)
-  - Updated both meta/_journal.json files
-- Wrote runtime guard: artifacts/api-server/src/migrations/business-brands-multi-flag-001.ts
-- Registered guard in artifacts/api-server/src/startup/migrations.ts
-- typecheck ✅, magic-numbers ✅
+Plan 006 Phase 1 — ALL 6 UNITS COMPLETE + design review DONE
+
+- U1: Extend business_brands + data migration (already done prior session)
+- U2: Create management_company_fees + brand_fees tables + seed (already done prior session)
+- U3: hydrateFeeColumns resolver + guardrails seed — DONE ✅
+  - defaults.ts: new hydrateFeeColumns function (fill-nulls-only cascade)
+  - routes/properties.ts: create + PATCH call sites
+  - assumption-guardrails-mgmt-co-fees-001.ts: 7 guardrail rows
+  - startup/migrations.ts: registered assumption_guardrails_mgmt_co_fees_001
+- U4: Admin UI — Management Co Fees + Brands tabs — DONE ✅
+  - routes/admin/fees.ts: admin CRUD routes
+  - ManagementCoTab.tsx + BrandsTab.tsx components
+  - ModelDefaultsTab.tsx + AdminSidebar.tsx + Admin.tsx wired
+- U5: Company Assumptions → Mgmt Co Fees tab — DONE ✅
+  - Public fee read routes (registerPublicFeesRoutes)
+  - MgmtCoAssumptionsSection.tsx: read-only display + admin edit link
+  - useCompanyAssumptionsForm.ts + CompanyAssumptionsTabsView.tsx wired
+- U6: Remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback — DONE ✅
+  - ManagementFeesSection.tsx (property-edit): 3 ?? DEFAULT_ fallbacks removed
 
 ## Files CC Owns Right Now (uncommitted, working tree)
 
 - `.claude/settings.local.json` — minor tweak
-- `docs/plans/2026-05-13-006-feat-mgmt-co-fees-centralization-and-multi-flag-brand-family-plan.md` — added
-- `docs/plans/2026-05-13-007-feat-str-specialist-and-pietro-ota-minions-plan.md` — added
-- `lib/db/src/schema/core.ts` — businessBrands extended
-- `lib/db/src/schema/properties.ts` — FK behavior changed to RESTRICT
+
+## What's Left for Plan 006
+
+### Phase 2 (separate PR, depends on Phase 1 verified in prod)
+
+- U7: Engine bypass cleanup at company-engine.ts:195 (CC-only, §9)
+  - Remove ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE at company-engine.ts:195
+  - Verify all 7 demo properties still produce correct cash flows
+- U8: Delete DEFAULT_* business constants (CC-only, §9)
+  - lib/shared/src/constants*.ts migration of remaining DEFAULT_* constants
+
+### Testing outstanding
+
+- U2 migration test: artifacts/api-server/src/tests/migrations/mgmt-co-fees-seed.test.ts
+
+### Design review
+
+- U4 admin tabs: design review DONE ✅ (input styling + shadow-sm fixes applied)
+- U5 company tab: design review DONE ✅ (shadow-sm fixes applied)
 
 ## Handoff to Replit
 
-None — do NOT touch lib/db/src/schema/ or artifacts/api-server/src/migrations/ (CC-only surfaces).
-
-## Pending CC Work (do NOT touch — CC will handle)
-
-### Plan 006 Phase 1 — in progress (feat/mgmt-co-fees-phase-1)
-
-**Task list lives in Claude Code task tracker (#1–#6).**
-
-- **U1 (Task #1, complete):** Extend business_brands + data migration — ALL DONE
-  - Schema changes: core.ts + properties.ts ✅
-  - SQL migrations: 0059 (lib/db) + 0065 (api-server) + both journals ✅
-  - Runtime guard: business-brands-multi-flag-001.ts registered in migrations.ts ✅
-  - Typecheck ✅, magic-numbers ✅
-  - NEXT: migration test (write test validating guard is idempotent)
-
-- **U2 (Task #2):** Create management_company_fees + brand_fees tables + seed
-- **U3 (Task #3):** Extend hydratePropertyFinancials + guardrails
-- **U4 (Task #4):** Admin UI tabs (can parallel with U5)
-- **U5 (Task #5):** Front-app Company Mgmt Co Assumptions tab (can parallel with U4)
-- **U6 (Task #6):** Convert ManagementFeesSection to read-only
-
-### Other pending
-
-- U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides (Plan 2026-05-13-001)
-- U8: verification — portfolio IRR in 25–30% band + docs
+Branch ready for PR review. Phase 1 code complete. Replit can:
+- Run the app and smoke-test the new Admin → Model Defaults → Management Co Fees tab
+- Run the app and smoke-test the Company Assumptions → Mgmt Co Fees tab
+- Do NOT touch any files in the Do Not Touch list below
 
 ## Do Not Touch
 

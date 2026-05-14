@@ -190,7 +190,7 @@ export function MgmtCoAssumptionsSection() {
       )}
 
       {/* Tier A — Management Company Fees */}
-      <Card className="bg-card border border-border/80">
+      <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">Tier A — Management Fees</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -221,7 +221,7 @@ export function MgmtCoAssumptionsSection() {
       </Card>
 
       {/* Brand Fee Stacks */}
-      <Card className="bg-card border border-border/80">
+      <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">Brand Fee Stacks</CardTitle>
           <p className="text-sm text-muted-foreground">

@@ -110,7 +110,7 @@ function BrandFeeRowEditor({
             max="100"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="pr-6 text-right text-sm h-8"
+            className="pr-6 text-right text-sm h-8 bg-card border-primary/30 text-foreground"
             data-testid={`brand-fee-input-${row.feeType}`}
           />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
@@ -225,7 +225,7 @@ export function BrandsTab() {
   return (
     <div className="space-y-4">
       {/* Brand selector */}
-      <Card className="bg-card border border-border/80">
+      <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">H+ Brand Flags</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -280,7 +280,7 @@ export function BrandsTab() {
 
       {/* Selected brand fee rows */}
       {selectedBrand && (
-        <Card className="bg-card border border-border/80">
+        <Card className="bg-card border border-border/80 shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-semibold">{selectedBrand.name}</CardTitle>
