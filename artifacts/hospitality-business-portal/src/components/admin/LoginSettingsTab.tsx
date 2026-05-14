@@ -39,7 +39,7 @@ export default function LoginSettingsTab() {
   }, [data?.motd?.text]);
 
   const mutation = useMutation({
-    mutationFn: async (update: Partial<{ loginScreenEnabled: boolean; motdEnabled: boolean; motdText: string }>) => {
+    mutationFn: async (update: Partial<{ loginScreenEnabled: boolean; motdEnabled: boolean; motdText: string; autoLoginEnabled: boolean }>) => {
       const res = await apiRequest("PATCH", "/api/admin/system/auth-settings", update);
       return res.json() as Promise<AuthSettings>;
     },
@@ -194,6 +194,52 @@ export default function LoginSettingsTab() {
               >
                 Save message
               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {/* Developer auto-login bypass */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <IconTerminal className="w-5 h-5 text-primary" />
+            <div>
+              <CardTitle>Developer Auto-Login</CardTitle>
+              <CardDescription>
+                Bypass the login screen in dev environments. Agents and screenshots are unblocked.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <IconInfo className="w-4 h-4" />
+            <AlertDescription>
+              When on, the login page automatically signs in as super-admin in Replit and local environments. <strong>Production (Railway) ignores this setting entirely</strong> — the server gate cannot be overridden.
+            </AlertDescription>
+          </Alert>
+          <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <div className="space-y-1 pr-4">
+              <Label htmlFor="auto-login-toggle" className="text-sm font-medium">
+                Auto-login bypass
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Skips the login screen for all visitors in dev environments. Safe to leave on while developing.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {!isLoading && data !== undefined && (
+                <Badge variant={data.autoLoginEnabled ? "default" : "secondary"}>
+                  {data.autoLoginEnabled ? "On" : "Off"}
+                </Badge>
+              )}
+              <Switch
+                id="auto-login-toggle"
+                checked={data?.autoLoginEnabled ?? false}
+                disabled={!isSuperAdmin || isLoading || mutation.isPending}
+                onCheckedChange={(checked) => mutation.mutate({ autoLoginEnabled: checked })}
+                data-testid="toggle-auto-login"
+              />
             </div>
           </div>
         </CardContent>

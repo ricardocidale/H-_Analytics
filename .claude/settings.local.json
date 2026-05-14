@@ -62,7 +62,8 @@
       "Bash(pnpm run *)",
       "Skill(compound-engineering:ce-frontend-design)",
       "Bash(curl *)",
-      "Bash(agent-browser screenshot *)"
+      "Bash(agent-browser screenshot *)",
+      "Skill(coderabbit-loop-review)"
     ]
   },
   "enabledMcpjsonServers": [

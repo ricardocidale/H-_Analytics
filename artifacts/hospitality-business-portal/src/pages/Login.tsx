@@ -1,5 +1,5 @@
 import { APP_BRAND_NAME, BRAND_ACCENT_HEX, BRAND_ACCENT_PREFIX } from "@shared/constants";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -45,12 +45,23 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean; motd: { enabled: boolean; text: string } }>({
+  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean; motd: { enabled: boolean; text: string }; autoLoginEnabled: boolean }>({
     queryKey: ["/api/system/login-config"],
     staleTime: 30_000,
   });
   const loginScreenEnabled = loginConfig?.loginScreenEnabled ?? true;
   const motd = loginConfig?.motd;
+
+  // Auto-login for dev environments when the super-admin has enabled the bypass.
+  // The server only returns autoLoginEnabled=true when !isPublishedDeployment(),
+  // so this never fires in Railway production regardless of DB state.
+  const autoLoginTriggered = useRef(false);
+  useEffect(() => {
+    if (loginConfig?.autoLoginEnabled && !autoLoginTriggered.current) {
+      autoLoginTriggered.current = true;
+      handleAdminLogin();
+    }
+  }, [loginConfig?.autoLoginEnabled]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
