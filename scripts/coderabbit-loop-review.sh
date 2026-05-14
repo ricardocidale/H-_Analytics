@@ -412,6 +412,7 @@ print_logo() {
   printf >&2 "  │   /\\ /\\    ${B}${G}CodeRabbit${R} ${B}Loop${R}                 │\n"
   printf >&2 "  │  ( •.• )   ${D}iterative working-tree review${R}   │\n"
   printf >&2 "  │   > ^ <    ${D}powered by CodeRabbit CLI${R}       │\n"
+  printf >&2 "  │            ${D}created by Ricardo Cidale${R}       │\n"
   printf >&2 '  │                                            │\n'
   printf >&2 '  ╰────────────────────────────────────────────╯\n'
   printf >&2 '\n'
