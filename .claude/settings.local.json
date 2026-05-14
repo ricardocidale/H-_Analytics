@@ -48,7 +48,9 @@
       "Bash(tee .local/coderabbit-loop/iteration-1.ndjson)",
       "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh parse-ndjson *)",
       "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh gate-check *)",
-      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --init)"
+      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --init)",
+      "Bash(git commit *)",
+      "Bash(tee .local/coderabbit-loop/iteration-2.ndjson)"
     ]
   }
 }
