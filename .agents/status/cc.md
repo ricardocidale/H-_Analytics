@@ -4,41 +4,72 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T00:30:00Z
+Updated: 2026-05-14T13:00:00Z
 Status: idle
 
 ## Active Branch
 
-main
+feat/mgmt-co-fees-phase-1
 
 ## Last Commit on Branch
 
-`fb27bcf2d` — "fix(property-edit): P4 — display refi LTV cap as 70% not 0.70×"
+2dac8904e  fix(mgmt-co-fees): U6 — remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback
+
+## Last Commit on Branch
+
+design(mgmt-co-fees): post-coding design review — input styling + card shadows
 
 ## What CC Did This Session
 
-- U6 bracket Layer-2 defaults overlay (`applyBracketLayerDefaults`) at POST /api/properties (65a1194f7): weight-blends exitCapRate + refiMaxLtvToOriginal from icp_brackets; runs before Layer-1 hydration; non-fatal wrapper
-- Plan 2026-05-13-005 all four phases:
-  - P1 (cefcacf65): SEED_REFI_MAX_LTV_TO_ORIGINAL 1.00 → 0.70 in property-data.ts
-  - P2 (560eb1717): `properties-refi-ltv-recalibration-001.ts` migration + registered in startup/migrations.ts (isMigrationApplied gate, one-time)
-  - P3 (b66cfad62): "Max Loan vs. Purchase Price" admin field in PropertyUnderwritingTab.tsx Refinance Terms section
-  - P4 (fb27bcf2d): CapitalStructureSection.tsx display fix — badge 70%, tooltip reworded, helper "Max refi loan:", slider max 150
+Plan 006 Phase 1 — ALL 6 UNITS COMPLETE + design review DONE
 
-## Files CC Owns Right Now
+- U1: Extend business_brands + data migration (already done prior session)
+- U2: Create management_company_fees + brand_fees tables + seed (already done prior session)
+- U3: hydrateFeeColumns resolver + guardrails seed — DONE ✅
+  - defaults.ts: new hydrateFeeColumns function (fill-nulls-only cascade)
+  - routes/properties.ts: create + PATCH call sites
+  - assumption-guardrails-mgmt-co-fees-001.ts: 7 guardrail rows
+  - startup/migrations.ts: registered assumption_guardrails_mgmt_co_fees_001
+- U4: Admin UI — Management Co Fees + Brands tabs — DONE ✅
+  - routes/admin/fees.ts: admin CRUD routes
+  - ManagementCoTab.tsx + BrandsTab.tsx components
+  - ModelDefaultsTab.tsx + AdminSidebar.tsx + Admin.tsx wired
+- U5: Company Assumptions → Mgmt Co Fees tab — DONE ✅
+  - Public fee read routes (registerPublicFeesRoutes)
+  - MgmtCoAssumptionsSection.tsx: read-only display + admin edit link
+  - useCompanyAssumptionsForm.ts + CompanyAssumptionsTabsView.tsx wired
+- U6: Remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback — DONE ✅
+  - ManagementFeesSection.tsx (property-edit): 3 ?? DEFAULT_ fallbacks removed
 
-None — all committed to main.
+## Files CC Owns Right Now (uncommitted, working tree)
+
+- `.claude/settings.local.json` — minor tweak
+
+## What's Left for Plan 006
+
+### Phase 2 (separate PR, depends on Phase 1 verified in prod)
+
+- U7: Engine bypass cleanup at company-engine.ts:195 (CC-only, §9)
+  - Remove ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE at company-engine.ts:195
+  - Verify all 7 demo properties still produce correct cash flows
+- U8: Delete DEFAULT_* business constants (CC-only, §9)
+  - lib/shared/src/constants*.ts migration of remaining DEFAULT_* constants
+
+### Testing outstanding
+
+- U2 migration test: artifacts/api-server/src/tests/migrations/mgmt-co-fees-seed.test.ts
+
+### Design review
+
+- U4 admin tabs: design review DONE ✅ (input styling + shadow-sm fixes applied)
+- U5 company tab: design review DONE ✅ (shadow-sm fixes applied)
 
 ## Handoff to Replit
 
-Nothing pending — Plan 2026-05-13-005 is fully shipped. Next items from CLAUDE.md open TODOs:
-- U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
-- U8: verification — portfolio IRR in 25–30% band + docs
-
-## Pending CC Work (do NOT touch — CC will handle)
-
-1. U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides
-2. U8: verification — IRR 25–30% band + docs
-3. Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
+Branch ready for PR review. Phase 1 code complete. Replit can:
+- Run the app and smoke-test the new Admin → Model Defaults → Management Co Fees tab
+- Run the app and smoke-test the Company Assumptions → Mgmt Co Fees tab
+- Do NOT touch any files in the Do Not Touch list below
 
 ## Do Not Touch
 

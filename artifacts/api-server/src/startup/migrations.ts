@@ -222,6 +222,37 @@ export async function runSchemaMigrations() {
     await runPropertiesRefiLtvRecalibration001();
     await markMigrationApplied("properties_refi_ltv_recalibration_001");
   }
+
+  // Plan 2026-05-13-006 U1 — extend business_brands for multi-flag brand family model.
+  // Belt-and-suspenders companion to 0065_extend_business_brands_multi_flag.sql.
+  // Adds slug, business_model, segment, sort_order, is_active, updated_at columns,
+  // flips FK on properties.brand_id to ON DELETE RESTRICT, backfills NULLs, sets NOT NULL.
+  if (!(await isMigrationApplied("business_brands_multi_flag_001"))) {
+    const { runBusinessBrandsMultiFlag001 } = await import("../migrations/business-brands-multi-flag-001");
+    await runBusinessBrandsMultiFlag001();
+    await markMigrationApplied("business_brands_multi_flag_001");
+  }
+
+  // Plan 2026-05-13-006 U2 — create management_company_fees + brand_fees tables.
+  // Belt-and-suspenders companion to 0066_create_mgmt_co_and_brand_fees.sql.
+  // Creates both tables, makes business_brands.slug NOT NULL + UNIQUE (FK target),
+  // seeds Tier-A mgmt fees, seeds H+ Hotel + STR Ultra-Luxury brand fees,
+  // and assigns Medellin Duplex to the STR flag.
+  if (!(await isMigrationApplied("mgmt_co_fees_tables_001"))) {
+    const { runMgmtCoFeesTables001 } = await import("../migrations/mgmt-co-fees-tables-001");
+    await runMgmtCoFeesTables001();
+    await markMigrationApplied("mgmt_co_fees_tables_001");
+  }
+
+  // Plan 2026-05-13-006 U3 — seed assumption guardrails for mgmt co + brand fee columns.
+  // Runtime-only migration: no SQL file, no journal entry, no migration-guards.json entry.
+  // Seeds 7 assumption_guardrails rows (ON CONFLICT DO NOTHING) for the fee columns
+  // populated by hydrateFeeColumns.
+  if (!(await isMigrationApplied("assumption_guardrails_mgmt_co_fees_001"))) {
+    const { runAssumptionGuardrailsMgmtCoFees001 } = await import("../migrations/assumption-guardrails-mgmt-co-fees-001");
+    await runAssumptionGuardrailsMgmtCoFees001();
+    await markMigrationApplied("assumption_guardrails_mgmt_co_fees_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

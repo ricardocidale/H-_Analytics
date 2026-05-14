@@ -96,6 +96,8 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
   "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },
   "constants":                   { title: "Constants",                    subtitle: "Immutable model constants used across the application" },
+  "defaults-mgmt-co-fees":       { title: "Management Co Fees",           subtitle: "Tier A management and incentive fee rates applied as defaults to all managed properties" },
+  "defaults-brands":             { title: "Brand Fee Stacks",             subtitle: "Per-flag brand fee rates (royalty, marketing, loyalty, reservation, tech) for each H+ brand flag" },
 };
 
 /**
@@ -175,6 +177,8 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "defaults-property":           "property-underwriting",
   "defaults-market-macro":       "market-macro",
   "constants":                   "model-constants",
+  "defaults-mgmt-co-fees":       "management-co-fees",
+  "defaults-brands":             "brands",
 };
 
 /**
@@ -188,6 +192,8 @@ const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[
   "defaults-property":           ["property-underwriting"],
   "defaults-market-macro":       ["market-macro"],
   "constants":                   ["model-constants", "dd-template"],
+  "defaults-mgmt-co-fees":       ["management-co-fees"],
+  "defaults-brands":             ["brands"],
 };
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {

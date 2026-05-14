@@ -52,7 +52,7 @@ import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
-import { hydratePropertyFinancials, applyBracketLayerDefaults } from "../defaults";
+import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -116,6 +116,18 @@ export async function createPropertyRecord(
   } catch (hydrateErr: unknown) {
     logger.warn(
       `hydratePropertyFinancials failed at creation (non-blocking): ${hydrateErr instanceof Error ? hydrateErr.message : hydrateErr}`,
+      "properties",
+    );
+  }
+
+  // Fee cascade: populate mgmt + brand fee columns from management_company_fees
+  // + brand_fees tables. Runs after Layer-1 so structural underwriting fields
+  // are already set; fee columns that are already non-null (user-supplied) win.
+  try {
+    await hydrateFeeColumns(createDataMut);
+  } catch (feeErr: unknown) {
+    logger.warn(
+      `hydrateFeeColumns failed at creation (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
       "properties",
     );
   }
@@ -501,6 +513,20 @@ export function register(app: Express) {
       );
       if (hasKeyChange) {
         updateData.lastAssumptionChangeAt = new Date();
+      }
+
+      // If brand_id is changing, cascade fee columns for the new brand.
+      // "fill nulls only" — user-supplied fee values in validation.data are
+      // non-null in updateData and are not overwritten by the cascade.
+      if ("brandId" in validation.data) {
+        try {
+          await hydrateFeeColumns(updateData);
+        } catch (feeErr: unknown) {
+          logger.warn(
+            `hydrateFeeColumns failed on brand change for property ${propertyId} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
+            "properties",
+          );
+        }
       }
 
       let property = await storage.updateProperty(propertyId, updateData);

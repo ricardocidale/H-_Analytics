@@ -25,7 +25,7 @@
 
 import { eq, inArray } from "drizzle-orm";
 import { db } from "./db";
-import { modelDefaults, icpBrackets, type ModelDefault, type BracketMixData } from "@workspace/db";
+import { modelDefaults, icpBrackets, managementCompanyFees, brandFees, businessBrands, type ModelDefault, type BracketMixData } from "@workspace/db";
 
 export interface DefaultScope {
   country?: string | null;
@@ -294,6 +294,79 @@ export async function applyBracketLayerDefaults(
 
     if (totalWeight > 0) {
       createData[field] = weightedSum / totalWeight;
+    }
+  }
+}
+
+// ── Fee column cascade ────────────────────────────────────────────────────────
+
+const MGMT_FEE_COLUMN_MAP: Readonly<Record<string, string>> = {
+  base_mgmt: "baseManagementFeeRate",
+  incentive:  "incentiveManagementFeeRate",
+};
+
+/**
+ * fee_type → property column for brand_fees rows.
+ * OTA channel types (channel_airbnb, channel_vrbo, channel_booking,
+ * channel_plum_guide) and h_plus_str_brand_fee have no matching property
+ * column in Phase 1 — stored in brand_fees for future engine reads.
+ */
+const BRAND_FEE_COLUMN_MAP: Readonly<Record<string, string>> = {
+  royalty:         "royaltyFeeRate",
+  brand_marketing: "brandMarketingFeeRate",
+  loyalty:         "loyaltyProgramFeeRate",
+  reservation:     "reservationFeeRate",
+  brand_tech:      "brandTechnologyFeeRate",
+};
+
+/**
+ * Cascade Layer-2 fee defaults from management_company_fees + brand_fees
+ * into a property data record. Only populates null/undefined fields —
+ * user-supplied values win.
+ *
+ * At creation: user data fields are non-null if supplied, so they are preserved.
+ * At PATCH: validation.data fields are spread into updateData first, so
+ * user-supplied fee values are non-null and are not overwritten.
+ *
+ * Unconditional in Phase 1 — has_mgmt_co_override column gating deferred.
+ * STR-specific brand fees (h_plus_str_brand_fee, channel_*) have no matching
+ * property column in Phase 1 and are silently skipped.
+ *
+ * May throw; callers wrap in a non-fatal try/catch.
+ */
+export async function hydrateFeeColumns(
+  data: Record<string, unknown>,
+): Promise<void> {
+  // Step 1: cascade management_company_fees (applies to all properties)
+  const mgmtRows = await db.select().from(managementCompanyFees);
+  for (const row of mgmtRows) {
+    const col = MGMT_FEE_COLUMN_MAP[row.feeType];
+    if (col !== undefined && data[col] == null) {
+      data[col] = row.rate;
+    }
+  }
+
+  // Step 2: cascade brand_fees by the property's brand slug
+  const brandId = data.brandId as number | null | undefined;
+  if (brandId == null) return;
+
+  const brandRows = await db
+    .select({ slug: businessBrands.slug })
+    .from(businessBrands)
+    .where(eq(businessBrands.id, brandId))
+    .limit(1);
+  if (brandRows.length === 0) return;
+
+  const { slug } = brandRows[0];
+  const feeRows = await db
+    .select()
+    .from(brandFees)
+    .where(eq(brandFees.brandSlug, slug));
+
+  for (const row of feeRows) {
+    const col = BRAND_FEE_COLUMN_MAP[row.feeType];
+    if (col !== undefined && data[col] == null) {
+      data[col] = row.rate;
     }
   }
 }
