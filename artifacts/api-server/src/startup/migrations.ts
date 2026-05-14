@@ -308,6 +308,15 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("icp_brackets_005");
   }
 
+  // Plan 2026-05-13-001 U7 (catalog rewrite) — geography-tier brackets replacing
+  // the 4 service-profile brackets. DELETEs old slugs, UPSERTs 5 new geography-tier
+  // brackets with Layer-2 defaults and Davi match rules. Idempotent (ON CONFLICT DO UPDATE).
+  if (!(await isMigrationApplied("icp_brackets_006"))) {
+    const { runIcpBrackets006 } = await import("../migrations/icp-brackets-006");
+    await runIcpBrackets006();
+    await markMigrationApplied("icp_brackets_006");
+  }
+
   // DB audit fix 2026-05-14 — model_defaults NULLS NOT DISTINCT unique index.
   // Prevents duplicate rows on every boot when scope columns are all NULL.
   // PostgreSQL NULL ≠ NULL inside standard unique indexes; NULLS NOT DISTINCT
