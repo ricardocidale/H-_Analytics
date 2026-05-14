@@ -35,7 +35,20 @@
       "Bash(git branch *)",
       "Bash(bash *)",
       "Bash(git rebase *)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Skill(update-config)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop.sh status *)",
+      "Bash(scripts/coderabbit-loop.sh status *)",
+      "Bash(command -v *)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh check-changes *)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh branch-hygiene *)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh section9-check *)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh write-state *)",
+      "Bash(PATH=__TRACKED_VAR__/.local/bin:__TRACKED_VAR__ coderabbit review --type uncommitted --agent)",
+      "Bash(tee .local/coderabbit-loop/iteration-1.ndjson)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh parse-ndjson *)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop-review.sh gate-check *)",
+      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --init)"
     ]
   }
 }
