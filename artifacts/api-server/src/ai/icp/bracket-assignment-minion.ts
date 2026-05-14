@@ -1,6 +1,6 @@
 /**
  * bracket-assignment-minion — Deterministic minion that reads a Management
- * Company's portfolio and global assumptions then emits a weighted ICP
+ * Company's portfolio and a set of Davi match-rules then emits a weighted ICP
  * bracket mix.
  *
  * Minion contract (CLAUDE.md §10):
@@ -9,109 +9,51 @@
  *   - Every numeric weight is derived from portfolio signals, never hardcoded
  *     as an inline literal (per CLAUDE.md §1 no-magic-numbers).
  *
- * Algorithm (heuristic — all thresholds are named constants):
- *   1. Classify each property as HOTEL, STR, or MIXED based on:
- *        - `businessModel` / `hospitalityType` columns (when present)
- *        - `propertyType` text scan for "str", "vacation", "airbnb", "short"
- *        - Falls back to HOTEL for unclassified properties
- *   2. Within the HOTEL bucket, split BOUTIQUE_UPSCALE vs SOFT_BRAND based
- *      on quality tier (starRating / assetDefinition.level / propertyLabel).
- *   3. Within the MIXED bucket, map to AGRITOURISM_EXPERIENTIAL.
- *   4. Compute raw counts, normalise to weights summing to 1.0.
- *   5. If portfolio is empty, fall back to EMPTY_PORTFOLIO_DEFAULT_MIX.
+ * Algorithm:
+ *   1. For each property, call Davi (pickBestFitBracket) with the DB-sourced
+ *      match-rule set. Davi returns the slug of the highest-priority bracket
+ *      whose predicates all match, or null if none match.
+ *   2. Properties with null (no match) are assigned to the US Gateway Boutique
+ *      bracket as a safe geographic default.
+ *   3. Compute raw counts per bracket, normalise to weights summing to 1.0.
+ *   4. If portfolio is empty, fall back to EMPTY_PORTFOLIO_DEFAULT_MIX.
  *
- * Evidence narrative is produced deterministically from the portfolio stats.
+ * The match rules are loaded once by the caller from icp_brackets and passed
+ * in — this minion is pure (no DB access, no I/O).
  */
 
 import type { Property, GlobalAssumptions } from "@workspace/db";
 import {
-  BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL,
-  BRACKET_ID_SOFT_BRAND_BOUTIQUE,
-  BRACKET_ID_PERFORMANCE_MANAGED_STR,
-  BRACKET_ID_AGRITOURISM_EXPERIENTIAL,
+  BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT,
+  BRACKET_ID_US_GATEWAY_BOUTIQUE,
+  BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE,
+  BRACKET_ID_LATAM_RURAL_ILLIQUID,
+  BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY,
   BRACKET_CATALOG,
-  SERVICE_CONSUMPTION_HOTEL,
-  SERVICE_CONSUMPTION_STR,
-  SERVICE_CONSUMPTION_MIXED,
 } from "./bracket-catalog";
 import type { BracketEntry, BracketMixData } from "@workspace/db";
+import { pickBestFitBracket, type BracketMatchRule } from "../../ai/ambient/minions/davi";
 
 // ── Named thresholds (no inline numerics) ────────────────────────────────
-
-/** Star rating at or above which a hotel is classified as upscale-boutique. */
-const UPSCALE_STAR_RATING_MIN = 4;
-
-/** Fraction of soft-brand hotels within the hotel bucket when quality tier is
- *  "average" or no signal is present (the rest go to boutique-upscale). */
-const SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_DEFAULT = 0.3;
-
-/** Fraction of soft-brand hotels when the asset definition level is "luxury". */
-const SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_LUXURY = 0.15;
-
-/** Fraction of soft-brand hotels when the asset definition level is "budget". */
-const SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_BUDGET = 0.5;
 
 /** Weight floor applied to any bracket that would otherwise reach zero. */
 const MINIMUM_BRACKET_WEIGHT = 0.05;
 
 // Default-mix weights for an empty portfolio (must sum to 1.0):
-const EMPTY_MIX_WEIGHT_BOUTIQUE_UPSCALE    = 0.45;
-const EMPTY_MIX_WEIGHT_SOFT_BRAND          = 0.25;
-const EMPTY_MIX_WEIGHT_PERFORMANCE_STR     = 0.20;
-const EMPTY_MIX_WEIGHT_AGRITOURISM         = 0.10;
+const EMPTY_MIX_WEIGHT_US_TERTIARY_RESORT  = 0.30;
+const EMPTY_MIX_WEIGHT_US_GATEWAY          = 0.25;
+const EMPTY_MIX_WEIGHT_LATAM_PRIME_URBAN   = 0.25;
+const EMPTY_MIX_WEIGHT_LATAM_RURAL         = 0.10;
+const EMPTY_MIX_WEIGHT_LATAM_LUXURY_STR    = 0.10;
 
 /** Default mix when the portfolio is completely empty (weights must sum to 1). */
 const EMPTY_PORTFOLIO_DEFAULT_MIX: readonly { id: string; weight: number }[] = [
-  { id: BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL, weight: EMPTY_MIX_WEIGHT_BOUTIQUE_UPSCALE },
-  { id: BRACKET_ID_SOFT_BRAND_BOUTIQUE,    weight: EMPTY_MIX_WEIGHT_SOFT_BRAND },
-  { id: BRACKET_ID_PERFORMANCE_MANAGED_STR, weight: EMPTY_MIX_WEIGHT_PERFORMANCE_STR },
-  { id: BRACKET_ID_AGRITOURISM_EXPERIENTIAL, weight: EMPTY_MIX_WEIGHT_AGRITOURISM },
+  { id: BRACKET_ID_US_TERTIARY_BOUTIQUE_RESORT, weight: EMPTY_MIX_WEIGHT_US_TERTIARY_RESORT },
+  { id: BRACKET_ID_US_GATEWAY_BOUTIQUE,          weight: EMPTY_MIX_WEIGHT_US_GATEWAY },
+  { id: BRACKET_ID_LATAM_PRIME_URBAN_BOUTIQUE,   weight: EMPTY_MIX_WEIGHT_LATAM_PRIME_URBAN },
+  { id: BRACKET_ID_LATAM_RURAL_ILLIQUID,         weight: EMPTY_MIX_WEIGHT_LATAM_RURAL },
+  { id: BRACKET_ID_LATAM_LUXURY_STR_SINGLE_KEY,  weight: EMPTY_MIX_WEIGHT_LATAM_LUXURY_STR },
 ] as const;
-
-// ── Property classification helpers ──────────────────────────────────────
-
-type PropertyClass = "hotel" | "str" | "mixed";
-
-function classifyProperty(p: Property): PropertyClass {
-  const rec = p as unknown as Record<string, unknown>;
-
-  const businessModel = String(rec.businessModel ?? rec.business_model ?? "").toLowerCase();
-  const hospType = String(rec.hospitalityType ?? rec.hospitality_type ?? "").toLowerCase();
-  const propType = String(rec.propertyType ?? rec.property_type ?? "").toLowerCase();
-  const name = String(p.name ?? "").toLowerCase();
-
-  const strKeywords = ["str", "vacation", "airbnb", "short-term", "short term", "vrbo", "cottage", "cabin rental"];
-  const mixedKeywords = ["agritourism", "agri-tourism", "glamping", "farm", "ranch", "lodge", "experiential"];
-
-  const isStr = strKeywords.some(
-    (k) => businessModel.includes(k) || hospType.includes(k) || propType.includes(k) || name.includes(k)
-  );
-  if (isStr) return "str";
-
-  const isMixed = mixedKeywords.some(
-    (k) => businessModel.includes(k) || hospType.includes(k) || propType.includes(k) || name.includes(k)
-  );
-  if (isMixed) return "mixed";
-
-  return "hotel";
-}
-
-function isUpscaleHotel(p: Property, gaLevel: string): boolean {
-  const rec = p as unknown as Record<string, unknown>;
-  const starRating = typeof rec.starRating === "number"
-    ? rec.starRating
-    : typeof rec.star_rating === "number"
-    ? rec.star_rating
-    : null;
-
-  if (starRating !== null && starRating >= UPSCALE_STAR_RATING_MIN) return true;
-  if (gaLevel === "luxury") return true;
-
-  const qualityTier = String(rec.qualityTier ?? rec.quality_tier ?? "").toLowerCase();
-  if (qualityTier === "luxury" || qualityTier === "upscale") return true;
-
-  return false;
-}
 
 // ── Weight normalisation helpers ──────────────────────────────────────────
 
@@ -150,18 +92,19 @@ function normalise(rawCounts: Record<string, number>): Record<string, number> {
 // ── Main minion export ────────────────────────────────────────────────────
 
 /**
- * Assign bracket weights deterministically from the portfolio.
+ * Assign bracket weights deterministically using Davi's match-rule classifier.
  *
  * @param properties  All properties visible to the management company.
- * @param ga          The management company's global assumptions row.
+ * @param _ga         The management company's global assumptions row (unused;
+ *                    retained for call-site compatibility).
+ * @param rules       Active match-rule set loaded from icp_brackets by caller.
  * @returns           A BracketMixData ready to persist.
  */
 export function assignBrackets(
   properties: Property[],
-  ga: GlobalAssumptions | undefined,
+  _ga: GlobalAssumptions | undefined,
+  rules: readonly BracketMatchRule[],
 ): BracketMixData {
-  const gaLevel = (ga?.assetDefinition as unknown as Record<string, unknown> | null)?.level as string | undefined ?? "average";
-
   // ── Empty portfolio fallback ──────────────────────────────────────────
   if (properties.length === 0) {
     const entries: BracketEntry[] = EMPTY_PORTFOLIO_DEFAULT_MIX.map((d) => {
@@ -183,86 +126,61 @@ export function assignBrackets(
     };
   }
 
-  // ── Classify each property ────────────────────────────────────────────
-  let hotelCount = 0;
-  let strCount = 0;
-  let mixedCount = 0;
-  let upscaleCount = 0; // within hotel bucket
+  // ── Classify each property via Davi ──────────────────────────────────
+  const rawCounts: Record<string, number> = {};
+  for (const cat of BRACKET_CATALOG) {
+    rawCounts[cat.id] = 0;
+  }
+
+  const bracketHits: Record<string, number> = {};
+  let unmatched = 0;
 
   for (const p of properties) {
-    const cls = classifyProperty(p);
-    if (cls === "hotel") {
-      hotelCount++;
-      if (isUpscaleHotel(p, gaLevel)) upscaleCount++;
-    } else if (cls === "str") {
-      strCount++;
+    const slug = pickBestFitBracket(p, rules);
+    if (slug !== null && rawCounts[slug] !== undefined) {
+      rawCounts[slug]++;
+      bracketHits[slug] = (bracketHits[slug] ?? 0) + 1;
     } else {
-      mixedCount++;
+      unmatched++;
     }
   }
 
-  const totalCount = properties.length;
-
-  // ── Split hotel bucket into boutique-upscale vs soft-brand ────────────
-  const softBrandFraction =
-    gaLevel === "luxury"
-      ? SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_LUXURY
-      : gaLevel === "budget"
-      ? SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_BUDGET
-      : SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_DEFAULT;
-
-  const boutiqueUpscaleCount =
-    hotelCount > 0
-      ? upscaleCount || Math.ceil(hotelCount * (1 - softBrandFraction))
-      : 0;
-
-  const softBrandCount = Math.max(0, hotelCount - boutiqueUpscaleCount);
-
-  // ── Build raw counts map ──────────────────────────────────────────────
-  const rawCounts: Record<string, number> = {
-    [BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL]: boutiqueUpscaleCount,
-    [BRACKET_ID_SOFT_BRAND_BOUTIQUE]: softBrandCount,
-    [BRACKET_ID_PERFORMANCE_MANAGED_STR]: strCount,
-    [BRACKET_ID_AGRITOURISM_EXPERIENTIAL]: mixedCount,
-  };
+  // Unmatched properties fall to US Gateway Boutique as a safe default
+  if (unmatched > 0) {
+    rawCounts[BRACKET_ID_US_GATEWAY_BOUTIQUE] += unmatched;
+    bracketHits[BRACKET_ID_US_GATEWAY_BOUTIQUE] =
+      (bracketHits[BRACKET_ID_US_GATEWAY_BOUTIQUE] ?? 0) + unmatched;
+  }
 
   const weights = normalise(rawCounts);
 
   // ── Build evidence narrative ──────────────────────────────────────────
-  const pctHotel = Math.round((hotelCount / totalCount) * 100);
-  const pctStr = Math.round((strCount / totalCount) * 100);
-  const pctMixed = Math.round((mixedCount / totalCount) * 100);
-
+  const totalCount = properties.length;
   const evidenceParts: string[] = [
-    `Portfolio: ${totalCount} propert${totalCount === 1 ? "y" : "ies"} analysed.`,
+    `Portfolio: ${totalCount} propert${totalCount === 1 ? "y" : "ies"} classified using ${rules.length} active bracket rule${rules.length === 1 ? "" : "s"}.`,
   ];
-  if (hotelCount > 0) evidenceParts.push(`${pctHotel}% classified as hotel (full-service): ${boutiqueUpscaleCount} boutique-upscale, ${softBrandCount} soft-brand.`);
-  if (strCount > 0) evidenceParts.push(`${pctStr}% classified as STR (marketing/branding/performance-bonus fees only).`);
-  if (mixedCount > 0) evidenceParts.push(`${pctMixed}% classified as agritourism/experiential (mixed service consumption).`);
-  if (gaLevel === "luxury") evidenceParts.push(`Asset definition level: luxury — biased toward boutique-upscale bracket.`);
-  if (gaLevel === "budget") evidenceParts.push(`Asset definition level: budget — higher soft-brand fraction applied.`);
+
+  for (const cat of BRACKET_CATALOG) {
+    const count = bracketHits[cat.id] ?? 0;
+    if (count > 0) {
+      evidenceParts.push(`${count} → ${cat.name}.`);
+    }
+  }
+
+  if (unmatched > 0) {
+    evidenceParts.push(`${unmatched} unmatched (no rule fired) → defaulted to US Gateway Boutique.`);
+  }
 
   const evidence = evidenceParts.join(" ");
 
   // ── Build rationale per bracket ───────────────────────────────────────
-  const rationaleMap: Record<string, string> = {
-    [BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL]:
-      boutiqueUpscaleCount > 0
-        ? `${boutiqueUpscaleCount} hotel${boutiqueUpscaleCount > 1 ? "s" : ""} in the portfolio meet upscale/luxury criteria.`
-        : "Minimum floor weight applied — no clear upscale hotel properties detected.",
-    [BRACKET_ID_SOFT_BRAND_BOUTIQUE]:
-      softBrandCount > 0
-        ? `${softBrandCount} hotel${softBrandCount > 1 ? "s" : ""} in the portfolio show soft-brand or mid-scale signals.`
-        : "Minimum floor weight applied — small exposure to soft-brand distribution expected.",
-    [BRACKET_ID_PERFORMANCE_MANAGED_STR]:
-      strCount > 0
-        ? `${strCount} STR-classified propert${strCount > 1 ? "ies" : "y"} detected (vacation rental, cabin, or short-stay keywords).`
-        : "Minimum floor weight applied — no STR properties detected but small STR exposure is common.",
-    [BRACKET_ID_AGRITOURISM_EXPERIENTIAL]:
-      mixedCount > 0
-        ? `${mixedCount} propert${mixedCount > 1 ? "ies" : "y"} with agritourism, glamping, lodge, or farm keywords.`
-        : "Minimum floor weight applied — no experiential properties detected.",
-  };
+  const rationaleMap: Record<string, string> = {};
+  for (const cat of BRACKET_CATALOG) {
+    const count = bracketHits[cat.id] ?? 0;
+    rationaleMap[cat.id] = count > 0
+      ? `${count} propert${count === 1 ? "y" : "ies"} matched the ${cat.name} rule set via Davi.`
+      : "Minimum floor weight applied — no properties matched this bracket's rules.";
+  }
 
   // ── Build final entries ───────────────────────────────────────────────
   const entries: BracketEntry[] = BRACKET_CATALOG.map((cat) => ({
@@ -284,8 +202,8 @@ export function assignBrackets(
 // ── Service-consumption label helpers (used by route response) ────────────
 
 export function serviceConsumptionLabel(type: string): string {
-  if (type === SERVICE_CONSUMPTION_HOTEL) return "All service lines";
-  if (type === SERVICE_CONSUMPTION_STR) return "Marketing, branding, performance-bonus only";
-  if (type === SERVICE_CONSUMPTION_MIXED) return "Blended (hotel + STR)";
+  if (type === "hotel") return "All service lines";
+  if (type === "str") return "Marketing, branding, performance-bonus only";
+  if (type === "mixed") return "Blended (hotel + STR)";
   return type;
 }

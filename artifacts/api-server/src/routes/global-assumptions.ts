@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, getAuthUser } from "../auth";
-import { insertGlobalAssumptionsSchema, updateServiceTemplateSchema } from "@workspace/db";
+import { insertGlobalAssumptionsSchema, updateServiceTemplateSchema, icpBrackets } from "@workspace/db";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
 import { logActivity, logAndSendError, parseParamId, zodErrorMessage } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
@@ -447,7 +449,27 @@ export function register(app: Express) {
       if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-003" });
 
       const { assignBrackets } = await import("../ai/icp/bracket-assignment-minion");
-      const mix = assignBrackets(properties, ga);
+      const bracketRows = await db.select({
+        slug: icpBrackets.slug,
+        priority: icpBrackets.matchPriority,
+        countries: icpBrackets.matchCountries,
+        businessModels: icpBrackets.matchBusinessModels,
+        qualityTiers: icpBrackets.matchQualityTiers,
+        keywords: icpBrackets.matchKeywords,
+        rationale: icpBrackets.matchRationale,
+      }).from(icpBrackets).where(eq(icpBrackets.isActive, true));
+
+      const rules = bracketRows.map((b) => ({
+        bracketId: b.slug,
+        priority: b.priority,
+        countries: b.countries as string[] | null,
+        businessModels: b.businessModels as string[] | null,
+        qualityTiers: b.qualityTiers as string[] | null,
+        keywords: b.keywords as string[] | null,
+        rationale: b.rationale,
+      }));
+
+      const mix = assignBrackets(properties, ga, rules);
 
       const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: mix });
       logActivity(req, "assign-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");
