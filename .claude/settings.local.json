@@ -52,7 +52,13 @@
       "Bash(git commit *)",
       "Bash(tee .local/coderabbit-loop/iteration-2.ndjson)",
       "Bash(gh pr *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Skill(coderabbit-loop-on)",
+      "Bash(~/.local/share/coderabbit-loop/coderabbit-loop.sh on *)",
+      "Skill(start-here)",
+      "Skill(workflows)",
+      "Skill(run-workflow)",
+      "Skill(plugin-stack)"
     ]
   },
   "enabledMcpjsonServers": [
