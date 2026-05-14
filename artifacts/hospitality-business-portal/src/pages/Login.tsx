@@ -45,11 +45,12 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean }>({
+  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean; motd: { enabled: boolean; text: string } }>({
     queryKey: ["/api/system/login-config"],
     staleTime: 30_000,
   });
   const loginScreenEnabled = loginConfig?.loginScreenEnabled ?? true;
+  const motd = loginConfig?.motd;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -306,17 +307,29 @@ export default function Login() {
               className="absolute inset-0"
               style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }}
             />
-            {/* Brand text */}
-            <div className="relative z-10 text-center px-8 pb-10">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-2 font-medium">
-                Hospitality Intelligence
-              </p>
-              <h2 className="text-2xl font-display font-bold text-white/90 leading-snug">
-                <span style={{ color: BRAND_ACCENT_HEX }}>{BRAND_ACCENT_PREFIX}</span>{APP_BRAND_NAME.slice(BRAND_ACCENT_PREFIX.length)}
-              </h2>
-              <p className="text-xs text-white/50 mt-2 leading-relaxed max-w-[220px] mx-auto">
-                Dual-entity GAAP modelling and investment simulation for the modern portfolio.
-              </p>
+            {/* Bottom content: MOTD + brand text */}
+            <div className="relative z-10 text-center px-8 pb-10 w-full flex flex-col items-center gap-5">
+              {/* Message of the day */}
+              {motd?.enabled && motd?.text && (
+                <div className="max-w-[240px] mx-auto">
+                  <p className="text-[11px] text-white/70 italic leading-relaxed">
+                    &ldquo;{motd.text}&rdquo;
+                  </p>
+                  <div className="mt-3 h-px bg-white/20" />
+                </div>
+              )}
+              {/* Brand text */}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-2 font-medium">
+                  Hospitality Intelligence
+                </p>
+                <h2 className="text-2xl font-display font-bold text-white/90 leading-snug">
+                  <span style={{ color: BRAND_ACCENT_HEX }}>{BRAND_ACCENT_PREFIX}</span>{APP_BRAND_NAME.slice(BRAND_ACCENT_PREFIX.length)}
+                </h2>
+                <p className="text-xs text-white/50 mt-2 leading-relaxed max-w-[220px] mx-auto">
+                  Dual-entity GAAP modelling and investment simulation for the modern portfolio.
+                </p>
+              </div>
             </div>
           </div>
         </div>

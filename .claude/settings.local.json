@@ -58,7 +58,11 @@
       "Skill(start-here)",
       "Skill(workflows)",
       "Skill(run-workflow)",
-      "Skill(plugin-stack)"
+      "Skill(plugin-stack)",
+      "Bash(pnpm run *)",
+      "Skill(compound-engineering:ce-frontend-design)",
+      "Bash(curl *)",
+      "Bash(agent-browser screenshot *)"
     ]
   },
   "enabledMcpjsonServers": [
