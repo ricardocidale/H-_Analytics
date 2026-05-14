@@ -1550,6 +1550,7 @@
     "artifacts/api-server/src/routes/admin/specialists/config.ts",
     "artifacts/api-server/src/routes/admin/specialists/identity.ts",
     "artifacts/api-server/src/routes/admin/specialists/runtime.ts",
+    "artifacts/api-server/src/routes/admin/system-auth.ts",
     "artifacts/api-server/src/routes/admin/test-batteries.ts",
     "artifacts/api-server/src/routes/admin/user-defaults.ts",
     "artifacts/api-server/src/routes/ai.ts",
