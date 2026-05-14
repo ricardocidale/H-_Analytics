@@ -4,65 +4,57 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T14:30:00Z
-Status: active
+Updated: 2026-05-14T18:00:00Z
+Status: idle
 
 ## Active Branch
 
-feat/plan-001-u1-seed-calibration (PR #154 open)
+feat/u7-geography-tier-catalog (PR #155)
 
 ## Last Commit on Branch
 
-813fd8928  docs(solutions): document ICP bracket slug mismatch + Layer-2 overlay inert fix
+9b09aa55f  feat(u7): geography-tier bracket catalog + Davi classifier integration
 
 ## What CC Did This Session
 
-Plan 001 U1 + DB audit fixes — cherry-picked from fix/db-audit-and-seed-calibration onto clean main branch
-
-- U1: Extend business_brands + data migration (already done prior session)
-- U2: Create management_company_fees + brand_fees tables + seed (already done prior session)
-- U3: hydrateFeeColumns resolver + guardrails seed — DONE ✅
-  - defaults.ts: new hydrateFeeColumns function (fill-nulls-only cascade)
-  - routes/properties.ts: create + PATCH call sites
-  - assumption-guardrails-mgmt-co-fees-001.ts: 7 guardrail rows
-  - startup/migrations.ts: registered assumption_guardrails_mgmt_co_fees_001
-- U4: Admin UI — Management Co Fees + Brands tabs — DONE ✅
-  - routes/admin/fees.ts: admin CRUD routes
-  - ManagementCoTab.tsx + BrandsTab.tsx components
-  - ModelDefaultsTab.tsx + AdminSidebar.tsx + Admin.tsx wired
-- U5: Company Assumptions → Mgmt Co Fees tab — DONE ✅
-  - Public fee read routes (registerPublicFeesRoutes)
-  - MgmtCoAssumptionsSection.tsx: read-only display + admin edit link
-  - useCompanyAssumptionsForm.ts + CompanyAssumptionsTabsView.tsx wired
-- U6: Remove DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE fallback — DONE ✅
-  - ManagementFeesSection.tsx (property-edit): 3 ?? DEFAULT_ fallbacks removed
+- Audited remaining DEFAULT_* constants (all have active call sites — none dead after c7faaead7)
+- U7 geography-tier catalog rewrite — shipped on feat/u7-geography-tier-catalog, PR #155
+  - bracket-catalog.ts: 5 new bracket IDs (US Tertiary Resort, US Gateway, LATAM Prime Urban, LATAM Rural, LATAM Luxury STR)
+  - bracket-assignment-minion.ts: rewired to call Davi per-property, handles null via US Gateway fallback
+  - global-assumptions.ts (POST /bracket-mix/assign): queries icpBrackets match rules, passes to assignBrackets
+  - icp-brackets-006.ts runtime guard: DELETE 4 old service-profile brackets, UPSERT 5 geography-tier brackets with Layer-2 defaults + match rules
+  - startup/migrations.ts: registered icp_brackets_006
+  - Typecheck ✅, magic-numbers ✅, migration-guards 63/63 ✅
+- Branch cleaned: stripped Replit auto-checkpoint commits + coderabbit-loop noise; PR #155 now contains only U7 product commits
 
 ## Files CC Owns Right Now (uncommitted, working tree)
 
-None — all committed and pushed to PR #154.
+None — all committed and pushed to origin/feat/u7-geography-tier-catalog.
 
 ## Plan 001 Status
 
-- U5 (icp_brackets schema columns): DONE ✅ (on main)
-- U6 (applyBracketLayerDefaults seeding pathway): DONE ✅ (on main)
-- U1 (demo property exit-cap overrides + bracket slug fix): DONE ✅ (PR #154)
-- U8 (Duplex full-equity refi rule): DONE ✅ (PR #154 — properties-demo-seed-overrides-002)
-- U7 (bracket catalog backfill with market values): NOT done — icp-brackets-004 only fixes slug renames + applies overlay; full geography-tier catalog (Davi classifier) is on origin/feat/seed-calibration-bracket-defaults, not yet merged
-- IRR verification (25–30% band): NOT done — depends on U7 + U1 landing in prod
+- U5 (icp_brackets schema columns): DONE ✅
+- U6 (applyBracketLayerDefaults seeding pathway): DONE ✅
+- U1 (demo property exit-cap overrides): DONE ✅
+- U8 (Duplex full-equity refi rule + LTV recalibration): DONE ✅
+- U7 FOUNDATION (Davi minion + match-rule columns): DONE ✅ — on main
+- U7 CATALOG REWRITE (geography-tier brackets + bracket-assignment-minion): DONE ✅ — PR #155
+- IRR verification (25–30% band): NOT done — merge PR + prod boot first
 
 ## What's Pending
 
-- Merge PR #154 after review
-- Decide whether to land origin/feat/seed-calibration-bracket-defaults (geography-tier Davi classifier) — bigger lift, separate PR
-- IRR verification after prod boot runs the migrations
-- Plan 006 Phase 2 (DEFAULT_* constants cleanup) still outstanding
+- Merge feat/u7-geography-tier-catalog → main (typecheck ✅, magic-numbers ✅)
+- IRR verification after prod boot (icp-brackets-006 seeds 5 brackets with Davi rules)
+- Plan 006 Phase 2 (DEFAULT_* constants migration to DB) — long-term incremental project
+  - ~50 ?? DEFAULT_* fallbacks remain in engine/calc layers (§9 protected)
+  - Each requires: remove ?? fallback + verify resolver guarantees the value + delete constant
 
 ## Handoff to Replit
 
-PR #154 open. Replit can smoke-test after merge:
-- Check that icp_brackets rows have correct slugs (soft-brand-boutique, performance-managed-str, agritourism-experiential)
-- Check that demo properties have updated exit_cap_rate values
-- Do NOT touch any files in the Do Not Touch list below
+PR #155 ready to merge — all gates pass. U7 only (no coderabbit-loop commits).
+After merge, next prod boot will: DELETE 4 old service-profile brackets, UPSERT 5
+geography-tier brackets with Davi match rules. Existing bracket_mix JSONs gracefully
+fall through to Layer-1 until user re-assigns. Do NOT touch Do Not Touch files below.
 
 ## Do Not Touch
 
