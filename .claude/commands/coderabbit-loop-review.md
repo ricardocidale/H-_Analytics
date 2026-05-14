@@ -49,12 +49,11 @@ Run `<helper> write-state current_iteration=<N> status=running`.
 
 ### 3b. Run CodeRabbit review
 ```bash
-PATH="$HOME/.local/bin:$PATH" coderabbit review --type uncommitted --agent \
-  2>&1 | tee .local/coderabbit-loop/iteration-<N>.ndjson
+<helper> run-review .local/coderabbit-loop/iteration-<N>.ndjson
 ```
-Capture exit code. If non-zero AND no `complete` event in the ndjson: write state `status=failed`, report the error output, and stop the loop.
-
-Cap NDJSON at 5 MB: if `.local/coderabbit-loop/iteration-<N>.ndjson` exceeds 5 MB, truncate it with a warning.
+This displays an animated progress bar to the user and writes raw NDJSON to the file.
+Stdout on success: `REVIEW_COMPLETE: findings=N ndjson=<path>`.
+If exit code is non-zero AND no `complete` event in the ndjson: write state `status=failed`, report the error output, and stop the loop.
 
 ### 3c. Parse findings
 ```bash
