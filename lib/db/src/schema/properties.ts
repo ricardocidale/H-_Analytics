@@ -165,6 +165,12 @@ export const properties = pgTable("properties", {
   // that exceeds the original cost basis.
   refiMaxLtvToOriginal: real("refi_max_ltv_to_original"),
 
+  // Refinance basis: which property value is used to size the refi loan.
+  // 'purchase_price'                  — original purchase price only (default)
+  // 'purchase_price_plus_improvements'— purchase price + building improvements budget
+  // 'appreciated_asset'               — income-cap estimate (NOI / exit cap rate)
+  refinanceBasis: text("refinance_basis"),
+
   // Management Company Fee Rates (per-property, charged by management company)
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
   incentiveManagementFeeRate: real("incentive_management_fee_rate").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
@@ -458,6 +464,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   dispositionCommission: true,
   refinanceYearsAfterAcquisition: true,
   refiMaxLtvToOriginal: true,
+  refinanceBasis: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
   franchiseFeeRate: true,

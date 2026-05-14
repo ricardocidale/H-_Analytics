@@ -103,7 +103,7 @@ export async function createPropertyRecord(
     );
   }
 
-  // Layer-1: hydrate the 5 underwriting fields from model_defaults for any still null.
+  // Layer-1: hydrate underwriting fields from model_defaults for any still null.
   // Precedence: user-supplied or global-assumptions value > Layer-2 bracket blend > model_defaults row.
   try {
     const hydrated = await hydratePropertyFinancials(

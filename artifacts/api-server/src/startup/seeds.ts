@@ -108,6 +108,9 @@ const REQUIRED_MODEL_DEFAULT_KEYS = [
   "mc.funding.ltv",
   "mc.funding.refiLtv",
   "mc.funding.refiMaxLtvToOriginal",
+  "mc.funding.refiInterestRate",
+  "mc.funding.refiTermYears",
+  "mc.funding.refiClosingCostRate",
   "mc.tax_exit.exitCapRate",
   "mc.property_defaults.maxOccupancy",
 ] as const;

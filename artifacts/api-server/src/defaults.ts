@@ -125,13 +125,16 @@ export async function resolveDefaultsByCard(
 
 // ── Property financial hydration ──────────────────────────────────────────────
 
-/** The 5 underwriting fields that must be non-null before any engine call. */
+/** Underwriting fields that must be non-null before any engine call. */
 export interface HydratedFinancials {
   acquisitionLTV: number;
   refinanceLTV: number;
   exitCapRate: number;
   maxOccupancy: number;
   refiMaxLtvToOriginal: number;
+  refinanceInterestRate: number;
+  refinanceTermYears: number;
+  refinanceClosingCostRate: number;
 }
 
 type PartialFinancials = {
@@ -140,18 +143,24 @@ type PartialFinancials = {
   exitCapRate?: number | null;
   maxOccupancy?: number | null;
   refiMaxLtvToOriginal?: number | null;
+  refinanceInterestRate?: number | null;
+  refinanceTermYears?: number | null;
+  refinanceClosingCostRate?: number | null;
 };
 
 const FINANCIAL_DEFAULT_KEYS = [
-  { field: "acquisitionLTV",       defaultKey: "mc.funding.ltv" },
-  { field: "refinanceLTV",         defaultKey: "mc.funding.refiLtv" },
-  { field: "exitCapRate",          defaultKey: "mc.tax_exit.exitCapRate" },
-  { field: "maxOccupancy",         defaultKey: "mc.property_defaults.maxOccupancy" },
-  { field: "refiMaxLtvToOriginal", defaultKey: "mc.funding.refiMaxLtvToOriginal" },
+  { field: "acquisitionLTV",          defaultKey: "mc.funding.ltv" },
+  { field: "refinanceLTV",            defaultKey: "mc.funding.refiLtv" },
+  { field: "exitCapRate",             defaultKey: "mc.tax_exit.exitCapRate" },
+  { field: "maxOccupancy",            defaultKey: "mc.property_defaults.maxOccupancy" },
+  { field: "refiMaxLtvToOriginal",    defaultKey: "mc.funding.refiMaxLtvToOriginal" },
+  { field: "refinanceInterestRate",   defaultKey: "mc.funding.refiInterestRate" },
+  { field: "refinanceTermYears",      defaultKey: "mc.funding.refiTermYears" },
+  { field: "refinanceClosingCostRate",defaultKey: "mc.funding.refiClosingCostRate" },
 ] as const;
 
 /**
- * Guarantees all five underwriting fields are non-null.
+ * Guarantees all underwriting fields are non-null.
  *
  * Precedence: property record value (if set) > model_defaults DB row > error.
  * The startup guard (assertRequiredModelDefaults) ensures the DB rows exist, so
@@ -191,11 +200,14 @@ export async function hydratePropertyFinancials(
   };
 
   return {
-    acquisitionLTV:       hydrate("acquisitionLTV",       "mc.funding.ltv"),
-    refinanceLTV:         hydrate("refinanceLTV",         "mc.funding.refiLtv"),
-    exitCapRate:          hydrate("exitCapRate",          "mc.tax_exit.exitCapRate"),
-    maxOccupancy:         hydrate("maxOccupancy",         "mc.property_defaults.maxOccupancy"),
-    refiMaxLtvToOriginal: hydrate("refiMaxLtvToOriginal", "mc.funding.refiMaxLtvToOriginal"),
+    acquisitionLTV:          hydrate("acquisitionLTV",          "mc.funding.ltv"),
+    refinanceLTV:            hydrate("refinanceLTV",            "mc.funding.refiLtv"),
+    exitCapRate:             hydrate("exitCapRate",             "mc.tax_exit.exitCapRate"),
+    maxOccupancy:            hydrate("maxOccupancy",            "mc.property_defaults.maxOccupancy"),
+    refiMaxLtvToOriginal:    hydrate("refiMaxLtvToOriginal",    "mc.funding.refiMaxLtvToOriginal"),
+    refinanceInterestRate:   hydrate("refinanceInterestRate",   "mc.funding.refiInterestRate"),
+    refinanceTermYears:      hydrate("refinanceTermYears",      "mc.funding.refiTermYears"),
+    refinanceClosingCostRate:hydrate("refinanceClosingCostRate","mc.funding.refiClosingCostRate"),
   };
 }
 
