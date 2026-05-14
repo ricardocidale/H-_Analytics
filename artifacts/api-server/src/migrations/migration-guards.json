@@ -250,6 +250,16 @@
       "status": "guarded",
       "guard": "properties-refi-ltv-cap-001.ts",
       "reason": "Plan 2026-05-13-003 Phase 5 \u2014 adds nullable real column refi_max_ltv_to_original to properties. Caps refi loan at (refi_max_ltv_to_original \u00d7 purchase_price) to prevent equity stripping on Full Equity properties. ADD COLUMN IF NOT EXISTS is idempotent. Guarded by properties-refi-ltv-cap-001.ts which re-applies the same ALTER at boot for dev DBs whose _journal.json has drifted past 0064."
+    },
+    "0065_extend_business_brands_multi_flag": {
+      "status": "guarded",
+      "guard": "business-brands-multi-flag-001.ts",
+      "reason": "Plan 2026-05-13-006 U1 \u2014 extends business_brands with slug, business_model, segment, sort_order, is_active, updated_at columns; changes is_default DEFAULT to false; creates partial unique index on slug; seeds h-plus-hotel slug for default brand; backfills NULL brand_id on properties; flips properties.brand_id FK from ON DELETE SET NULL to ON DELETE RESTRICT; sets brand_id NOT NULL. Guarded by business-brands-multi-flag-001.ts which re-applies all DDL idempotently at boot (ADD COLUMN IF NOT EXISTS, DO $$ block for FK swap)."
+    },
+    "0066_create_mgmt_co_and_brand_fees": {
+      "status": "guarded",
+      "guard": "mgmt-co-fees-tables-001.ts",
+      "reason": "Plan 2026-05-13-006 U2 \u2014 drops partial unique index on business_brands.slug, makes slug NOT NULL + adds full UNIQUE constraint (FK target for brand_fees), creates management_company_fees (global Tier-A fee schedule) and brand_fees (per-flag fee schedule) tables, seeds base_mgmt 8.5% + incentive 12% rows, seeds H+ Hotel brand stack (5 rows) + H+ STR Ultra-Luxury OTA fees (5 rows), assigns Medellin Duplex to STR flag. Guarded by mgmt-co-fees-tables-001.ts which re-applies all DDL idempotently (IF NOT EXISTS / DO $$ blocks) and seeds via ON CONFLICT DO NOTHING."
     }
   }
 }

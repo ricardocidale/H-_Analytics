@@ -72,7 +72,7 @@ export type InsertLogo = z.infer<typeof insertLogoSchema>;
 export const businessBrands = pgTable("business_brands", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   // slug: unique join key for brand_fees linkage (mirrors icp_brackets pattern)
-  slug: text("slug"),
+  slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
   logoId: integer("logo_id").references(() => logos.id, { onDelete: "set null" }),
@@ -92,7 +92,7 @@ export const businessBrands = pgTable("business_brands", {
 ]);
 
 export const insertBusinessBrandSchema = z.object({
-  slug: z.string().min(1).nullable().optional(),
+  slug: z.string().min(1),
   name: z.string().min(1),
   description: z.string().nullable().optional(),
   logoId: z.number().nullable().optional(),
