@@ -7,6 +7,8 @@
 #   branch-hygiene         Check for Replit-Agent commits in branch history
 #   write-state <key=val…> Write key=value pairs into .local/coderabbit-loop/run.json
 #   check-changes          Check if there are uncommitted changes to review
+#   run-review <file>      Run cr review --agent with animated progress bar
+#   print-logo             Print the CodeRabbit Loop ASCII banner
 set -euo pipefail
 
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
@@ -18,6 +20,24 @@ if git rev-parse --show-toplevel >/dev/null 2>&1; then
 fi
 
 scratch="$repo_root/.local/coderabbit-loop"
+
+# ─── Banner & progress helpers (shown on every invocation) ───────────────────
+cr_banner() {
+  printf '\n╔═══════════════════════════════════════════════╗\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
+  printf   '╚═══════════════════════════════════════════════╝\n\n'
+}
+
+cr_progress() {
+  local step="$1" total="$2" label="${3:-}"
+  local width=20 filled=0 i=0 bar=""
+  filled=$(( step * width / total ))
+  while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i+1)); done
+  while [ "$i" -lt "$width"  ]; do bar="${bar}░"; i=$((i+1)); done
+  printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
+}
+
+cr_banner
 
 subcommand="${1:-help}"
 shift || true
@@ -89,10 +109,13 @@ PYEOF
 # ─────────────────────────────────────────────────────────────
 gate_check() {
   local failed=0
+  local gate_total=2
 
   echo "--- gate-check ---"
 
   # Gate 1: typecheck (conditional on package manager + typecheck script)
+  cr_progress 1 $gate_total "typecheck"
+
   local pm=""
   if [ -f "$repo_root/pnpm-workspace.yaml" ]; then pm="pnpm"
   elif [ -f "$repo_root/bun.lockb" ]; then pm="bun"
@@ -116,6 +139,8 @@ gate_check() {
   fi
 
   # Gate 2: magic-numbers (conditional on script existence)
+  cr_progress 2 $gate_total "magic-numbers"
+
   local mn_script="$repo_root/scripts/src/check-magic-numbers.ts"
   local mn_runner="$repo_root/scripts/node_modules/.bin/tsx"
   if [ -f "$mn_script" ] && [ -f "$mn_runner" ]; then
