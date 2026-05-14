@@ -26,7 +26,6 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE } from "@/lib/constants";
 import type { ManagementFeesSectionProps } from "./types";
 
 export default function ManagementFeesSection({ draft, onChange, researchValues, feeDraft, onFeeCategoryChange, totalServiceFeeRate }: ManagementFeesSectionProps) {
@@ -128,12 +127,12 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   badgeProps={{ entry: researchValues.incentiveFee }}
                   onApplyValue={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)}
                   guidanceContext={gc("incentiveFee", "Incentive Fee")}
-                  currentValue={draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE} isPercent
+                  currentValue={draft.incentiveManagementFeeRate ?? 0} isPercent
                   className="min-w-0"
                 />
                 <span className="shrink-0">
                 <EditableValue
-                  value={(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100}
+                  value={(draft.incentiveManagementFeeRate ?? 0) * 100}
                   onChange={(val) => onChange("incentiveManagementFeeRate", val / 100)}
                   format="percent"
                   min={0}
@@ -143,7 +142,7 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 </span>
               </div>
               <Slider 
-                value={[(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100]}
+                value={[(draft.incentiveManagementFeeRate ?? 0) * 100]}
                 onValueChange={(vals: number[]) => onChange("incentiveManagementFeeRate", vals[0] / 100)}
                 min={0}
                 max={25}
