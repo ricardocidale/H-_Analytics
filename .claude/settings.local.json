@@ -51,7 +51,18 @@
       "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --init)",
       "Bash(git commit *)",
       "Bash(tee .local/coderabbit-loop/iteration-2.ndjson)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(grep -v \"^$\")"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "fred",
+    "booking",
+    "exa",
+    "context7",
+    "daloopa",
+    "daloopa-docs",
+    "expedia",
+    "fmp"
+  ]
 }
