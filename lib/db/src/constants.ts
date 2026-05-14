@@ -318,7 +318,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_AI_AGENT_NAME = "Rebecca";
 export const DEFAULT_MAX_STALENESS_HOURS = 24;
 export const USE_STABLE_SCENARIO_LOAD = true;
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
@@ -333,7 +332,6 @@ export const DEFAULT_REINVESTMENT_RATE = 0.05;
 
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
-export const DEFAULT_DAY_COUNT_CONVENTION: DayCountConvention = '30/360';
 
 // ── Escalation Method ───────────────────────────────────────────────────
 export type EscalationMethod = 'annual' | 'monthly';
@@ -415,6 +413,3 @@ export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
 
 // ── Pietro data infrastructure ───────────────────────────────────────────────
 // Default daily API call budget for Pietro-managed sources. null = unlimited.
-// Rate-limited sources (FMP free tier: 250 req/day) override this via their
-// admin_resources row.
-export const DEFAULT_ADMIN_RESOURCE_DAILY_REQUEST_BUDGET: number | null = null;
