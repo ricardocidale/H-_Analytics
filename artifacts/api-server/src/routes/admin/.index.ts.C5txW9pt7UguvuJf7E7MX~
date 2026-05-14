@@ -69,5 +69,4 @@ export function register(app: Express) {
   registerSelfTestLogsRoutes(app);
   registerAssumptionGuardrailRoutes(app);
   registerAdminFeesRoutes(app);
-  registerSystemAuthRoutes(app);
 }

@@ -1,5 +1,6 @@
 import { APP_BRAND_NAME, BRAND_ACCENT_HEX, BRAND_ACCENT_PREFIX } from "@shared/constants";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,12 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean }>({
+    queryKey: ["/api/system/login-config"],
+    staleTime: 30_000,
+  });
+  const loginScreenEnabled = loginConfig?.loginScreenEnabled ?? true;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -133,8 +140,25 @@ export default function Login() {
           style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)" }}
         >
 
-          {/* ── Left: form ───────────────────────────────────── */}
+          {/* ── Left: form or restricted-access panel ────── */}
           <div className="bg-card flex flex-col">
+            {!loginScreenEnabled ? (
+              <div className="flex items-center justify-center p-8 md:p-12">
+                <div className="flex flex-col items-center text-center gap-5 w-full max-w-sm">
+                  <SpinningLogo3D size={80} />
+                  <div>
+                    <h1 className="text-2xl font-bold font-display tracking-tight">
+                      Access Restricted
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Sign-ins are currently disabled for this portal.
+                      <br />
+                      Contact your administrator for access.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <form
               onSubmit={handleSubmit}
               className="flex items-center justify-center p-8 md:p-12"
@@ -266,6 +290,7 @@ export default function Login() {
                 </p>
               </div>
             </form>
+            )}
           </div>
 
           {/* ── Right: photo panel ───────────────────── */}

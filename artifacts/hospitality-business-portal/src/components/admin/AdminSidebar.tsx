@@ -45,7 +45,7 @@ export type AdminSection =
   | "brand"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
-  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance"
+  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
   | "property-heroes"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
@@ -196,7 +196,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
-        { value: "defaults-mgmt-co-fees",       label: "Mgmt Co Fees",       icon: IconCalculator },
         { value: "defaults-brands",             label: "Brands",             icon: IconBriefcase },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
@@ -260,9 +259,10 @@ function buildNavGroups(): NavGroup[] {
       icon: IconDashboard,
       description: "Database, observability, and activity logs",
       sections: [
-        { value: "database",      label: "Database",      icon: IconDatabase },
-        { value: "observability", label: "Observability", icon: IconDashboard },
-        { value: "activity",      label: "Activity",      icon: IconActivity },
+        { value: "database",        label: "Database",      icon: IconDatabase },
+        { value: "observability",   label: "Observability", icon: IconDashboard },
+        { value: "activity",        label: "Activity",      icon: IconActivity },
+        { value: "login-settings",  label: "Login",         icon: IconShieldCheck },
       ],
     },
   ];
