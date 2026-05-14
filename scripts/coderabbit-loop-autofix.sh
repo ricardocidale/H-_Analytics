@@ -20,6 +20,24 @@ fi
 
 scratch="$repo_root/.local/coderabbit-loop"
 
+# ─── Logo & progress helpers (shown on every invocation) ─────────────────────
+cr_banner() {
+  printf '\n╔═══════════════════════════════════════════════╗\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
+  printf   '╚═══════════════════════════════════════════════╝\n\n'
+}
+
+cr_progress() {
+  local step="$1" total="$2" label="${3:-}"
+  local width=20 filled=0 i=0 bar=""
+  filled=$(( step * width / total ))
+  while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i+1)); done
+  while [ "$i" -lt "$width"  ]; do bar="${bar}░"; i=$((i+1)); done
+  printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
+}
+
+cr_banner
+
 subcommand="${1:-help}"
 shift || true
 
@@ -203,6 +221,7 @@ poll_bot_commit() {
 
   while [ "$attempts" -lt "$max_attempts" ]; do
     attempts=$((attempts + 1))
+    cr_progress "$attempts" "$max_attempts" "waiting ${sleep_sec}s for bot commit on PR #${pr_number}…" >&2
 
     local commits_json
     commits_json="$(gh pr view "$pr_number" --json commits 2>/dev/null)" || {
@@ -233,7 +252,6 @@ PYEOF
       return 0
     fi
 
-    echo "  attempt $attempts/$max_attempts — no bot commit yet, waiting ${sleep_sec}s…" >&2
     sleep "$sleep_sec"
   done
 
@@ -284,6 +302,7 @@ poll_bot_review() {
 
   while [ "$attempts" -lt "$max_attempts" ]; do
     attempts=$((attempts + 1))
+    cr_progress "$attempts" "$max_attempts" "waiting ${sleep_sec}s for bot review on PR #${pr_number}…" >&2
 
     local tmpout
     tmpout="$(mktemp)"
@@ -335,7 +354,6 @@ PYEOF
       return 0
     fi
 
-    echo "  attempt $attempts/$max_attempts — no new review yet, waiting ${sleep_sec}s…" >&2
     sleep "$sleep_sec"
   done
 
