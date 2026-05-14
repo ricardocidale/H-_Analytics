@@ -63,7 +63,8 @@
       "Skill(compound-engineering:ce-frontend-design)",
       "Bash(curl *)",
       "Bash(agent-browser screenshot *)",
-      "Skill(coderabbit-loop-review)"
+      "Skill(coderabbit-loop-review)",
+      "Bash(pnpm --filter @workspace/api-server exec vitest run src/tests/proof/engine-integrity-fixes.test.ts)"
     ]
   },
   "enabledMcpjsonServers": [
