@@ -1,6 +1,7 @@
 ---
 title: "CodeRabbit Loop Workflow"
 date: 2026-05-12
+updated: 2026-05-14
 category: docs/runbooks
 module: development_workflow
 tags:
@@ -13,17 +14,15 @@ tags:
 # CodeRabbit Loop Workflow
 *Created and maintained by Ricardo Cidale*
 
-Runbook for the six `coderabbit-loop` commands: global install, prerequisites, the two iterative session variants, the §9 protected-surface policy, wall-time expectations, natural-language triggers, and troubleshooting.
+Runbook for the six `coderabbit-loop` commands: global install, prerequisites, the two iterative session variants, the protected-paths policy, wall-time expectations, natural-language triggers, and troubleshooting.
 
 ---
 
 ## 1. Global install (one-time setup per machine)
 
-Run once from the H+ Analytics repo:
+Run once from the repo that has the coderabbit-loop scripts:
 
 ```bash
-pnpm coderabbit-loop:install
-# or equivalently:
 bash scripts/install-coderabbit-loop.sh
 ```
 
@@ -35,7 +34,7 @@ After install, all six commands are available in every Claude Code session on th
 
 **Install the CodeRabbit CLI (if not done):**
 ```bash
-bash scripts/install-coderabbit-cli.sh
+# see https://coderabbit.ai/docs/cli for the latest install method
 coderabbit auth login   # interactive one-time OAuth
 ```
 
@@ -52,12 +51,12 @@ Required scopes: `repo` (classic PAT) — or for fine-grained: `Pull Requests: R
 The loop must be armed before invoking either session command:
 
 ```bash
-pnpm coderabbit-loop:on        # or: /coderabbit-loop-on
+/coderabbit-loop-on
 ```
 
 Verify:
 ```bash
-pnpm coderabbit-loop:status    # or: /coderabbit-loop-status
+/coderabbit-loop-status
 ```
 
 The status command shows toggle state, CodeRabbit CLI version, auth status, and any active loop session.
@@ -79,15 +78,16 @@ The status command shows toggle state, CodeRabbit CLI version, auth status, and 
 ```
 
 **What Claude does:**
-1. Checks preconditions (toggle ON, CLI installed, changes present)
-2. §9 preflight: lists changed files, checks for protected engine paths
-3. Runs `cr review --type uncommitted --agent` — captures NDJSON output
-4. Parses findings at severity ≥ minor (critical/major/minor are actionable; trivial/info are not)
-5. If zero actionable findings → runs quality gates → exits clean
-6. Applies fixes using Edit tool (skips §9-protected paths and out-of-scope paths)
-7. Runs per-iteration gates: typecheck (if present), magic-numbers (if present)
-8. Commits the fixes
-9. Repeats up to 4 iterations; reports residual findings if capped
+1. Shows the CodeRabbit Loop logo (Step 0 — always, even if loop exits early)
+2. Checks preconditions (toggle ON, CLI installed, changes present, branch hygiene)
+3. Protected-paths preflight (optional): lists changed files, checks for protected paths per `.coderabbit-loop/protected-paths.conf`; skipped automatically if the config file is absent
+4. Runs `cr review --type uncommitted --agent` — captures NDJSON output
+5. Parses findings at severity ≥ minor (critical/major/minor are actionable; trivial/info are not)
+6. If zero actionable findings → runs quality gates → exits clean
+7. Applies fixes using Edit tool (skips protected paths and out-of-scope paths)
+8. Runs per-iteration gates: typecheck (if present), magic-numbers (if present)
+9. Commits the fixes
+10. Repeats up to 4 iterations; reports residual findings if capped
 
 **Wall time:** seconds to a few minutes per iteration (local CLI, no network poll).
 
@@ -116,21 +116,22 @@ The status command shows toggle state, CodeRabbit CLI version, auth status, and 
 ```
 
 **What Claude does (iteration 1 — autofix):**
-1. Checks all preconditions
-2. §9 pre-check: `gh pr diff --name-only` vs. §9 path list
+1. Shows the CodeRabbit Loop logo (Step 0 — always)
+2. Checks all preconditions
+3. Protected-paths pre-check (optional): `gh pr diff --name-only` vs. protected path list from `.coderabbit-loop/protected-paths.conf`; skipped if config absent
    - On intersection → falls back to review-only for all iterations
-3. Posts `@coderabbitai autofix` comment via GitHub API
-4. Polls for bot commit landing (timeout 5 min)
-5. §9 post-commit re-check: if bot introduced new §9 paths → reverts bot commit, continues review-only
-6. Branch hygiene check with `--mode=autofix`: verifies no Replit-Agent intrusions, reports bot commit SHAs
+4. Posts `@coderabbitai autofix` comment via GitHub API
+5. Polls for bot commit landing (timeout 5 min); if timeout → falls back to review-only
+6. Post-commit re-check (optional): if bot introduced new protected paths → reverts bot commit, continues review-only
+7. Branch hygiene check: verifies no blocked-agent commits (per `.coderabbit-loop/blocked-emails.conf`), reports bot commit SHAs
 
 **Iterations 2–4 (review-only):**
 1. Posts `@coderabbitai review` comment
 2. Polls for new review (timeout 10 min)
 3. Parses "Actionable comments posted: N" from review body
 4. If zero → checks `statusCheckRollup` → exits if clean
-5. Fetches PR inline comments, applies fixes (with §9 + scope filters)
-6. Checks branch hygiene, auto-checkpoint guard, quality gates
+5. Fetches PR inline comments, applies fixes (with protected-path + scope filters)
+6. Checks branch hygiene, quality gates
 7. Pushes and continues
 
 **Wall time:** 7–30+ minutes per iteration (PR bot review latency). Total for 4 iterations: up to ~2 hours for a complex PR. Plan accordingly.
@@ -141,35 +142,61 @@ The status command shows toggle state, CodeRabbit CLI version, auth status, and 
 - `ci-pending` — zero findings but CI checks still running
 - `gate-failed` — typecheck/magic-numbers/CI failed
 - `autofix-timeout` — bot did not commit within 5 min (fell back to review-only)
-- `autofix-section9-revert` — bot introduced §9 edits; commit reverted, loop continued review-only
+- `autofix-section9-revert` — bot introduced protected-path edits; commit reverted, loop continued review-only
 - `review-timeout` — bot review did not arrive within 10 min
 
 ---
 
-## 5. §9 Financial Engine protection policy
+## 5. Protected-paths policy
 
-The §9 rule applies to **any code that touches the financial projection surface.** Neither the working-tree loop nor the autofix loop will auto-apply fixes to:
+Some repos want to prevent the loop from auto-applying fixes to sensitive files (financial engine code, proof tests, etc.). This is controlled by an optional per-repo config file:
 
 ```
-lib/engine/src/
-lib/calc/src/
-lib/shared/src/constants*.ts
-lib/db/src/constants*.ts
-artifacts/api-server/src/finance/
-artifacts/api-server/src/report/
-artifacts/api-server/src/tests/proof/
-artifacts/api-server/src/tests/engine/
+.coderabbit-loop/protected-paths.conf
 ```
 
-**Review-only loop (`/coderabbit-loop-review`):** Findings targeting §9 paths are surfaced with `⚠ Skipped (§9 protected)` — Claude shows them but does not apply. Apply manually after reviewing.
+Each line is an extended-regex pattern. Example (this repo):
 
-**Autofix loop (`/coderabbit-loop-autofix`):** If the PR diff includes any §9 path at pre-check, autofix is blocked and all iterations run review-only. If the CR bot introduces new §9 edits despite a clean pre-check (post-commit re-check), the bot commit is automatically reverted and the loop continues review-only.
+```
+^lib/engine/src/
+^lib/calc/src/
+^lib/shared/src/constants
+^lib/db/src/
+^artifacts/api-server/src/finance/
+^artifacts/api-server/src/report/
+^artifacts/api-server/src/tests/proof/
+^artifacts/api-server/src/tests/engine/
+```
 
-To apply §9 findings: review them manually, make the edit yourself, and re-invoke the review loop on the result.
+If the file is absent, no paths are protected and the loop behaves as fully automatic.
+
+**Review-only loop:** Findings targeting protected paths are surfaced with `⚠ Skipped (protected path)` — Claude shows them but does not apply. Apply manually after reviewing.
+
+**Autofix loop:** If the PR diff includes any protected path at pre-check, autofix is blocked and all iterations run review-only. If the CR bot introduces new protected-path edits despite a clean pre-check (post-commit re-check), the bot commit is automatically reverted and the loop continues review-only.
+
+To apply protected-path findings: review them manually, make the edit yourself, and re-invoke the review loop on the result.
 
 ---
 
-## 6. Per-iteration quality gates
+## 6. Branch hygiene — blocked-agent emails
+
+The loop checks for commits from specific email addresses (e.g. automated agent accounts that should not land on a branch mid-loop). This is controlled by an optional per-repo config file:
+
+```
+.coderabbit-loop/blocked-emails.conf
+```
+
+Each line is an email address. Example (this repo):
+
+```
+52429710-ricardocidale@users.noreply.replit.com
+```
+
+If the file is absent, the hygiene check is still run but only verifies that no bot emails match known patterns — it will not block on the absence of a config.
+
+---
+
+## 7. Per-iteration quality gates
 
 After each fix-application step, the loop runs these gates (all conditional):
 
@@ -177,13 +204,13 @@ After each fix-application step, the loop runs these gates (all conditional):
 |---|---|---|
 | `pnpm run typecheck` | `typecheck` script exists in root `package.json` | Loop asks user whether to continue |
 | `scripts/src/check-magic-numbers.ts` | Script file exists | Loop asks user whether to continue |
-| `git log … \| grep Replit-Agent-email` | Always | Loop aborts with cherry-pick recovery instructions |
+| Branch hygiene check | Always | Loop aborts with cherry-pick recovery instructions |
 
-In other repos (no `lib/engine/src/`, no magic-numbers script, no `typecheck` script), all gates except branch-hygiene are silently skipped.
+In repos where none of these scripts exist, only the branch hygiene check runs.
 
 ---
 
-## 7. Natural-language triggers
+## 8. Natural-language triggers
 
 | Natural-language phrase | Command |
 |---|---|
@@ -196,14 +223,14 @@ In other repos (no `lib/engine/src/`, no magic-numbers script, no `typecheck` sc
 
 ---
 
-## 8. GITHUB_PAT — generation and rotation
+## 9. GITHUB_PAT — generation and rotation
 
 Generate at `https://github.com/settings/tokens`:
 
 **Classic PAT (simpler):** scope `repo` covers everything needed.
 
 **Fine-grained PAT (more restrictive):**
-- Repository access: the target repo (e.g., `Norfolk-Group/H-Analytics`)
+- Repository access: the target repo
 - Permissions: Pull requests → Read and write
 
 Set and persist:
@@ -218,13 +245,13 @@ echo 'export GITHUB_PAT=<token>' >> ~/.zshrc  # or ~/.bashrc
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 **"CodeRabbit loop is OFF"**
-→ Run `/coderabbit-loop-on` or `pnpm coderabbit-loop:on`
+→ Run `/coderabbit-loop-on`
 
 **"CodeRabbit CLI not installed"**
-→ Run `bash scripts/install-coderabbit-cli.sh && coderabbit auth login`
+→ Install from https://coderabbit.ai/docs/cli and run `coderabbit auth login`
 
 **"No open PR found"**
 → Push your branch and open a PR on GitHub first
@@ -241,11 +268,11 @@ echo 'export GITHUB_PAT=<token>' >> ~/.zshrc  # or ~/.bashrc
 **"BOT_REVIEW_TIMEOUT after 10 minutes"**
 → CodeRabbit review is slow or failed. Check GitHub. Re-invoke to retry.
 
-**"§9 post-commit intersect — bot commit reverted"**
-→ CodeRabbit's autofix touched protected engine code. The loop reverted the commit and continued review-only. Review the finding manually and apply the fix yourself after confirming it follows §9 rules.
+**"Protected-path post-commit intersect — bot commit reverted"**
+→ CodeRabbit's autofix touched protected code. The loop reverted the commit and continued review-only. Review the finding manually and apply the fix yourself.
 
-**"HYGIENE_FAIL — Replit-Agent commits detected"**
-→ Replit Agent committed to this branch during the loop. Cherry-pick only your CC commits onto a fresh branch per the CC branch hygiene workflow in `CLAUDE.md`.
+**"HYGIENE_FAIL — blocked-agent commits detected"**
+→ A blocked-agent email committed to this branch during the loop. Cherry-pick only your intended commits onto a fresh branch.
 
 **"Gate check failed: typecheck"**
 → Fix the TypeScript error before re-invoking. The loop reports the failing file/line.

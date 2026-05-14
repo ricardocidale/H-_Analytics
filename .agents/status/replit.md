@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T22:00:00Z
-Status: handoff-pending
+Updated: 2026-05-14T18:00:00Z
+Status: idle
 
 ## Active Branch
 
@@ -17,10 +17,11 @@ docs(plans): rewrite 2026-05-13-005 with no-NULL enforcement rule
 
 ## What Replit Did This Session
 
-- U3 — Wired `refiMaxLtvToOriginal` slider in `CapitalStructureSection.tsx`
-- Diagnosed root cause of IRR inflation: `SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00`
-  stored at property level on all seeded properties
-- Wrote and refined Plan 2026-05-13-005 (see Handoff to CC below)
+- coderabbit-loop portability pass: extracted H+-specific §9 regexes to `.coderabbit-loop/protected-paths.conf` and blocked agent email to `.coderabbit-loop/blocked-emails.conf`; scripts now skip guards when config files absent
+- Added Step 0 (print-logo) to both `coderabbit-loop-review.md` and `coderabbit-loop-autofix.md` — logo now shows before all precondition checks
+- Removed unconditional `cr_banner` call from `coderabbit-loop-autofix.sh` — was firing on every subcommand, causing double banner
+- Removed H+-specific language from all 6 slash commands and install script; install next-steps now point to coderabbit.ai/docs/cli
+- Updated `docs/runbooks/coderabbit-loop-workflow.md` to reflect config-file approach, portable install instructions, and corrected gate descriptions
 
 ## Files Replit Owns Right Now
 
