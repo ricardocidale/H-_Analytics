@@ -16,7 +16,8 @@ import {
 import { loginSchema, adminLoginSchema, userResponse, logAndSendError, zodErrorMessage } from "./helpers";
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
-import { isAdminRole } from "@shared/constants";
+import { isAdminRole, UserRole } from "@shared/constants";
+import { readLoginScreenEnabled } from "./admin/system-auth";
 import { REBECCA_SUGGESTED_CHIPS_MAX_COUNT, REBECCA_SUGGESTED_CHIP_MAX_LENGTH } from "@shared/rebecca-settings";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 import { isPublishedDeployment } from "../providers/config";
@@ -158,6 +159,18 @@ export function register(app: Express) {
 
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     const u = getAuthUser(req);
+
+    // When the login screen is disabled, only super_admin can access the app.
+    // All other authenticated users are treated as if they have no session so
+    // the frontend routes them to the "Access Restricted" screen on /login.
+    if (u.role !== UserRole.SUPER_ADMIN) {
+      const loginScreenEnabled = await readLoginScreenEnabled();
+      if (!loginScreenEnabled) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(401).json({ error: "Portal access is currently restricted." });
+      }
+    }
+
     res.setHeader("Cache-Control", "no-store");
     res.json({
       user: userResponse(u)

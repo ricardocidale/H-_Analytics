@@ -14,7 +14,7 @@ const MOTD_TEXT_FIELD = "motd_text";
 const AUTO_LOGIN_FIELD = "auto_login_enabled";
 const MOTD_MAX_LENGTH = 280;
 
-async function readLoginScreenEnabled(): Promise<boolean> {
+export async function readLoginScreenEnabled(): Promise<boolean> {
   const rows = await db
     .select()
     .from(seedDefaults)
