@@ -243,6 +243,16 @@ export async function runSchemaMigrations() {
     await runMgmtCoFeesTables001();
     await markMigrationApplied("mgmt_co_fees_tables_001");
   }
+
+  // Plan 2026-05-13-006 U3 — seed assumption guardrails for mgmt co + brand fee columns.
+  // Runtime-only migration: no SQL file, no journal entry, no migration-guards.json entry.
+  // Seeds 7 assumption_guardrails rows (ON CONFLICT DO NOTHING) for the fee columns
+  // populated by hydrateFeeColumns.
+  if (!(await isMigrationApplied("assumption_guardrails_mgmt_co_fees_001"))) {
+    const { runAssumptionGuardrailsMgmtCoFees001 } = await import("../migrations/assumption-guardrails-mgmt-co-fees-001");
+    await runAssumptionGuardrailsMgmtCoFees001();
+    await markMigrationApplied("assumption_guardrails_mgmt_co_fees_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
