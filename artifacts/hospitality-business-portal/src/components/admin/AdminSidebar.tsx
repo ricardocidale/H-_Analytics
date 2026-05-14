@@ -58,7 +58,7 @@ export type AdminSection =
   | "required-fields"
   // Model Defaults (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
-  | "constants"
+  | "constants" | "defaults-mgmt-co-fees" | "defaults-brands"
   // AI Research → Specialists (P5). The 7 read-only assignment+health surface
   // sections are derived from `SPECIALIST_SECTION_TO_ID` keys below — single
   // source of truth, compile-enforced. To add a Specialist section, edit ONLY
@@ -116,6 +116,8 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "defaults-property": "model-defaults",
   "defaults-market-macro": "model-defaults",
   "constants": "model-defaults",
+  "defaults-mgmt-co-fees": "model-defaults",
+  "defaults-brands": "model-defaults",
 };
 
 /**
@@ -194,6 +196,8 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
+        { value: "defaults-mgmt-co-fees",       label: "Mgmt Co Fees",       icon: IconCalculator },
+        { value: "defaults-brands",             label: "Brands",             icon: IconBriefcase },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
         { value: "reference-ranges",            label: "Reference Ranges",   icon: IconRuler },
