@@ -13,13 +13,6 @@
 import { startOfMonth } from "date-fns";
 import { computeRefinance } from '@calc/refinance';
 import { DEFAULT_ACCOUNTING_POLICY } from '@domain/types/accounting-policy';
-import {
-  DEFAULT_INTEREST_RATE,
-  DEFAULT_TERM_YEARS,
-  DEFAULT_REFI_LTV,
-  DEFAULT_REFI_CLOSING_COST_RATE,
-  DEFAULT_EXIT_CAP_RATE,
-} from '@shared/constants';
 import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
 import { parseLocalDate } from '../helpers/utils';
@@ -68,34 +61,51 @@ export function applyRefinancePostProcessing(
     yearlyOperationalMonths.push(yearSlice.filter(m => m.revenueTotal > 0 || m.anoi !== 0).length);
   }
 
-  const refiLTV = property.refinanceLTV ?? DEFAULT_REFI_LTV;
-  const costBasisValue = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
-  const refiRate = property.refinanceInterestRate ?? DEFAULT_INTEREST_RATE;
-  const refiTermYears = property.refinanceTermYears ?? DEFAULT_TERM_YEARS;
-  const closingCostRate = property.refinanceClosingCostRate ?? DEFAULT_REFI_CLOSING_COST_RATE;
-  const existingDebt = refiMonthIndex > 0 ? financials[refiMonthIndex - 1].debtOutstanding : ctx.originalLoanAmount;
-
-  // Income-capitalization: refiLoan = (yearlyNOI[refiYear] / exitCapRate) × refiLTV
-  // Fallback to cost-basis when NOI ≤ 0 (zero-NOI or pre-stabilization property).
-  const exitCapRate = property.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const refiNOI = yearlyNOI[refiYear] ?? 0;
-  let propertyValueAtRefi: number;
-  if (refiNOI <= 0) {
-    console.warn(
-      `[refinance-pass] NOI ≤ 0 at refiYear=${refiYear} (NOI=${refiNOI}); falling back to cost-basis valuation.`
-    );
-    propertyValueAtRefi = costBasisValue;
-  } else {
-    // Direct income-cap: value = NOI / capRate; loan = value × LTV
-    propertyValueAtRefi = refiNOI / exitCapRate;
+  if (property.refinanceLTV == null) {
+    throw new Error("[refinance-pass] refinanceLTV must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceInterestRate == null) {
+    throw new Error("[refinance-pass] refinanceInterestRate must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceTermYears == null) {
+    throw new Error("[refinance-pass] refinanceTermYears must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceClosingCostRate == null) {
+    throw new Error("[refinance-pass] refinanceClosingCostRate must be hydrated before engine call — boundary layer missed");
   }
 
-  // Cap refi loan at refiMaxLtvToOriginal × purchasePrice when the constraint is set.
-  // Prevents equity strips on Full Equity properties where income-cap value exceeds cost basis.
-  // Back-calculate the capped property value so computeRefinance's ltv_max produces the right loan.
-  if (property.refiMaxLtvToOriginal != null && property.purchasePrice != null && refiLTV > 0) {
-    const maxPropertyValueForLoan = (property.refiMaxLtvToOriginal * property.purchasePrice) / refiLTV;
-    propertyValueAtRefi = Math.min(propertyValueAtRefi, maxPropertyValueForLoan);
+  const refiLTV = property.refinanceLTV;
+  const refiRate = property.refinanceInterestRate;
+  const refiTermYears = property.refinanceTermYears;
+  const closingCostRate = property.refinanceClosingCostRate;
+  const existingDebt = refiMonthIndex > 0 ? financials[refiMonthIndex - 1].debtOutstanding : ctx.originalLoanAmount;
+
+  // Determine property value for loan sizing based on user-selected basis.
+  // 'appreciated_asset' uses income-cap (NOI / exit cap rate).
+  // All other bases (purchase_price, purchase_price_plus_improvements, or null/default)
+  // use original cost — conservative and independent of forward NOI projections.
+  const basis = property.refinanceBasis ?? 'purchase_price';
+  let propertyValueAtRefi: number;
+  if (basis === 'appreciated_asset') {
+    const exitCapRate = property.exitCapRate ?? global.exitCapRate;
+    if (exitCapRate == null) {
+      throw new Error("[refinance-pass] exitCapRate must be hydrated before engine call — boundary layer missed");
+    }
+    const refiNOI = yearlyNOI[refiYear] ?? 0;
+    if (refiNOI <= 0) {
+      propertyValueAtRefi = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
+    } else {
+      propertyValueAtRefi = refiNOI / exitCapRate;
+    }
+    if (property.refiMaxLtvToOriginal != null && property.purchasePrice != null && refiLTV > 0) {
+      const maxPropertyValueForLoan = (property.refiMaxLtvToOriginal * property.purchasePrice) / refiLTV;
+      propertyValueAtRefi = Math.min(propertyValueAtRefi, maxPropertyValueForLoan);
+    }
+  } else if (basis === 'purchase_price_plus_improvements') {
+    propertyValueAtRefi = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
+  } else {
+    // 'purchase_price' (default)
+    propertyValueAtRefi = property.purchasePrice ?? 0;
   }
 
   const refiOutput = computeRefinance({

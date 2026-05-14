@@ -326,6 +326,26 @@ export async function runSchemaMigrations() {
     await runModelDefaultsUniqueNullsNotDistinct001();
     await markMigrationApplied("model_defaults_unique_nulls_not_distinct_001");
   }
+
+  // 2026-05-14 — Seed model_defaults rows for the three refi params that
+  // previously fell back to hardcoded TS constants (Category 2 violations):
+  // mc.funding.refiInterestRate, mc.funding.refiTermYears, mc.funding.refiClosingCostRate.
+  // Also backfills null property columns from those defaults.
+  if (!(await isMigrationApplied("model_defaults_refi_params_001"))) {
+    const { runModelDefaultsRefiParams001 } = await import("../migrations/model-defaults-refi-params-001");
+    await runModelDefaultsRefiParams001();
+    await markMigrationApplied("model_defaults_refi_params_001");
+  }
+
+  // 2026-05-14 — Add refinance_basis column to properties (default: 'purchase_price').
+  // Three-way selector: purchase_price | purchase_price_plus_improvements | appreciated_asset.
+  // Backfills all existing rows to 'purchase_price' (the conservative default that was
+  // previously hardcoded in the engine).
+  if (!(await isMigrationApplied("properties_refinance_basis_001"))) {
+    const { runPropertiesRefinanceBasis001 } = await import("../migrations/properties-refinance-basis-001");
+    await runPropertiesRefinanceBasis001();
+    await markMigrationApplied("properties_refinance_basis_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
