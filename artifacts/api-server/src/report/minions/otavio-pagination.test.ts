@@ -248,6 +248,77 @@ describe('assumption-titled sections (ASSUMPTIONS_TITLE_PREFIX)', () => {
     expect(flattenedSections.length).toBe(1);
     expect(flattenedSections[0]).toBe(section);
   });
+
+  it('single oversized group is further split by row count into continuation chunks', () => {
+    // One named group whose data rows alone far exceed the landscape assumptions
+    // cap (23). splitAssumptionSectionByGroups keeps it as-is (only one group),
+    // then splitTableSection must break it into multiple pages.
+    // 1 header row (weight 1.25) + 40 data rows (weight 40.0) = 41.25 >> 23.
+    const rows: TableRow[] = [
+      headerRow('Partner Compensation'),
+      ...makeDataRows(40),
+    ];
+    const parentTitle = `${ASSUMPTIONS_TITLE_PREFIX}Company ABC`;
+    const section = makeTable(parentTitle, rows);
+    const { flattenedSections } = runMinionOtavioPaginate([section], LANDSCAPE_OPTS);
+    const chunks = tableChunks(flattenedSections);
+    // Must produce more than one chunk because the single group exceeds the cap.
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+    // First chunk keeps the original title (single-group → no group label appended).
+    expect(chunks[0].title).toBe(parentTitle);
+    // Continuation chunks carry the (cont'd N/M) suffix.
+    expect(chunks[1].title).toContain("cont\u2019d");
+    // Every chunk must have at least one row.
+    for (const chunk of chunks) {
+      expect(chunk.rows.length).toBeGreaterThan(0);
+    }
+    // The union of all rows equals the original rows (no rows lost or duplicated).
+    const allRows = chunks.flatMap((c) => c.rows);
+    expect(allRows.length).toBe(rows.length);
+  });
+
+  it('mixed large and small groups: large group splits further, small group stays intact', () => {
+    // Two named groups within one assumption section.
+    // Group A: 1 header + 40 data rows → exceeds cap, will be further split.
+    // Group B: 1 header + 3 data rows  → fits within cap, stays as one chunk.
+    // Expected: splitAssumptionSectionByGroups produces 2 sub-sections, then
+    //   splitTableSection expands group A into 2+ chunks and leaves group B as 1.
+    // Total output chunks must be ≥ 3.
+    const groupARows = makeDataRows(40, 'CompRow');
+    const groupBRows = makeDataRows(3, 'SmallRow');
+    const rows: TableRow[] = [
+      headerRow('Payroll'),
+      ...groupARows,
+      headerRow('Fixed Overhead'),
+      ...groupBRows,
+    ];
+    const parentTitle = `${ASSUMPTIONS_TITLE_PREFIX}Big Company`;
+    const section = makeTable(parentTitle, rows);
+    const { flattenedSections } = runMinionOtavioPaginate([section], LANDSCAPE_OPTS);
+    const chunks = tableChunks(flattenedSections);
+
+    // Overall: group A splits into 2+ chunks, group B stays as 1 → ≥ 3 total.
+    expect(chunks.length).toBeGreaterThanOrEqual(3);
+
+    // Group A chunks: first one carries the "Payroll" sub-title from
+    // splitAssumptionSectionByGroups; continuations carry the cont'd suffix.
+    const payrollChunks = chunks.filter((c) => c.title.includes('Payroll'));
+    expect(payrollChunks.length).toBeGreaterThanOrEqual(2);
+    expect(payrollChunks[0].title).toBe(`${parentTitle} — Payroll`);
+    expect(payrollChunks[1].title).toContain("cont\u2019d");
+
+    // Group B: exactly one chunk, no continuation suffix.
+    const overheadChunks = chunks.filter((c) => c.title.includes('Fixed Overhead'));
+    expect(overheadChunks.length).toBe(1);
+    expect(overheadChunks[0].title).toBe(`${parentTitle} — Fixed Overhead`);
+    expect(overheadChunks[0].title).not.toContain("cont\u2019d");
+
+    // Row counts: group A total = 1 header + 40 data, group B = 1 header + 3 data.
+    const allPayrollRows = payrollChunks.flatMap((c) => c.rows);
+    const allOverheadRows = overheadChunks.flatMap((c) => c.rows);
+    expect(allPayrollRows.length).toBe(1 + groupARows.length);
+    expect(allOverheadRows.length).toBe(1 + groupBRows.length);
+  });
 });
 
 // ─── Row-weight model ─────────────────────────────────────────────────────────
