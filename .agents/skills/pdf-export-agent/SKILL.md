@@ -136,7 +136,7 @@ relays this to the user with a clear "click here to download" message.
 
 ## Agent Taxonomy
 
-```
+```text
 Valentina (Specialist / Agent)
   └─ Otavio (Minion — deterministic, no LLM)
        └─ splitAssumptionSectionByGroups() — group splitting

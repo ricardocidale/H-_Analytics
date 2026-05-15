@@ -306,7 +306,7 @@ export function registerBenchmarkBandRoutes(app: Express) {
           mid:  midRow  ? Number(midRow.value)  : factoryForKey(midKey),
           high: highRow ? Number(highRow.value) : factoryForKey(highKey),
           seeded: !!(lowRow && midRow && highRow),
-          lastEditedAt: lowRow?.lastEditedAt ?? lowRow?.id ? (lowRow as { lastEditedAt?: Date | null })?.lastEditedAt : null,
+          lastEditedAt: lowRow?.lastEditedAt ?? null,
         };
       });
 
