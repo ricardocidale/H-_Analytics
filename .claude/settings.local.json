@@ -38,5 +38,15 @@
       "Bash(git reset *)",
       "Bash(gh pr *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "fred",
+    "booking",
+    "exa",
+    "context7",
+    "daloopa",
+    "daloopa-docs",
+    "expedia",
+    "fmp"
+  ]
 }

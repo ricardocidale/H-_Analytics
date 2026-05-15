@@ -22,6 +22,9 @@ import { HTTP_413_PAYLOAD_TOO_LARGE, HTTP_504_GATEWAY_TIMEOUT } from "../constan
 // exported as its own PDF file and all files are bundled into a single zip.
 const PDF_SPLIT_STATEMENT_COUNT = 2;
 
+// zlib compression level for zip archives (0 = none, 9 = max; 5 = balanced speed/size).
+const ZIP_COMPRESSION_LEVEL = 5;
+
 const exportRowSchema = z.object({
   category: z.string(),
   values: z.array(z.union([z.string(), z.number()])),
@@ -107,7 +110,7 @@ async function buildZipBuffer(
   files: Array<{ name: string; buffer: Buffer }>,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const archive = archiver("zip", { zlib: { level: 5 } });
+    const archive = archiver("zip", { zlib: { level: ZIP_COMPRESSION_LEVEL } });
     const chunks: Buffer[] = [];
     archive.on("data", (chunk: Buffer) => chunks.push(chunk));
     archive.on("end", () => resolve(Buffer.concat(chunks)));

@@ -46,16 +46,16 @@ INPUTS
     include/exclude assumptions, include/exclude charts
 
 PIPELINE
-  1. Valentina receives the export request (via Rebecca tool or direct API).
-  2. She invokes Otavio (runMinionOtavioPaginate) to pre-split large sections
+  A. Valentina receives the export request (via Rebecca tool or direct API).
+  B. She invokes Otavio (runMinionOtavioPaginate) to pre-split large sections
      into page-safe chunks, with assumption sections split by semantic group.
-  3. The chunked sections flow through buildPdfHtml which injects CSS classes
+  C. The chunked sections flow through buildPdfHtml which injects CSS classes
      per Valentina's pagination contract:
        - .statement-first on the first content-page of each new statement
        - .chart-solo .statement-first on every chart page
-  4. WeasyPrint renders the annotated HTML to PDF.
-  5. Valentina returns the PDF buffer (single statement) or a ZIP archive
-     (multi-statement export, PDF_SPLIT_STATEMENT_COUNT >= 2).
+  D. WeasyPrint renders the annotated HTML to PDF.
+  E. Valentina returns the PDF buffer (single statement) or a ZIP archive
+     (multi-statement export, PDF_SPLIT_STATEMENT_COUNT >= two statements).
 
 OUTPUTS
   • application/pdf — single-statement or cover+statements
