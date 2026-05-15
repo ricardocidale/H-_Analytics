@@ -1,4 +1,5 @@
 import { type Express, type Request, type Response } from "express";
+import archiver from "archiver";
 import { requireAuth } from "../auth";
 import { isAdminRole } from "@shared/constants-enums";
 import { z } from "zod";
@@ -16,6 +17,10 @@ import { generateDocxFromReport } from "./format-generators/docx-generator";
 import { buildExportData } from "../report/server-export-data";
 import { logActivity } from "./helpers";
 import { HTTP_413_PAYLOAD_TOO_LARGE, HTTP_504_GATEWAY_TIMEOUT } from "../constants";
+
+// When a PDF export contains this many statements or more, each statement is
+// exported as its own PDF file and all files are bundled into a single zip.
+const PDF_SPLIT_STATEMENT_COUNT = 2;
 
 const exportRowSchema = z.object({
   category: z.string(),
@@ -96,6 +101,55 @@ const DEFAULT_REPORT_TYPE: Record<string, string> = {
   pdf: "Financial Report",
   docx: "Investor Memo",
 };
+
+/** Collect archiver output into a Buffer (no streaming to res needed here). */
+async function buildZipBuffer(
+  files: Array<{ name: string; buffer: Buffer }>,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const archive = archiver("zip", { zlib: { level: 5 } });
+    const chunks: Buffer[] = [];
+    archive.on("data", (chunk: Buffer) => chunks.push(chunk));
+    archive.on("end", () => resolve(Buffer.concat(chunks)));
+    archive.on("error", reject);
+    for (const { name, buffer } of files) {
+      archive.append(buffer, { name });
+    }
+    archive.finalize();
+  });
+}
+
+/**
+ * Generates one PDF per statement (no cover pages) and returns them bundled
+ * as a zip Buffer.  Called when the export contains ≥ PDF_SPLIT_STATEMENT_COUNT
+ * statements.
+ */
+async function generatePerStatementZip(
+  data: PremiumExportRequest,
+): Promise<Buffer> {
+  const statements = data.statements ?? [];
+  const pdfFiles: Array<{ name: string; buffer: Buffer }> = [];
+
+  for (const statement of statements) {
+    const singleData: PremiumExportRequest = {
+      ...data,
+      statements: [statement],
+      statementType: statement.title,
+    };
+    const buf = await generateViaTemplatePipeline(singleData);
+    const safeName = statement.title
+      .replace(/[^a-zA-Z0-9 \-]/g, "")
+      .substring(0, 60)
+      .trim();
+    pdfFiles.push({ name: `${safeName}.pdf`, buffer: buf });
+    logger.info(
+      `[multi-pdf] Generated "${safeName}.pdf" (${buf.length} bytes)`,
+      "premium-export",
+    );
+  }
+
+  return buildZipBuffer(pdfFiles);
+}
 
 async function generateViaTemplatePipeline(
   data: PremiumExportRequest,
@@ -242,10 +296,47 @@ export function register(app: Express) {
 
       const safeCompany = (data.companyName || data.entityName).replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 40).trim();
       const reportType = (data.statementType || DEFAULT_REPORT_TYPE[data.format] || "Report").replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 40).trim();
+
+      // Multi-statement PDF: one file per statement, bundled as a zip (no cover pages).
+      const isMultiStatementPdf =
+        data.format === "pdf" &&
+        (data.statements?.length ?? 0) >= PDF_SPLIT_STATEMENT_COUNT;
+
+      const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
+
+      if (isMultiStatementPdf) {
+        const statementCount = data.statements!.length;
+        logger.info(
+          `[multi-pdf] Generating ${statementCount} per-statement PDFs as zip for "${data.entityName}"...`,
+          "premium-export",
+        );
+        const zipBuffer = await generatePerStatementZip(data);
+        if (zipBuffer.length > MAX_EXPORT_BYTES) {
+          logger.error(`Export too large: ${zipBuffer.length} bytes exceeds ${MAX_EXPORT_BYTES} limit`, "premium-export");
+          return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit. Try reducing the number of properties or projection years.", code: "PEXP-004" });
+        }
+        logger.info(`[multi-pdf] Zip generated: ${statementCount} statements, ${zipBuffer.length} bytes`, "premium-export");
+
+        logActivity(req, "export", "premium-export", undefined, data.entityName, {
+          format: "pdf-zip",
+          orientation: data.orientation,
+          version: data.version,
+          statementCount,
+          bytes: zipBuffer.length,
+          serverRecomputed: !!data.computeRef,
+          outputHash: exportOutputHash ?? null,
+        });
+
+        const zipFilename = `${safeCompany} - Financial Statements.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
+        res.setHeader("Content-Length", zipBuffer.length);
+        return res.send(zipBuffer);
+      }
+
       const ext = FORMAT_EXTENSIONS[data.format] || `.${data.format}`;
       const filename = `${safeCompany} - ${reportType}${ext}`;
 
-      const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
       logger.info(`Generating premium ${data.format} via compiled report + template pipeline for "${data.entityName}"...`, "premium-export");
       const buffer = await generateViaTemplatePipeline(data);
       if (buffer.length > MAX_EXPORT_BYTES) {
