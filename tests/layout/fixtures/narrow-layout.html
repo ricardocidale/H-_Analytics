@@ -84,6 +84,7 @@
         font-size: 0.875rem;
         white-space: nowrap;
         flex-shrink: 0;           /* label is rigid, chip absorbs all pressure */
+        min-width: 215px;         /* explicit floor so CI font variance can't under-squeeze the chip */
       }
 
       /* ── Badge (ResearchRangeLabel / InfoTooltip) ───────────────── */

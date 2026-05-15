@@ -17,7 +17,7 @@
 import type { PropertyDefaultsPromptInputContext } from "./mgmt-co-property-defaults-prompt-input-builder";
 import { PROPERTY_DEFAULTS_DIMENSION_KEYS } from "./mgmt-co-property-defaults-prompt-input-builder";
 import type { PropertyDefaultsComparableRow } from "./mgmt-co-property-defaults-orchestrator-adapter";
-import type { PropertyDefaultsBenchmarks } from "@shared/constants-property-defaults-benchmarks";
+import type { PropertyDefaultsBenchmarks } from "@shared/model-constants-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
 export function buildQuantPanelSystemPrompt(): string {

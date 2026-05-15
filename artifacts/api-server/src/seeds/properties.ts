@@ -18,15 +18,11 @@ import {
   DEFAULT_CAPITAL_RAISE_1_DATE,
   DEFAULT_CAPITAL_RAISE_2_DATE,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_SERVICE_FEE_CATEGORIES,
   SEED_EXIT_CAP_RATE_LUXURY,
-  DEFAULT_OFFICE_LEASE_START,
-  DEFAULT_PROFESSIONAL_SERVICES_START,
-  DEFAULT_TECH_INFRA_START,
   DEFAULT_MISC_OPS_RATE,
 } from "@shared/constants";
-import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
+import { resolveStaffingDefaults } from "../finance/benchmark-resolver";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Task #403 (follow-up to Audit #406): the seeded `companyTaxRate` for the
@@ -48,17 +44,17 @@ export { SEED_PROPERTY_DEFAULTS, SEED_SYNC_PROPERTIES } from "./property-data";
 const SEED_MARKETING_RATE = 0.03;
 
 export const SEED_COMPANY_IDENTITY = {
-  companyName: "The Norfolk AI Group",
-  companyPhone: "+1 (757) 555-0142",
-  companyEmail: "info@norfolk.ai",
-  companyWebsite: "https://norfolk.ai",
+  companyName: "L+B Hospitality Group",
+  companyPhone: "+1 (435) 555-0174",
+  companyEmail: "info@lbhospitality.com",
+  companyWebsite: "https://lbhospitality.com",
   companyEin: "92-1847356",
   companyFoundingYear: 2024,
-  companyStreetAddress: "150 West Main Street, Suite 400",
-  companyCity: "Norfolk",
-  companyStateProvince: "VA",
+  companyStreetAddress: "2485 North Valley Drive, Suite 10",
+  companyCity: "Eden",
+  companyStateProvince: "UT",
   companyCountry: "United States",
-  companyZipPostalCode: "23510",
+  companyZipPostalCode: "84310",
 } as const;
 
 export const DEFAULT_FEE_CATEGORIES = DEFAULT_SERVICE_FEE_CATEGORIES.map(c => ({
@@ -129,13 +125,7 @@ export async function seedGlobalAssumptions() {
     partnerCountYear8: 3,
     partnerCountYear9: 3,
     partnerCountYear10: 3,
-    staffSalary: DEFAULT_STAFF_SALARY,
-    officeLeaseStart: DEFAULT_OFFICE_LEASE_START,
-    professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
-    techInfraStart: DEFAULT_TECH_INFRA_START,
-    businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
-    travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
-    itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
+    ...(await resolveStaffingDefaults()),
     marketingRate: SEED_MARKETING_RATE,
     miscOpsRate: DEFAULT_MISC_OPS_RATE,
     commissionRate: DEFAULT_COMMISSION_RATE,

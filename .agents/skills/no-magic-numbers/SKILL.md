@@ -37,29 +37,54 @@ Before writing or merging any code that contains a number tied to the app's purp
 - Test fixture data where the literal *is* the input under test (e.g. `expect(score(input)).toBe(72)` — `72` is the answer being asserted, not a magic number).
 - **Out-of-scope literal classes** — see the dedicated section below.
 
-## Out-of-scope literals (not the concern of this skill)
+## Exception Taxonomy
 
-The following literal classes are **explicitly out of scope**, even when they appear in many files:
+Every numeric literal must fall into one of the five named exception classes below, or it is a magic number. This taxonomy is the authoritative reference for both the SKILL and the checker script (`scripts/src/check-magic-numbers.ts`).
 
-| Class | Examples | Why out of scope |
-|---|---|---|
-| **Industry-standard dimensions** | `1920 × 1080` (Full HD, ITU-R BT.709), `1280 × 720` (HD), `595 × 842` (A4 in PDF points, ISO 216), `612 × 792` (US Letter), `960 × 540` (canonical slide canvas) | Fixed by an external technical spec. Same value in every country, every market, every era. Engineers do not "re-tune" them; changing the value means you no longer have that spec. |
-| **Industry-standard ratios** | `16:9`, `4:3`, `21:9`, golden ratio | Mathematical ratios. The choice to *use* 16:9 may be a design decision, but the ratio's value is fixed. |
-| **DPI / unit definitions** | `72` pt/inch (PDF spec), `96` px/inch (CSS spec), `25.4` mm/inch, `2.54` cm/inch (NIST exact) | Spec/unit definitions. Always category 3 (documented unit conversion). |
-| **CS constants** | `4` RGBA channels, `256` 8-bit color depth, `255` max-channel value, `8` bits/byte, `1024` bytes/KiB | Properties of the data structure or encoding spec. Not opinions. |
-| **Design tokens** | `8`/`16`/`24`-px spacing scales, `4`-px grid units, `12`/`14`/`16`-px typography scales | A design-system concern; consistency belongs to the token system, not this skill. |
-| **HTTP / network constants** | `200`, `404`, `500`, port numbers, MIME-type lengths | Protocol-defined; should still be named (`HTTP_OK`) for readability, but cross-file duplication is expected. |
+| Class | One-line definition | Canonical examples | Lives in | `FEEDS_DEFAULT`? |
+|---|---|---|---|---|
+| **`UNIVERSAL_MATH`** | Fixed by mathematics, physics, or the calendar. Same value in every country, every market, every era. | `12` months/yr, `365` days/yr, `30.5` days/month (365÷12), `86400` s/day, `10000` bps/100%, `Math.PI`, `Math.E` | Inline comment or shared constants file | No |
+| **`TECHNICAL_SPEC`** | Fixed by an external technical standard (ISO, ITU-R, W3C, NIST, PDF spec). Changing the value means non-conformance with the spec. | `1920×1080` (ITU-R BT.709 Full HD), `595×842` (A4 in PDF points, ISO 216), `72` pt/inch (ISO 32000), `96` px/inch (W3C CSS), `25.4` mm/inch (NIST exact), `256` / `255` (8-bit encoding) | Inline or shared constants file | No |
+| **`STRUCTURAL_CS`** | Data-structure and protocol properties — `0`, `1`, `-1`, clamp floors/ceilings, HTTP status codes. Not calibration choices. | `0` (array start / clamp floor), `1` (identity / clamp ceiling), `-1` (sentinel), `200` / `404` / `500` (HTTP codes) | Inline — prefer named constant for readability | No |
+| **`RENDERER_SPEC`** | Measured technical calibrations for a specific renderer, engine, or infrastructure component. Not a business-model assumption. Can be re-measured if the renderer changes; should NOT be DB-tunable. | `LANDSCAPE_TABLE_ROW_CAP = 21` (WeasyPrint row cap), PDF layout design tokens (margins, header bar height), infra timeouts, retry counts, fill-factor fractions documented inline | Named TS constant in the relevant renderer/infra file | No |
+| **`AUTHORITY_BASELINE`** | Jurisdiction-specific value published by an authoritative body (IRS, GAAP, USALI, Damodaran). Used as a TS factory fallback for the model-constants registry; the DB canonical layer takes precedence at runtime. Must be annotated `// FEEDS_DEFAULT: <registry_key>`. | `DEPRECIATION_YEARS = 39` (IRS Pub 946), `DAYS_PER_MONTH = 30.5` (USALI convention), `DEFAULT_PROPERTY_INFLATION_RATE = 0.03` (US Fed long-run target), `USALI_FFE_RESERVE_BENCHMARK = 0.04` | `lib/shared/src/constants*.ts` (factory fallback only) | **Yes** — must annotate |
 
-Two practical implications:
+### `FEEDS_DEFAULT` annotation contract
 
-1. **Naming is still encouraged for readability.** `DECK_VIEWPORT_WIDTH = 1920` is better than a bare `1920` even though `1920` is industry-standard. The skill just doesn't *require* it the way it does for `MAX_PROPERTIES_PER_PORTFOLIO`.
-2. **Cross-file duplication is acceptable for these classes.** The cross-file ratchet (Layer 1 below) treats common spec/CS values as pre-allowlisted — they may appear in many files without flagging.
+Any constant tagged `AUTHORITY_BASELINE` that serves as a TS fallback for a `model-constants-registry` key must carry the annotation on the line immediately above the `export const` declaration:
+
+```ts
+// FEEDS_DEFAULT: inflationRate
+/** @deprecated … use getFactoryNumber('inflationRate', country) */
+export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
+```
+
+The annotation format is exactly `// FEEDS_DEFAULT: <registry_key>` where `<registry_key>` is the key string in `MODEL_CONSTANTS_REGISTRY`. The checker script reads these annotations and emits a **non-blocking warning** (not a gate failure) when a file defines a `FEEDS_DEFAULT`-tagged constant but never calls `getFactoryNumber` or `getEffectiveConstant` — flagging a potential hardcoded bypass of the model-constants registry.
+
+### `DB_CANDIDATE` note for market-driven benchmark files
+
+The following files contain market-driven values that vary with industry surveys and are candidates for migration to the `model_constants` DB table. They are **not** `AUTHORITY_BASELINE` (they are calibration estimates, not authority publications) and are **not yet in the DB**. Until a migration task moves them, they live in TS as the cold-start seed. When writing new code that consumes these values, add a `DB_CANDIDATE` comment so agents know the value's eventual home is the DB:
+
+- `lib/shared/src/constants-benchmarks.ts` — STR/HVS benchmark tables, DSCR covenants, stress-test shock magnitudes
+- `lib/shared/src/constants-staffing.ts` — staffing tier FTE counts, default salaries and overhead costs
+- `lib/shared/src/constants-compensation-benchmarks.ts` — partner comp bands, staff salary bands
+- `lib/shared/src/constants-revenue-benchmarks.ts` — revenue benchmark bands by property type / tier
+- `lib/shared/src/constants-overhead-benchmarks.ts` — overhead benchmark bands
+- `lib/shared/src/constants-property-defaults-benchmarks.ts` — property-level benchmark defaults
+- `lib/shared/src/constants-company-benchmarks.ts` — company-level benchmark defaults
+
+See the `constants-vs-defaults` skill for the migration decision framework. No migration happens in the current task — that is separate, larger work.
+
+### Two practical implications
+
+1. **Naming is still encouraged for readability.** `DECK_VIEWPORT_WIDTH = 1920` is better than a bare `1920` even though `1920` is `TECHNICAL_SPEC`. The skill just doesn't *require* it the way it does for `MAX_PROPERTIES_PER_PORTFOLIO`.
+2. **Cross-file duplication is acceptable for `UNIVERSAL_MATH`, `TECHNICAL_SPEC`, and `STRUCTURAL_CS`.** The cross-file ratchet (Layer 1 below) pre-allowlists these values — they may appear in many files without flagging.
 
 The reverse is also true: **wrapping a business-model literal in a named constant in a non-canonical file is still a violation**. See "The masking anti-pattern" — a route-local `const DEFAULT_INFLATION_RATE = 0.03` is the same magic number whether you spell it as `0.03` or as the named constant.
 
 ## The four allowed categories
 
-A numeric literal is permitted *only* if it falls cleanly into one of these four buckets. If you have to argue for a fifth category, you have a magic number.
+A numeric literal is permitted *only* if it falls cleanly into one of these four buckets (which map to the five exception classes above: `UNIVERSAL_MATH` and `TECHNICAL_SPEC` → category 2/3; `STRUCTURAL_CS` → category 4; `RENDERER_SPEC` → category 1 scoped to the renderer file; `AUTHORITY_BASELINE` → category 1 in `lib/shared/src/constants*.ts` with `// FEEDS_DEFAULT` annotation). If you have to argue for a fifth bucket, you have a magic number.
 
 ### 1. Named constant
 
@@ -251,6 +276,8 @@ The ratchet **fails** when:
 It does **not** fail on improvements (a baseline value's file-count shrank). After an intentional cleanup, re-snapshot with `--init` to lock in the gain.
 
 Note: test files (`.test.ts`, `.spec.ts`, etc.) are excluded — test fixture values are assertions, not production magic numbers.
+
+> **Known limitation — the ≥4 threshold blind spot.** The ratchet only fires when a literal appears in **four or more** distinct files. A business-model literal that appears in 1–3 files is invisible to the gate. This is intentional (below-threshold duplications produce more noise than signal in a large codebase), but it means the **decision tree in this SKILL applies at the first occurrence**, not just when the ratchet fires. When you write the first instance of a business-model literal, apply the decision tree immediately rather than waiting for the ratchet to catch it later.
 
 Common commands:
 

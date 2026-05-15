@@ -369,6 +369,7 @@
     "artifacts/api-server/src/routes/ssrf-guard.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",

@@ -3,12 +3,15 @@
  *
  * Task #1428 follow-up — code review asked for explicit coverage of the
  * normalizer at the persisted-shape boundary (catalog API shape vs.
- * bracket-assignment minion shape, plus mixed splitting and invalid
- * inputs.
+ * bracket-assignment minion shape, plus mixed splitting and invalid inputs).
  *
  * Task #1486 — Both writers now emit BracketMixData. The old flat-array
  * (catalog-API) branch has been removed from the normalizer. Tests updated
  * accordingly: only the canonical BracketMixData shape is accepted.
+ *
+ * Task #1646 — Removed duplicate describe blocks (catalog-API × 2, minion
+ * shape × 2) and intra-block duplicate tests; reorganised into three clear
+ * logical sections: invalid inputs, minion shape (core contract), edge cases.
  *
  * The engine-side test in
  * `lib/engine/src/company/__tests__/company-engine.bracket-mix.test.ts`
@@ -61,12 +64,22 @@ describe("normalizePersistedBracketMix", () => {
       ).toBeNull();
     });
 
-    it("returns null for the old flat-array shape even with string slugs", () => {
-      // The old { bracketSlug, weight } flat-array format is no longer accepted.
-      // Task #1486 removed this branch; any legacy rows were converted by icp-brackets-002.
+    it("returns null for a valid-looking flat catalog array (shape removed in task-1486)", () => {
       expect(
         normalizePersistedBracketMix([
           { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+          { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+        ]),
+      ).toBeNull();
+    });
+
+    it("returns null for a partially-malformed flat catalog array", () => {
+      expect(
+        normalizePersistedBracketMix([
+          { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+          { bracketSlug: 123, weight: HOTEL_WEIGHT },
+          { weight: HOTEL_WEIGHT },
+          "garbage",
         ]),
       ).toBeNull();
     });
@@ -160,7 +173,9 @@ describe("normalizePersistedBracketMix", () => {
         },
       ]);
     });
+  });
 
+  describe("edge cases", () => {
     it("always returns a populated `brackets` array (never null)", () => {
       const result = normalizePersistedBracketMix({
         entries: [

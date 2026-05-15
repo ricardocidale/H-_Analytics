@@ -49,12 +49,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Travel Cost per Client <InfoTooltip text="Annual budget for site visits, client meetings, and property inspections per managed property. Includes flights, hotel stays, and ground transportation. Industry benchmark: $8K–$18K per managed property per year (AHLA Lodging Survey)." formula="Monthly Travel = Cost × Active Properties ÷ 12" /></>}
               badgeProps={{ value: researchValues.travelCost?.display, entry: researchValues.travelCost ?? undefined, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingSurvey, "data-testid": "badge-travel-per-client" }}
               onApplyValue={() => researchValues.travelCost && onChange("travelCostPerClient", researchValues.travelCost.mid)}
               guidanceContext={gc("travelCost", "Travel Cost per Client")}
               currentValue={formData.travelCostPerClient ?? global.travelCostPerClient}
-              className="min-w-0"
             />
             <span data-field="travelCostPerClient" className="shrink-0">
               <EditableValue
@@ -83,12 +83,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>IT/Licensing per Client <InfoTooltip text="Annual software and technology licensing cost per property — includes PMS (property management system), revenue management tools, channel manager, and accounting integrations. Industry benchmark: $2K–$5K per property per year (HFTP Technology Survey)." formula="Monthly IT = Cost × Active Properties ÷ 12" /></>}
               badgeProps={{ value: researchValues.itLicense?.display, entry: researchValues.itLicense ?? undefined, sourceType: "industry", sourceName: CITATIONS.hftpTechnologySurvey, "data-testid": "badge-it-license" }}
               onApplyValue={() => researchValues.itLicense && onChange("itLicensePerClient", researchValues.itLicense.mid)}
               guidanceContext={gc("itLicense", "IT/Licensing per Client")}
               currentValue={formData.itLicensePerClient ?? global.itLicensePerClient}
-              className="min-w-0"
             />
             <span data-field="itLicensePerClient" className="shrink-0">
               <EditableValue

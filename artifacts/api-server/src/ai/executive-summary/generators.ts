@@ -19,6 +19,7 @@ import {
 } from "./finance-helpers";
 import { generateLLMPropertySections, generateLLMPortfolioSections } from "./llm-sections";
 import { buildTemplateSummary, buildTemplatePortfolioSummary } from "./templates";
+import { resolveStressThresholds } from "../../finance/benchmark-resolver";
 import type {
   ExecutiveSummaryOptions,
   PortfolioExecutiveSummary,
@@ -87,8 +88,9 @@ export async function generatePropertyExecutiveSummary(
         .join("; ") || "Research ran but no numeric guidance produced."
     : "No research has been run for this property.";
 
-  // 4. Build stress summary
-  const stressSummary = summarizeWorstStress(property);
+  // 4. Build stress summary — resolve thresholds from DB so admin edits take effect
+  const stressThresholds = await resolveStressThresholds();
+  const stressSummary = summarizeWorstStress(property, stressThresholds);
 
   // 5. Generate qualitative sections (LLM or template)
   let sections: PropertyQualitativeSections;
@@ -97,9 +99,9 @@ export async function generatePropertyExecutiveSummary(
     const llmSections = await generateLLMPropertySections(
       property, keyMetrics, stressSummary, confidenceSummary, guidanceSummary,
     );
-    sections = llmSections ?? buildTemplateSummary(property, keyMetrics);
+    sections = llmSections ?? buildTemplateSummary(property, keyMetrics, stressThresholds);
   } else {
-    sections = buildTemplateSummary(property, keyMetrics);
+    sections = buildTemplateSummary(property, keyMetrics, stressThresholds);
   }
 
   return {

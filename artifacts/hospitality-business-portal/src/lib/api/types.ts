@@ -206,6 +206,7 @@ export interface FeeCategoryResponse {
   propertyId: number;
   name: string;
   rate: number;
+  serviceMarkup: number | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;

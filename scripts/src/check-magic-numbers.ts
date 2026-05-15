@@ -67,61 +67,172 @@ const SKIP_DIRS = new Set([
 const SKIP_FILE_SUFFIXES = new Set([".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", "_render-harness.ts", "smoke-producer.ts"]);
 
 /**
- * Numeric literals whose duplication is correct and expected.
- * These are values fixed by math, calendar, or physical definition.
- * Any value that could legitimately differ under a different country's rules
- * does NOT belong here — promote it to the country-scoped Constants table.
+ * Typed registry of numeric literals whose cross-file duplication is correct
+ * and expected. Each entry declares its exception class per the no-magic-numbers
+ * SKILL taxonomy, a citation, and an optional `feedsDefault` key.
+ *
+ * Exception classes:
+ *   UNIVERSAL_MATH    — mathematics, physics, or calendar (same in every country)
+ *   TECHNICAL_SPEC    — external technical standard (ISO, ITU-R, W3C, NIST, PDF)
+ *   STRUCTURAL_CS     — data-structure / protocol properties (0, 1, -1, HTTP codes)
+ *   RENDERER_SPEC     — measured calibration for a specific renderer/infra component
+ *   AUTHORITY_BASELINE — authority-published value (IRS, GAAP, USALI) used as a TS
+ *                        factory fallback; must also carry // FEEDS_DEFAULT: <key>
+ *                        above the export const declaration in constants*.ts.
+ *
+ * Values that could legitimately differ under a different country's rules do NOT
+ * belong here — promote them to the country-scoped Constants table.
+ *
+ * Any value that already appears in four or more distinct files gets its
+ * duplication allowed via the Set below; new values appearing in <4 files
+ * are still subject to the decision tree in the SKILL at first occurrence.
  */
-const ALLOWED_DUPLICATED_VALUES = new Set<string>([
-  "12",       // months per year
-  "52",       // weeks per year
-  "4",        // quarters per year — also: RGBA channels (encoding spec)
-  "7",        // days per week
-  "24",       // hours per day
-  "60",       // seconds/minute or minutes/hour
-  "3600",     // seconds per hour (60 * 60)
-  "86400",    // seconds per day (24 * 60 * 60)
-  "365",      // days per year
-  "365.25",   // days in a Julian year (astronomy)
-  "30.5",     // days per month (365 / 12)
-  "1000",     // milliseconds per second
-  "10000",    // basis points per 100%
-  "100",      // percent scale
-  // Industry-standard dimensional / encoding constants — fixed by external
-  // technical spec (PDF, ISO 216, ITU-R, W3C, NIST). Out of scope for the
-  // business-model magic-number gate. See SKILL.md "Out-of-scope literals".
-  "1920",     // Full HD width  (ITU-R BT.709)
-  "1080",     // Full HD height (ITU-R BT.709)
-  "1280",     // HD width       (ITU-R BT.709)
-  "720",      // HD height      (ITU-R BT.709) — also matches PDF Letter half-points
-  "3840",     // 4K UHD width   (ITU-R BT.2020)
-  "2160",     // 4K UHD height  (ITU-R BT.2020)
-  "960",      // canonical slide canvas width  (1920 / 2)
-  "540",      // canonical slide canvas height (1080 / 2)
-  "595",      // A4 width  in PDF points (ISO 216)
-  "842",      // A4 height in PDF points (ISO 216)
-  "612",      // US Letter width  in PDF points (ANSI)
-  "792",      // US Letter height in PDF points (ANSI)
-  "210",      // A4 width  (mm)
-  "297",      // A4 height (mm)
-  "72",       // PDF points per inch (ISO 32000)
-  "96",       // CSS px per inch (W3C CSS spec)
-  "25.4",     // mm per inch (NIST exact)
-  "2.54",     // cm per inch (NIST exact)
-  "256",      // 8-bit color depth
-  "255",      // max 8-bit channel value
-  // Regulatory/legal citation substrings — scanner sees these as numeric literals
-  // because they appear as bare digits in strings like "IRS Publication 946" or
-  // "NOM-030-SSA3-2013". Not executable numeric values; safe to allowlist.
-  "946",      // IRS Publication 946 (depreciation)
-  "030",      // NOM-030-SSA3-2013 (Mexican fire safety regulation)
-  "04",       // date substrings: "2026-04-01", migration IDs "-004"
-  "06",       // date substrings: "2026-06-01"
-  "1980",     // regulatory year: "Arrêté du 25 juin 1980"
-  "1988",     // regulatory year: "DM 31/12/1988"
-  "1989",     // regulatory year: "Decreto 3019 de 1989"
-  "1996",     // regulatory year: "Texto Ordenado 1996"
-]);
+interface AllowedConstant {
+  /** String form of the numeric literal as it appears in source (e.g. "30.5"). */
+  value: string;
+  /** Exception class from the no-magic-numbers SKILL taxonomy. */
+  category: "UNIVERSAL_MATH" | "TECHNICAL_SPEC" | "STRUCTURAL_CS" | "RENDERER_SPEC" | "AUTHORITY_BASELINE";
+  /** Citation: standard, publication, spec, or derivation formula. */
+  citation: string;
+  /**
+   * When category is AUTHORITY_BASELINE: the model-constants-registry key this
+   * constant feeds as a TS factory fallback. The checker will warn (non-blocking)
+   * if a file defines a constant annotated // FEEDS_DEFAULT: <key> but never
+   * calls getFactoryNumber or getEffectiveConstant.
+   */
+  feedsDefault?: string;
+}
+
+const ALLOWED_CONSTANTS: AllowedConstant[] = [
+  // ── UNIVERSAL_MATH — calendar and arithmetic ──────────────────────────────
+  { value: "12",      category: "UNIVERSAL_MATH",   citation: "12 months per year" },
+  { value: "52",      category: "UNIVERSAL_MATH",   citation: "52 weeks per year" },
+  { value: "4",       category: "UNIVERSAL_MATH",   citation: "4 quarters per year — also: RGBA channels (TECHNICAL_SPEC)" },
+  { value: "7",       category: "UNIVERSAL_MATH",   citation: "7 days per week" },
+  { value: "24",      category: "UNIVERSAL_MATH",   citation: "24 hours per day" },
+  { value: "60",      category: "UNIVERSAL_MATH",   citation: "60 seconds/minute or 60 minutes/hour" },
+  { value: "3600",    category: "UNIVERSAL_MATH",   citation: "3600 seconds per hour (60 × 60)" },
+  { value: "86400",   category: "UNIVERSAL_MATH",   citation: "86400 seconds per day (24 × 60 × 60)" },
+  { value: "365",     category: "UNIVERSAL_MATH",   citation: "365 days per year" },
+  { value: "365.25",  category: "UNIVERSAL_MATH",   citation: "365.25 days in a Julian year (astronomy)" },
+  { value: "30.5",    category: "UNIVERSAL_MATH",   citation: "30.5 days per month (365 / 12) — USALI industry convention" },
+  { value: "1000",    category: "UNIVERSAL_MATH",   citation: "1000 milliseconds per second" },
+  { value: "10000",   category: "UNIVERSAL_MATH",   citation: "10000 basis points per 100% (definition of a basis point)" },
+  { value: "100",     category: "UNIVERSAL_MATH",   citation: "100 — decimal-to-percent scale factor" },
+
+  // ── TECHNICAL_SPEC — external standards (ISO, ITU-R, W3C, NIST, PDF) ─────
+  { value: "1920",    category: "TECHNICAL_SPEC",   citation: "Full HD width — ITU-R BT.709" },
+  { value: "1080",    category: "TECHNICAL_SPEC",   citation: "Full HD height — ITU-R BT.709" },
+  { value: "1280",    category: "TECHNICAL_SPEC",   citation: "HD width — ITU-R BT.709" },
+  { value: "720",     category: "TECHNICAL_SPEC",   citation: "HD height — ITU-R BT.709 (also matches PDF Letter half-points)" },
+  { value: "3840",    category: "TECHNICAL_SPEC",   citation: "4K UHD width — ITU-R BT.2020" },
+  { value: "2160",    category: "TECHNICAL_SPEC",   citation: "4K UHD height — ITU-R BT.2020" },
+  { value: "960",     category: "TECHNICAL_SPEC",   citation: "Canonical slide canvas width (1920 / 2)" },
+  { value: "540",     category: "TECHNICAL_SPEC",   citation: "Canonical slide canvas height (1080 / 2)" },
+  { value: "595",     category: "TECHNICAL_SPEC",   citation: "A4 width in PDF points — ISO 216" },
+  { value: "842",     category: "TECHNICAL_SPEC",   citation: "A4 height in PDF points — ISO 216" },
+  { value: "612",     category: "TECHNICAL_SPEC",   citation: "US Letter width in PDF points — ANSI" },
+  { value: "792",     category: "TECHNICAL_SPEC",   citation: "US Letter height in PDF points — ANSI" },
+  { value: "210",     category: "TECHNICAL_SPEC",   citation: "A4 width in mm — ISO 216" },
+  { value: "297",     category: "TECHNICAL_SPEC",   citation: "A4 height in mm — ISO 216" },
+  { value: "72",      category: "TECHNICAL_SPEC",   citation: "PDF points per inch — ISO 32000" },
+  { value: "96",      category: "TECHNICAL_SPEC",   citation: "CSS pixels per inch — W3C CSS spec" },
+  { value: "25.4",    category: "TECHNICAL_SPEC",   citation: "mm per inch — NIST exact definition" },
+  { value: "2.54",    category: "TECHNICAL_SPEC",   citation: "cm per inch — NIST exact definition" },
+  { value: "256",     category: "TECHNICAL_SPEC",   citation: "8-bit color depth — encoding spec" },
+  { value: "255",     category: "TECHNICAL_SPEC",   citation: "Max 8-bit channel value — encoding spec" },
+
+  // ── STRUCTURAL_CS — regulatory/citation substrings seen as numeric literals
+  // The scanner encounters these as bare digits inside string literals such as
+  // "IRS Publication 946" or "NOM-030-SSA3-2013". They are not executable
+  // numeric values; allowlisting suppresses false-positive ratchet noise.
+  { value: "946",     category: "STRUCTURAL_CS",    citation: "IRS Publication 946 (depreciation citation substring)" },
+  { value: "030",     category: "STRUCTURAL_CS",    citation: "NOM-030-SSA3-2013 (Mexican fire safety regulation substring)" },
+  { value: "04",      category: "STRUCTURAL_CS",    citation: "Date substring: '2026-04-01', migration IDs '-004'" },
+  { value: "06",      category: "STRUCTURAL_CS",    citation: "Date substring: '2026-06-01'" },
+  { value: "1980",    category: "STRUCTURAL_CS",    citation: "Regulatory year: 'Arrêté du 25 juin 1980'" },
+  { value: "1988",    category: "STRUCTURAL_CS",    citation: "Regulatory year: 'DM 31/12/1988'" },
+  { value: "1989",    category: "STRUCTURAL_CS",    citation: "Regulatory year: 'Decreto 3019 de 1989'" },
+  { value: "1996",    category: "STRUCTURAL_CS",    citation: "Regulatory year: 'Texto Ordenado 1996'" },
+];
+
+/**
+ * Runtime Set built from the typed registry above.
+ * The duplication-ratchet gate logic is unchanged — it still reads this Set.
+ * Extend the registry above (not this Set) when adding new allowed values.
+ */
+const ALLOWED_DUPLICATED_VALUES = new Set<string>(ALLOWED_CONSTANTS.map(c => c.value));
+
+// ---------------------------------------------------------------------------
+// FEEDS_DEFAULT bypass warning
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan lib/shared/src/constants*.ts for `// FEEDS_DEFAULT: <key>` annotations.
+ * For each annotated constant, verify that the same file calls getFactoryNumber
+ * or getEffectiveConstant somewhere (indicating the constant is genuinely used
+ * only as a last-resort factory fallback, not as a hardcoded bypass).
+ *
+ * This check is NON-BLOCKING — it prints warnings but does not increment
+ * the regressions counter or cause a gate failure.
+ */
+function checkFeedsDefaultAnnotations(): void {
+  const constantsDir = path.join(WORKSPACE_ROOT, "lib/shared/src");
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(constantsDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  /** Regex matching an actual getFactoryNumber / getEffectiveConstant invocation (open paren required). */
+  const INVOCATION_PATTERN = /\b(?:getFactoryNumber|getEffectiveConstant)\s*\(/;
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.startsWith("constants") || !entry.name.endsWith(".ts")) continue;
+
+    const filePath = path.join(constantsDir, entry.name);
+    const rel = path.relative(WORKSPACE_ROOT, filePath).replace(/\\/g, "/");
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    // Strip block comments and line comments before testing for real invocations.
+    // This prevents a @deprecated JSDoc that mentions getFactoryNumber from
+    // suppressing the warning on a file that has no actual call site.
+    const strippedContent = content
+      .replace(/\/\*[\s\S]*?\*\//g, "")    // block comments
+      .replace(/\/\/[^\n]*/g, "");          // line comments
+    const hasCalls = INVOCATION_PATTERN.test(strippedContent);
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      const fdMatch = /^\/\/\s*FEEDS_DEFAULT:\s*(\S+)/.exec(trimmed);
+      if (!fdMatch) continue;
+
+      const registryKey = fdMatch[1];
+
+      // Verify placement: the annotation must be immediately followed by
+      // export const (the next non-blank line should be the declaration).
+      const nextLine = lines[i + 1]?.trim() ?? "";
+      const isPlacedCorrectly = /^(?:export\s+)?const\s+[A-Z]/.test(nextLine);
+      if (!isPlacedCorrectly) {
+        console.warn(
+          `[FEEDS_DEFAULT warning]  ${rel}:${i + 1}  // FEEDS_DEFAULT: ${registryKey}` +
+          `  — annotation must appear on the line immediately above "export const …".` +
+          `  Found instead: "${nextLine.slice(0, 60)}"`,
+        );
+      }
+
+      if (!hasCalls) {
+        console.warn(
+          `[FEEDS_DEFAULT warning]  ${rel}:${i + 1}  // FEEDS_DEFAULT: ${registryKey}` +
+          `  — file has no getFactoryNumber/getEffectiveConstant invocation.` +
+          `  Possible hardcoded bypass of model-constants registry.`,
+        );
+      }
+    }
+  }
+}
 
 /** Extensions to scan. */
 const CHECKED_EXTENSIONS = new Set([".ts", ".tsx"]);
@@ -458,6 +569,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
     process.exit(1);
   }
+
+  // Non-blocking FEEDS_DEFAULT bypass warning (ratchet/check mode only — skipped in --show, --init, --strict)
+  checkFeedsDefaultAnnotations();
 
   // Default: ratchet check against baseline
   if (!fs.existsSync(BASELINE_PATH)) {

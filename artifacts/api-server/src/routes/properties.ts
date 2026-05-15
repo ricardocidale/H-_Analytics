@@ -50,7 +50,8 @@ import { WalkScoreService } from "../services/WalkScoreService";
 import { validateFieldChanges, computeFieldAlerts } from "../ai/analyst-watchdog";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
-import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
+import { computeStressScenarios, type StressAssumptions, type StressThresholds } from "@engine/helpers/stress-scenarios";
+import { resolveStressThresholds } from "../finance/benchmark-resolver";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
 import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns } from "../defaults";
 
@@ -374,7 +375,7 @@ export function register(app: Express) {
       const cats = await storage.getFeeCategoriesByProperty(property.id);
       res.json({
         ...property,
-        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive })),
+        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive, serviceMarkup: c.serviceMarkup ?? null })),
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property", error, "PROP-002");
@@ -840,6 +841,7 @@ export function register(app: Express) {
     id: z.number().int().optional(),
     name: z.string().min(1),
     rate: z.number().min(0).max(1),
+    serviceMarkup: z.number().min(0).max(1).nullable().optional(),
     isActive: z.boolean(),
     sortOrder: z.number().int(),
   }));
@@ -863,6 +865,7 @@ export function register(app: Express) {
             return storage.updateFeeCategory(cat.id, {
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             }, propertyId);
@@ -871,6 +874,7 @@ export function register(app: Express) {
               propertyId,
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             });
@@ -1043,7 +1047,8 @@ Rewritten description:`;
         assumptions.loanTermYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
       }
 
-      const results = computeStressScenarios(assumptions);
+      const stressThresholds = await resolveStressThresholds();
+      const results = computeStressScenarios(assumptions, stressThresholds);
       res.json(results);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-016");
@@ -1085,7 +1090,8 @@ Rewritten description:`;
         loanTermYears: body.loanTermYears,
       };
 
-      const results = computeStressScenarios(assumptions);
+      const stressThresholds = await resolveStressThresholds();
+      const results = computeStressScenarios(assumptions, stressThresholds);
       res.json(results);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-017");

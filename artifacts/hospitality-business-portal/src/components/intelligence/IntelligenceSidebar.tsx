@@ -78,6 +78,7 @@ export type IntelligenceSection =
   | "resources-tables"
   | "knowledge-registry"
   | "knowledge-registry-country-data"
+  | "benchmark-bands"
   | "logs"
   // "runs" is kept in the union as a backward-compat alias for deep links;
   // Intelligence.tsx redirects it to "logs" on load.
@@ -221,6 +222,12 @@ function buildNavGroups(): NavGroup[] {
           value: "resources-tables",
           label: "Market Data",
           icon: IconActivity,
+        },
+        {
+          value: "benchmark-bands",
+          label: "Benchmark Bands",
+          icon: IconActivity,
+          tooltip: "Admin-editable low / mid / high bands for the 24 market calibration groups. Edits update model_constants without a code deploy.",
         },
       ],
     },

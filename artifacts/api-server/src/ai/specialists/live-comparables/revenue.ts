@@ -11,19 +11,19 @@ import {
   getCannedRevenueComparables,
   type RevenueComparableRow,
 } from "../mgmt-co-revenue-orchestrator-adapter";
-import {
-  DEFAULT_MARKETING_RATE_BENCHMARK_MID,
-  DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID,
-  DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID,
-  DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID,
-  DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID,
-} from "@shared/constants-revenue-benchmarks";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { LIVE_MIN_REVENUE_LIVE_ROWS } from "../../../constants";
 import {
   CHANNEL,
   fetchWikipediaSummary,
   fetchCNBCHeadlines,
 } from "./shared";
+
+const DEFAULT_MARKETING_RATE_BENCHMARK_MID       = getFactoryNumber("benchmarkRevMarketingRateMid");
+const DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID     = getFactoryNumber("benchmarkRevFbRevenueShareMid");
+const DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID = getFactoryNumber("benchmarkRevEventsRevenueShareMid");
+const DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID  = getFactoryNumber("benchmarkRevOtherRevenueShareMid");
+const DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID   = getFactoryNumber("benchmarkRevCateringBoostPctMid");
 
 // ────────────────────────────────────────────────────────────────────────────
 // Revenue comparables — NAI-33

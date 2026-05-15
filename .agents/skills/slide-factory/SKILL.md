@@ -63,6 +63,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 |---|---|---|
 | Lucca | Content Drafter | Slide factory + any surface needing cited copy |
 | Maya | Visual Inspector | All slide team inspectors (Pass 2) |
+| Valentina | Financial Report PDF Export Orchestrator | Report export pipeline + Rebecca chat ("export my report as PDF"). Supervises Otavio. Enforces four-rule pagination contract (fresh page per statement, full-page charts, assumption group isolation, light headers). See `report/agents/valentina.ts` and `.agents/skills/pdf-export-agent/SKILL.md`. |
 
 ### Minions (deterministic helpers)
 
@@ -74,6 +75,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 | Dino | Pixel-diff calculator (±2px gate) |
 | Enzo | Content hash cache (SHA-256 idempotency) |
 | Franco | Deck render minion — renders the 6-slide PDF via Playwright, uploads to R2, writes `deckR2Key` onto the run row. Called by Marco's `produce_deck` tool and by the Rebecca `produce_slide_factory_deck` tool. No LLM. (`slides/minions/franco.ts`) |
+| Otavio | Report pagination minion — deterministically pre-splits a flat `ReportSection[]` into page-safe chunks before HTML/PDF generation. Prevents table overflow, header orphaning, and content clipping in exported financial reports. No LLM. (`report/minions/otavio-pagination.ts`) |
 
 ---
 

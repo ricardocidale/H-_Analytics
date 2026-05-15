@@ -205,6 +205,17 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("icp_brackets_003");
   }
 
+  // Task #1647 / Task #1403 — self_test_interval_days on admin_resources +
+  // self_test_logs table. Belt-and-suspenders for 0058_self_test_logs.sql,
+  // which had a type mismatch in its original form (finding_id typed as
+  // integer referencing costantino_findings("id") — the actual PK is uuid
+  // named finding_id). This guard applies the correct DDL idempotently.
+  if (!(await isMigrationApplied("self_test_logs_001"))) {
+    const { runSelfTestLogs001 } = await import("../migrations/self-test-logs-001");
+    await runSelfTestLogs001();
+    await markMigrationApplied("self_test_logs_001");
+  }
+
   // Plan 2026-05-13-003 Phase 5 — refi LTV cap column on properties.
   // Belt-and-suspenders companion to 0064_properties_refi_ltv_cap.sql.
   // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
@@ -345,6 +356,16 @@ export async function runSchemaMigrations() {
     const { runPropertiesRefinanceBasis001 } = await import("../migrations/properties-refinance-basis-001");
     await runPropertiesRefinanceBasis001();
     await markMigrationApplied("properties_refinance_basis_001");
+  }
+
+  // Task #1677 — per-property markup override on property_fee_categories.
+  // Belt-and-suspenders companion to 0068_property_fee_markup.sql (renumbered from 0064
+  // during 2026-05-15 merge of main; main owned slot 0064 with properties_refi_ltv_cap).
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("property_fee_markup_001"))) {
+    const { runPropertyFeeMarkup001 } = await import("../migrations/property-fee-markup-001");
+    await runPropertyFeeMarkup001();
+    await markMigrationApplied("property_fee_markup_001");
   }
 }
 

@@ -234,8 +234,9 @@
       "reason": "Task #1412 \u2014 single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
     },
     "0058_self_test_logs": {
-      "status": "self-idempotent",
-      "reason": "Task #1403 \u2014 Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent \u2014 re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
+      "status": "guarded",
+      "guard": "self-test-logs-001.ts",
+      "reason": "Task #1647 / Task #1403 — the original SQL had a type mismatch: finding_id was typed as integer referencing costantino_findings('id'), but the actual PK is uuid named finding_id. The corrected SQL uses uuid. The runtime guard (self-test-logs-001.ts) applies the correct DDL idempotently on every boot, ensuring self_test_interval_days and self_test_logs exist on all environments regardless of whether the journal was applied with the old or new SQL hash."
     },
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
@@ -265,6 +266,11 @@
       "status": "guarded",
       "guard": "icp-brackets-005.ts",
       "reason": "Plan 2026-05-13-001 U7 \u2014 adds six match-rule columns to icp_brackets (match_countries, match_business_models, match_quality_tiers, match_keywords jsonb; match_priority integer NOT NULL DEFAULT 0; match_rationale text). All ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-005.ts which re-applies the same ALTERs at boot for dev DBs whose _journal.json has drifted past 0067."
+    },
+    "0068_property_fee_markup": {
+      "status": "guarded",
+      "guard": "property-fee-markup-001.ts",
+      "reason": "Task #1677 \u2014 adds nullable real column service_markup to property_fee_categories. When NULL, the financial engine falls back to the company service template markup. When set, it overrides the template markup for that property/category pair. Guarded by property-fee-markup-001.ts which re-applies the same ALTER at boot via ADD COLUMN IF NOT EXISTS to handle dev DBs whose journal has drifted. Renumbered from 0064 \u2192 0068 to avoid slot collision with main's 0064 (properties_refi_ltv_cap) during the 2026-05-15 merge of main into chore/replit-steady-state-rename."
     }
   }
 }

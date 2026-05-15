@@ -69,8 +69,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
     <div className="space-y-6">
       {!hasExternalSaveHandler && (
         <div className="flex items-center justify-between">
-          <div />
-          <SaveButton onClick={handleSave} disabled={!draft} isPending={updateGlobal.isPending} />
+          <div className="min-w-0" />
+          <SaveButton onClick={handleSave} disabled={!draft} isPending={updateGlobal.isPending} className="shrink-0" />
         </div>
       )}
 
@@ -87,8 +87,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Minimum Rooms <InfoTooltip text="Minimum number of guest rooms for the target property profile. Used to filter market research and comparable properties." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.minRooms ?? 10}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Minimum Rooms <InfoTooltip text="Minimum number of guest rooms for the target property profile. Used to filter market research and comparable properties." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.minRooms ?? 10}</span>
               </div>
               <Slider
                 value={[assetDef.minRooms ?? 10]}
@@ -105,8 +105,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Maximum Rooms <InfoTooltip text="Maximum number of guest rooms for the target property profile. Defines the upper bound for comp set analysis." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.maxRooms ?? 80}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Maximum Rooms <InfoTooltip text="Maximum number of guest rooms for the target property profile. Defines the upper bound for comp set analysis." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.maxRooms ?? 80}</span>
               </div>
               <Slider
                 value={[assetDef.maxRooms ?? 80]}
@@ -125,8 +125,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Minimum ADR <InfoTooltip text="Minimum Average Daily Rate target. Sets the floor for market research rate comparisons." /></Label>
-                <span className="text-sm font-mono text-primary">${assetDef.minAdr ?? 150}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Minimum ADR <InfoTooltip text="Minimum Average Daily Rate target. Sets the floor for market research rate comparisons." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">${assetDef.minAdr ?? 150}</span>
               </div>
               <Slider
                 value={[assetDef.minAdr ?? 150]}
@@ -143,8 +143,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Maximum ADR <InfoTooltip text="Maximum Average Daily Rate target. Sets the ceiling for market research rate comparisons." /></Label>
-                <span className="text-sm font-mono text-primary">${assetDef.maxAdr ?? 600}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Maximum ADR <InfoTooltip text="Maximum Average Daily Rate target. Sets the ceiling for market research rate comparisons." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">${assetDef.maxAdr ?? 600}</span>
               </div>
               <Slider
                 value={[assetDef.maxAdr ?? 600]}
@@ -235,8 +235,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Event Locations <InfoTooltip text="Number of distinct event spaces available on the property (ballrooms, gardens, terraces, etc.)." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.eventLocations ?? 2}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Event Locations <InfoTooltip text="Number of distinct event spaces available on the property (ballrooms, gardens, terraces, etc.)." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.eventLocations ?? 2}</span>
               </div>
               <Slider
                 value={[assetDef.eventLocations ?? 2]}
@@ -253,8 +253,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Max Event Capacity <InfoTooltip text="Maximum number of guests that can be accommodated at events across all event spaces." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.maxEventCapacity ?? 150}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Max Event Capacity <InfoTooltip text="Maximum number of guests that can be accommodated at events across all event spaces." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.maxEventCapacity ?? 150}</span>
               </div>
               <Slider
                 value={[assetDef.maxEventCapacity ?? 150]}
@@ -271,8 +271,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Parking Spaces <InfoTooltip text="Number of on-site parking spaces available for guests and event attendees." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.parkingSpaces ?? 50}</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Parking Spaces <InfoTooltip text="Number of on-site parking spaces available for guests and event attendees." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.parkingSpaces ?? 50}</span>
               </div>
               <Slider
                 value={[assetDef.parkingSpaces ?? 50]}
@@ -291,8 +291,8 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="label-text flex items-center gap-1">Acreage <InfoTooltip text="Total property land area in acres. Larger acreage typically supports more amenities and privacy." /></Label>
-                <span className="text-sm font-mono text-primary">{assetDef.acreage ?? 5} acres</span>
+                <Label className="label-text flex items-center gap-1 min-w-0">Acreage <InfoTooltip text="Total property land area in acres. Larger acreage typically supports more amenities and privacy." /></Label>
+                <span className="text-sm font-mono text-primary shrink-0">{assetDef.acreage ?? 5} acres</span>
               </div>
               <Slider
                 value={[assetDef.acreage ?? 5]}
