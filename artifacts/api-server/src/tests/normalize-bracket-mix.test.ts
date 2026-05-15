@@ -66,33 +66,25 @@ describe("normalizePersistedBracketMix", () => {
     });
   });
 
-  describe("catalog-API shape", () => {
-    it("passes valid catalog entries through and returns null brackets", () => {
+  describe("catalog-API shape (legacy flat-array — retired by task #1486)", () => {
+    it("returns null for valid flat-array entries (format no longer supported)", () => {
+      // Task #1486 removed the flat-array branch. Both writers now emit BracketMixData.
+      // Valid { bracketSlug, weight } arrays are treated as unrecognized input → null.
       const result = normalizePersistedBracketMix([
         { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
         { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
       ]);
-
-      expect(result).not.toBeNull();
-      expect(result?.brackets).toBeNull();
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
-      ]);
+      expect(result).toBeNull();
     });
 
-    it("filters out malformed catalog entries", () => {
+    it("returns null for mixed valid/invalid flat-array entries (format no longer supported)", () => {
       const result = normalizePersistedBracketMix([
         { bracketSlug: "ok", weight: HOTEL_WEIGHT },
         { bracketSlug: 123, weight: HOTEL_WEIGHT },
         { weight: HOTEL_WEIGHT },
         "garbage",
       ]);
-
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
-      ]);
-      expect(result?.brackets).toBeNull();
+      expect(result).toBeNull();
     });
   });
 
@@ -183,36 +175,6 @@ describe("normalizePersistedBracketMix", () => {
           serviceConsumptionProfile: "str_only",
         },
       ]);
-    });
-  });
-
-  describe("catalog-API shape", () => {
-    it("passes valid catalog entries through and returns null brackets", () => {
-      const result = normalizePersistedBracketMix([
-        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
-      ]);
-
-      expect(result).not.toBeNull();
-      expect(result?.brackets).toBeNull();
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
-      ]);
-    });
-
-    it("filters out malformed catalog entries", () => {
-      const result = normalizePersistedBracketMix([
-        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
-        { bracketSlug: 123, weight: HOTEL_WEIGHT },
-        { weight: HOTEL_WEIGHT },
-        "garbage",
-      ]);
-
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
-      ]);
-      expect(result?.brackets).toBeNull();
     });
   });
 
