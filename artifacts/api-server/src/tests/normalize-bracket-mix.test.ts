@@ -66,22 +66,17 @@ describe("normalizePersistedBracketMix", () => {
     });
   });
 
-  describe("catalog-API shape", () => {
-    it("passes valid catalog entries through and returns null brackets", () => {
+  describe("catalog-API shape (legacy — no longer accepted)", () => {
+    it("returns null for a valid-looking flat catalog array (shape removed in task-1486)", () => {
       const result = normalizePersistedBracketMix([
         { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
         { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
       ]);
 
-      expect(result).not.toBeNull();
-      expect(result?.brackets).toBeNull();
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
-      ]);
+      expect(result).toBeNull();
     });
 
-    it("filters out malformed catalog entries", () => {
+    it("returns null for a partially-malformed flat catalog array", () => {
       const result = normalizePersistedBracketMix([
         { bracketSlug: "ok", weight: HOTEL_WEIGHT },
         { bracketSlug: 123, weight: HOTEL_WEIGHT },
@@ -89,14 +84,11 @@ describe("normalizePersistedBracketMix", () => {
         "garbage",
       ]);
 
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
-      ]);
-      expect(result?.brackets).toBeNull();
+      expect(result).toBeNull();
     });
   });
 
-  describe("minion shape", () => {
+  describe("minion shape (first pass — core cases)", () => {
     it("synthesizes a `full` profile for a hotel entry", () => {
       const result = normalizePersistedBracketMix({
         entries: [
@@ -186,22 +178,17 @@ describe("normalizePersistedBracketMix", () => {
     });
   });
 
-  describe("catalog-API shape", () => {
-    it("passes valid catalog entries through and returns null brackets", () => {
+  describe("catalog-API shape (legacy — no longer accepted, second block)", () => {
+    it("returns null for a valid-looking flat catalog array (shape removed in task-1486)", () => {
       const result = normalizePersistedBracketMix([
         { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
         { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
       ]);
 
-      expect(result).not.toBeNull();
-      expect(result?.brackets).toBeNull();
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
-      ]);
+      expect(result).toBeNull();
     });
 
-    it("filters out malformed catalog entries", () => {
+    it("returns null for a partially-malformed flat catalog array", () => {
       const result = normalizePersistedBracketMix([
         { bracketSlug: "ok", weight: HOTEL_WEIGHT },
         { bracketSlug: 123, weight: HOTEL_WEIGHT },
@@ -209,10 +196,7 @@ describe("normalizePersistedBracketMix", () => {
         "garbage",
       ]);
 
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
-      ]);
-      expect(result?.brackets).toBeNull();
+      expect(result).toBeNull();
     });
   });
 
