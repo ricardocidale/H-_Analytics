@@ -234,8 +234,9 @@
       "reason": "Task #1412 — single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
     },
     "0058_self_test_logs": {
-      "status": "self-idempotent",
-      "reason": "Task #1403 — Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent — re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
+      "status": "guarded",
+      "guard": "self-test-logs-001.ts",
+      "reason": "Task #1647 / Task #1403 — the original SQL had a type mismatch: finding_id was typed as integer referencing costantino_findings('id'), but the actual PK is uuid named finding_id. The corrected SQL uses uuid. The runtime guard (self-test-logs-001.ts) applies the correct DDL idempotently on every boot, ensuring self_test_interval_days and self_test_logs exist on all environments regardless of whether the journal was applied with the old or new SQL hash."
     },
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",

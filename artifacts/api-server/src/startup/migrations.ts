@@ -204,6 +204,17 @@ export async function runSchemaMigrations() {
     await runIcpBrackets003();
     await markMigrationApplied("icp_brackets_003");
   }
+
+  // Task #1647 / Task #1403 — self_test_interval_days on admin_resources +
+  // self_test_logs table. Belt-and-suspenders for 0058_self_test_logs.sql,
+  // which had a type mismatch in its original form (finding_id typed as
+  // integer referencing costantino_findings("id") — the actual PK is uuid
+  // named finding_id). This guard applies the correct DDL idempotently.
+  if (!(await isMigrationApplied("self_test_logs_001"))) {
+    const { runSelfTestLogs001 } = await import("../migrations/self-test-logs-001");
+    await runSelfTestLogs001();
+    await markMigrationApplied("self_test_logs_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
