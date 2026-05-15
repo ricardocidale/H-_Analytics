@@ -1,4 +1,5 @@
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
+import { toolGenerateFinancialReportExportLink } from "./rebecca-tool-impls-report";
 import {
   toolListProperties,
   toolGetProperty,
@@ -309,6 +310,8 @@ export async function dispatchRebeccaTool(
         return await toolGetBracketMix(ctx);
       case "update_bracket_mix":
         return await toolUpdateBracketMix(args, ctx);
+      case "generate_financial_report_export_link":
+        return toolGenerateFinancialReportExportLink(args);
       default:
         return { result: { error: "Unknown tool" } };
     }

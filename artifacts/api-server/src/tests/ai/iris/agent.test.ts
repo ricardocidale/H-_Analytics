@@ -32,6 +32,15 @@ vi.mock("../../../ai/iris/workspace", () => ({
   clearIrisGaps: vi.fn(async () => undefined),
 }));
 
+vi.mock("../../../ai/llm-config-resolver", () => ({
+  resolveLlmFor: vi.fn(async (slot: string) => {
+    if (slot === "iris-health-check") {
+      return { vendor: "anthropic", modelId: "claude-haiku-4-5-20251001", modelSlug: "claude-haiku-4-5-20251001" };
+    }
+    return { vendor: "anthropic", modelId: "claude-sonnet-4-6", modelSlug: "claude-sonnet-4-6" };
+  }),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------

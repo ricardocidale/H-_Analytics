@@ -158,26 +158,41 @@ body {
   padding: 0 22mm;
 }
 .page-hdr-bar {
-  background: ${NAVY};
+  background: transparent;
+  border-top: 3px solid ${DK};
+  border-bottom: 2px solid ${SAGE};
   padding: 4.5mm 7mm 4mm;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 0 0 2mm 2mm;
 }
 .page-hdr-title {
   font-size: ${isL ? "18pt" : "16pt"};
-  font-weight: 700; color: ${WHITE};
+  font-weight: 700; color: ${NAVY};
   letter-spacing: 0.2px;
 }
 .page-hdr-sub {
-  font-size: 8.5pt; color: color-mix(in srgb, ${WHITE} 55%, transparent);
+  font-size: 8.5pt; color: ${GR};
   margin-top: 1mm; display: block;
   letter-spacing: 0.3px;
 }
 .page-hdr-brand {
-  font-size: 8pt; color: ${SAGE}; font-weight: 600;
+  font-size: 8pt; color: ${DK}; font-weight: 700;
   letter-spacing: 0.5px; white-space: nowrap;
+}
+
+/* ── Valentina pagination contract ──────────────────────────────────────────
+ * .statement-first  — page-break-before injected by buildPdfHtml on the
+ *   first content-page of every new statement and assumption group.
+ * .chart-solo        — full-height chart page with generous padding so the
+ *   chart fills the usable area without looking cramped.
+ */
+.statement-first { page-break-before: always; }
+.chart-solo .line-chart-container {
+  max-height: ${isL ? "168mm" : "205mm"};
+  height:     ${isL ? "168mm" : "205mm"};
+  padding:    ${isL ? "8mm 24mm" : "10mm 16mm"};
+  align-items: stretch;
 }
 
 .toc-body {
@@ -304,8 +319,8 @@ body {
 .line-chart-container {
   display: flex; align-items: center; justify-content: center;
   break-inside: avoid; overflow: visible;
-  max-height: ${isL ? "110mm" : "130mm"};
-  height: ${isL ? "110mm" : "130mm"};
+  max-height: ${isL ? "160mm" : "192mm"};
+  height: ${isL ? "160mm" : "192mm"};
 }
 .line-chart-svg {
   width: 100%;

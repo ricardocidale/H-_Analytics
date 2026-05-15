@@ -16,6 +16,16 @@ import {
   buildChartsForStatement,
   getMetricDescription,
 } from "../routes/premium-pdf-pipeline";
+import {
+  runMinionOtavioPaginate,
+  getSectionWeightedCount,
+  LANDSCAPE_TABLE_ROW_CAP,
+  PORTRAIT_TABLE_ROW_CAP,
+  LANDSCAPE_ASSUMPTIONS_ROW_CAP,
+  PORTRAIT_ASSUMPTIONS_ROW_CAP,
+} from "./minions/otavio-pagination";
+import { ASSUMPTIONS_TITLE_PREFIX } from "./assumption-sections";
+import { logger } from "../lib/logger";
 
 interface ExportRow {
   category: string;
@@ -316,11 +326,70 @@ export function compileReport(input: CompileInput): ReportDefinition {
     sections.splice(insertIdx, 0, ...imageSections);
   }
 
+  // Derive isSingleYear from the canonical year list supplied by the caller.
+  // Preference: use input.years when present (single authoritative source).
+  // When only statements are present we require ALL statement year arrays to
+  // have length 1 — checking only statements[0] would reintroduce drift if
+  // a later statement has more years than the first (CR-01 review comment).
+  // Defaults to false when no year information is available at all.
+  const isSingleYear =
+    input.years != null
+      ? input.years.length === 1
+      : statements.length > 0
+        ? statements.every((s) => s.years.length === 1)
+        : false;
+
+  // Minion Otavio: pre-split large TableSections into page-safe chunks for PDF
+  // output. Other formats (xlsx, pptx, docx) pass through unchanged.
+  const paginatedSections =
+    input.format === "pdf"
+      ? runMinionOtavioPaginate(sections, {
+          orientation: isLandscape ? "landscape" : "portrait",
+          dense: input.densePagination !== false,
+          isSingleYear,
+        }).flattenedSections
+      : sections;
+
+  // ─── Runtime overflow guard ────────────────────────────────────────────────
+  // After Otavio runs, assert that no output chunk exceeds its applicable page
+  // cap. A violation means the row-weight constants have drifted from the
+  // actual rendered output — it will not fix itself at export time and will
+  // produce truncated pages for the user. Log at WARN so the team can catch
+  // calibration drift before it causes visible regressions.
+  if (input.format === "pdf") {
+    for (const section of paginatedSections) {
+      if (section.kind !== "table") continue;
+      const isAssumptions =
+        section.title.startsWith(ASSUMPTIONS_TITLE_PREFIX) || isSingleYear;
+      const cap = isAssumptions
+        ? isLandscape
+          ? LANDSCAPE_ASSUMPTIONS_ROW_CAP
+          : PORTRAIT_ASSUMPTIONS_ROW_CAP
+        : isLandscape
+          ? LANDSCAPE_TABLE_ROW_CAP
+          : PORTRAIT_TABLE_ROW_CAP;
+      const weightedCount = getSectionWeightedCount(section);
+      if (weightedCount > cap) {
+        logger.warn(
+          {
+            event: "otavio_overflow",
+            chunkTitle: section.title,
+            weightedCount: Math.round(weightedCount * 100) / 100,
+            cap,
+            orientation: isLandscape ? "landscape" : "portrait",
+            isAssumptions,
+          },
+          "otavio-overflow: page chunk exceeds cap — calibration drift detected",
+        );
+      }
+    }
+  }
+
   return {
     cover,
     tokens,
     orientation: isLandscape ? "landscape" : "portrait",
-    sections,
+    sections: paginatedSections,
     densePagination: input.densePagination !== false,
   };
 }

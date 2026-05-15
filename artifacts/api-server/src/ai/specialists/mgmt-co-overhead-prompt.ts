@@ -16,7 +16,7 @@
  *   - OverheadSpecialistOutputSchema — runner's parse gate (Zod strict)
  */
 
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
+import type { OverheadBenchmarks } from "@shared/model-constants-registry";
 import type { OverheadComparableRow } from "./mgmt-co-overhead-orchestrator-adapter";
 import {
   OVERHEAD_DIMENSION_KEYS,

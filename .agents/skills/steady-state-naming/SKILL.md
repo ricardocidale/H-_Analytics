@@ -11,7 +11,7 @@ The admin sidebar nav group whose internal `id` is `financial-defaults` MUST dis
 
 This applies to:
 
-- The `label` field on the nav group in `client/src/components/admin/AdminSidebar.tsx`.
+- The `label` field on the nav group in `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx`.
 - Any new menu, breadcrumb, page header, error toast, or nav copy that names the same group.
 - Any cross-app deep-link label (e.g. specialist-nav targets that say "Open … — Constants").
 
@@ -22,7 +22,7 @@ The user has chosen "Model Defaults" as the canonical name for this surface and 
 ## How to comply
 
 ### Where the label lives
-- **File:** `client/src/components/admin/AdminSidebar.tsx`
+- **File:** `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx`
 - **Field:** the `label` on the nav group whose `id` is `"financial-defaults"`.
 - The internal `id` stays `"financial-defaults"` — only the user-visible `label` is renamed.
 
@@ -37,8 +37,8 @@ Leave these alone — they are deliberately out of scope:
 - The internal `id: "financial-defaults"` on the nav group. Internal ids stay stable.
 - Route slugs, query params, and file paths that contain `financial-defaults`, `financial_defaults`, or `steady-state`.
 - The `STEADY-STATE.md` architecture doc filename — it is a historical document reference, not user-facing.
-- The in-page card section title `"Financial Defaults"` inside `client/src/components/admin/model-defaults/CompanyTab.tsx` (if still present) — that's a card section, not a menu item.
-- The `"Country & Financial Defaults"` heading inside `client/src/components/portfolio/AddPropertyDialog.tsx` — different surface, different meaning.
+- The in-page card section title `"Financial Defaults"` inside `artifacts/hospitality-business-portal/src/components/admin/model-defaults/CompanyTab.tsx` (if still present) — that's a card section, not a menu item.
+- The `"Country & Financial Defaults"` heading inside `artifacts/hospitality-business-portal/src/components/portfolio/AddPropertyDialog.tsx` — different surface, different meaning.
 - Historical references in `docs/plans/archive/**` and committed migration SQL comments.
 
 ## Quick checklist before committing a sidebar/nav change in this area

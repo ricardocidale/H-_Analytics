@@ -17,7 +17,7 @@
 import type { CompanyPromptInputContext } from "./mgmt-co-company-prompt-input-builder";
 import { COMPANY_DIMENSION_KEYS } from "./mgmt-co-company-prompt-input-builder";
 import type { CompanyComparableRow } from "./mgmt-co-company-orchestrator-adapter";
-import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
+import type { CompanyBenchmarks } from "@shared/model-constants-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
 export function buildQuantPanelSystemPrompt(): string {

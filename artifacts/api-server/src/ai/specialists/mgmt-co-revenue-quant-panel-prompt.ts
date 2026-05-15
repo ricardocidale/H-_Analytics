@@ -19,7 +19,7 @@
 import type { RevenuePromptInputContext } from "./mgmt-co-revenue-prompt-input-builder";
 import { REVENUE_DIMENSION_KEYS } from "./mgmt-co-revenue-prompt-input-builder";
 import type { RevenueComparableRow } from "./mgmt-co-revenue-orchestrator-adapter";
-import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
+import type { RevenueBenchmarks } from "@shared/model-constants-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
 export function buildQuantPanelSystemPrompt(): string {

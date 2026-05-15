@@ -18,7 +18,7 @@
  *   - CompensationSpecialistOutputSchema — runner's parse gate (Zod strict)
  */
 
-import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
+import type { CompensationBenchmarks } from "@shared/model-constants-registry";
 import type { CompensationComparableRow } from "./mgmt-co-compensation-orchestrator-adapter";
 import {
   COMPENSATION_DIMENSION_KEYS,

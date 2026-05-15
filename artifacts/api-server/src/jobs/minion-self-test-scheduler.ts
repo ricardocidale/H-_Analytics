@@ -38,8 +38,53 @@ import {
 } from "./minion-self-test-constants";
 
 let isRunning = false;
-let nextTickHandle: NodeJS.Timeout | null = null;
 let stopped = false;
+
+/**
+ * Maximum safe value for a single Node.js setTimeout call.
+ * Node uses a signed 32-bit integer for the delay, so anything above
+ * 2^31 - 1 ms (~24.8 days) silently overflows and fires immediately.
+ * We chunk large delays into 24-hour slices to stay well within bounds.
+ */
+const MAX_TIMEOUT_CHUNK_MS = 24 * 60 * 60 * 1000; // 24 h
+
+/**
+ * A setTimeout wrapper that handles delays larger than the 32-bit integer
+ * limit by chaining multiple 24-hour timeouts until the full delay has elapsed.
+ * Returns a cancel function; call it to abort the pending delay.
+ */
+function safeDelayedCall(fn: () => void, delayMs: number): () => void {
+  let handle: NodeJS.Timeout | null = null;
+  let cancelled = false;
+  const deadline = Date.now() + delayMs;
+
+  function scheduleChunk(): void {
+    if (cancelled) return;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      fn();
+      return;
+    }
+    const chunk = Math.min(remaining, MAX_TIMEOUT_CHUNK_MS);
+    handle = setTimeout(() => {
+      handle = null;
+      scheduleChunk();
+    }, chunk);
+    handle.unref?.();
+  }
+
+  scheduleChunk();
+
+  return () => {
+    cancelled = true;
+    if (handle) {
+      clearTimeout(handle);
+      handle = null;
+    }
+  };
+}
+
+let cancelNextTick: (() => void) | null = null;
 
 const FINDING_KIND = "minion_self_test_failed";
 
@@ -306,19 +351,18 @@ async function tick(): Promise<void> {
 
 function scheduleNext(): void {
   if (stopped) return;
-  if (nextTickHandle) {
-    clearTimeout(nextTickHandle);
-    nextTickHandle = null;
+  if (cancelNextTick) {
+    cancelNextTick();
+    cancelNextTick = null;
   }
   resolveCadenceMs()
     .then((cadence) => {
       if (stopped) return;
-      logger.info(`[minion-self-test-scheduler] Next cycle in ${cadence}ms.`);
-      nextTickHandle = setTimeout(() => {
+      logger.info(`[minion-self-test-scheduler] Next cycle in ${cadence}ms (chunked into ≤24 h slices to avoid 32-bit overflow).`);
+      cancelNextTick = safeDelayedCall(() => {
+        cancelNextTick = null;
         void tick();
       }, cadence);
-      // Don't keep the event loop alive purely for this scheduler.
-      nextTickHandle.unref?.();
     })
     .catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -339,8 +383,8 @@ export function startMinionSelfTestScheduler(): void {
 /** Test-only / shutdown helper. */
 export function stopMinionSelfTestScheduler(): void {
   stopped = true;
-  if (nextTickHandle) {
-    clearTimeout(nextTickHandle);
-    nextTickHandle = null;
+  if (cancelNextTick) {
+    cancelNextTick();
+    cancelNextTick = null;
   }
 }

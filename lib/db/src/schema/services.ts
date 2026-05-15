@@ -63,18 +63,21 @@ export const propertyFeeCategories = pgTable("property_fee_categories", {
   propertyId: integer("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   rate: real("rate").notNull().default(0),
+  serviceMarkup: real("service_markup"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("fee_categories_property_id_idx").on(table.propertyId),
   check("fee_cat_rate_range", sql`${table.rate} >= 0 AND ${table.rate} <= 1`),
+  check("fee_cat_markup_range", sql`${table.serviceMarkup} IS NULL OR (${table.serviceMarkup} >= 0 AND ${table.serviceMarkup} <= 1)`),
 ]);
 
 export const insertFeeCategorySchema = createInsertSchema(propertyFeeCategories).pick({
   propertyId: true,
   name: true,
   rate: true,
+  serviceMarkup: true,
   isActive: true,
   sortOrder: true,
 });
@@ -82,6 +85,7 @@ export const insertFeeCategorySchema = createInsertSchema(propertyFeeCategories)
 export const updateFeeCategorySchema = z.object({
   name: z.string().optional(),
   rate: z.number().min(0).max(1).optional(),
+  serviceMarkup: z.number().min(0).max(1).nullable().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),
 });

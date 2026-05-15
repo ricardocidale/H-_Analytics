@@ -100,7 +100,7 @@ import {
   type PersonaContext,
 } from "@engine/analyst/contracts/verdict";
 import { createVoiceRenderer } from "@engine/analyst/voice/voice-renderer";
-import type { PropertyDefaultsBenchmarks } from "@shared/constants-property-defaults-benchmarks";
+import type { PropertyDefaultsBenchmarks } from "@shared/model-constants-registry";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 import { getParameterValue } from "../parameter-resolver";

@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS "self_test_logs" (
   "probe_recipe_snapshot"    jsonb,
   "raw_response"             jsonb,
   "summary"                  text,
-  "finding_id"               integer REFERENCES "costantino_findings"("id") ON DELETE SET NULL,
+  "finding_id"               uuid REFERENCES "costantino_findings"("finding_id") ON DELETE SET NULL,
   "ran_at"                   timestamptz NOT NULL DEFAULT now()
 );
 

@@ -22,6 +22,7 @@ import {
   pgTable,
   integer,
   text,
+  uuid,
   timestamp,
   jsonb,
   index,
@@ -73,7 +74,7 @@ export const selfTestLogs = pgTable(
     summary: text("summary"),
 
     /** If this test run opened or resolved a costantino_finding, link it here. */
-    findingId: text("finding_id").references(() => costantinoFindings.findingId, { onDelete: "set null" }),
+    findingId: uuid("finding_id").references(() => costantinoFindings.findingId, { onDelete: "set null" }),
 
     /** When the probe ran (server-side clock, UTC). */
     ranAt: timestamp("ran_at").defaultNow().notNull(),

@@ -50,7 +50,7 @@ export default function IcpMixSummary() {
             <IconTarget className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">ICP Mix</p>
+                <p className="text-sm font-semibold text-foreground min-w-0">ICP Mix</p>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                   Edit in ICP Studio
                   <IconChevronRight className="w-3 h-3" />

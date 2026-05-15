@@ -9,16 +9,17 @@
 
 import { logger } from "../../../logger";
 import { getMarketRate } from "../../../data/marketRates";
-import { getFactoryNumber } from "@shared/model-constants-registry";
+import {
+  getFactoryNumber,
+  LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
+} from "@shared/model-constants-registry";
 import {
   getCannedCompanyComparables,
   type CompanyComparableRow,
 } from "../mgmt-co-company-orchestrator-adapter";
-import {
-  LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
-  DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
-} from "@shared/constants-company-benchmarks";
 import { CHANNEL, fetchFredObs } from "./shared";
+
+const DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID = getFactoryNumber("benchmarkCompanyIncentiveMgmtFeeMid");
 
 // ────────────────────────────────────────────────────────────────────────────
 // Company — financial defaults comparables

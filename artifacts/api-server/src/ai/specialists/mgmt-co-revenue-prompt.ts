@@ -19,7 +19,7 @@
  *   - RevenueSpecialistOutputSchema — runner's parse gate (Zod strict)
  */
 
-import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
+import type { RevenueBenchmarks } from "@shared/model-constants-registry";
 import type { RevenueComparableRow } from "./mgmt-co-revenue-orchestrator-adapter";
 import {
   REVENUE_DIMENSION_KEYS,

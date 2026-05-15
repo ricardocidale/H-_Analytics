@@ -19,11 +19,15 @@ import type { ServiceTemplate, ServiceCostResult, AggregatedServiceCosts } from 
  *
  * @param feesByCategory - Map of category name → fee amount (from ServiceFeeBreakdown.byCategory)
  * @param templates - Active company service templates with serviceModel and serviceMarkup
+ * @param categoryMarkupOverrides - Optional per-category markup override (category name → markup).
+ *   When provided for a category, this value takes precedence over the template's serviceMarkup.
+ *   Typically a weighted average derived from per-property fee markup overrides.
  * @returns Aggregated costs with per-category breakdown and totals
  */
 export function computeCostOfServices(
   feesByCategory: Record<string, number>,
   templates: ServiceTemplate[],
+  categoryMarkupOverrides?: Record<string, number>,
 ): AggregatedServiceCosts {
   const byCategory: Record<string, ServiceCostResult> = {};
   let centralizedRevenue = 0;
@@ -60,8 +64,14 @@ export function computeCostOfServices(
       continue;
     }
 
+    // Property-level markup override takes precedence over the template markup
+    // when provided (e.g. remote location with higher vendor costs).
+    const effectiveMarkup = (categoryMarkupOverrides && categoryMarkupOverrides[categoryName] != null)
+      ? categoryMarkupOverrides[categoryName]
+      : template.serviceMarkup;
+
     if (template.serviceModel === 'centralized') {
-      const cost = vendorCostFromFee(feeAmount, template.serviceMarkup);
+      const cost = vendorCostFromFee(feeAmount, effectiveMarkup);
       const profit = feeAmount - cost;
       const result: ServiceCostResult = {
         name: categoryName,
@@ -69,7 +79,7 @@ export function computeCostOfServices(
         vendorCost: cost,
         grossProfit: profit,
         serviceModel: 'centralized',
-        markup: template.serviceMarkup,
+        markup: effectiveMarkup,
       };
       byCategory[categoryName] = result;
       centralizedRevenue += feeAmount;
@@ -83,7 +93,7 @@ export function computeCostOfServices(
         vendorCost: 0,
         grossProfit: feeAmount,
         serviceModel: 'direct',
-        markup: template.serviceMarkup,
+        markup: effectiveMarkup,
       };
       byCategory[categoryName] = result;
       directRevenue += feeAmount;
