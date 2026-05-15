@@ -53,3 +53,14 @@ None — all committed.
 - `artifacts/api-server/src/finance/` — finance routes (CC-only)
 - `artifacts/api-server/src/migrations/` — runtime guards (CC-only)
 - `lib/db/src/schema/` — DB schema (CC-only)
+
+### Owner-maintained CC skills — DO NOT DELETE OR MODIFY
+
+These four skill files are maintained by the repo owner and have been
+restored multiple times after CC sessions wiped them. Treat as read-only.
+Do not remove, overwrite, or merge-conflict-resolve them away.
+
+- `.agents/skills/start-here/SKILL.md`
+- `.agents/skills/plugin-stack/SKILL.md`
+- `.agents/skills/workflows/SKILL.md`
+- `.agents/skills/run-workflow/SKILL.md`

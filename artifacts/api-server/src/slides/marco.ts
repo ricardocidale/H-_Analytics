@@ -212,8 +212,8 @@ export async function runMarco(runId: number): Promise<void> {
           { getAdminResourceBySlug: (kind, slug) => storage.getAdminResourceBySlug(kind as ResourceKind, slug), downloadBuffer: (key) => sp.downloadBuffer(key) },
         );
         const { pdfBuffer } = await convertPptxToPdf(pptx, { runId: String(runId) });
-        const { pptxR2Key } = await uploadFactoryV2Deck(String(runId), pptx, pdfBuffer);
-        await updateSlideFactoryRun(runId, { pptxR2Key });
+        const { pptxR2Key, pdfR2Key } = await uploadFactoryV2Deck(String(runId), pptx, pdfBuffer);
+        await updateSlideFactoryRun(runId, { pptxR2Key, pdfR2Key });
         logger.info(`[marco] U7 run ${runId} — PPTX+PDF uploaded`, "slide-factory");
       } catch (u7Err: unknown) {
         logger.error(

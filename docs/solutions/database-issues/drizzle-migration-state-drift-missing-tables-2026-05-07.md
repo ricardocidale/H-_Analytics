@@ -332,3 +332,6 @@ are entirely separate databases with independent schemas and row IDs. Any query 
   the `reference_brands` incident that introduced the runtime guard pattern
 - `artifacts/api-server/src/migrations/consolidated-schema.ts` — `bootstrapDrizzleMigrationState()`
   implementation with the cutoff rationale in comments
+- `docs/solutions/workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md`
+  — why `drizzle-kit generate` hangs in non-interactive terminals (Replit, CI) when schema drift
+  requires disambiguation; manual SQL + journal update is the correct path in those environments

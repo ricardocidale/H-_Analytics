@@ -84,6 +84,7 @@ export type SlideFactoryRunPatch = Partial<
     | "agentResults"
     | "deckR2Key"
     | "pptxR2Key"
+    | "pdfR2Key"
     | "wishListLog"
     | "slotContentHashes"
     | "startedAt"

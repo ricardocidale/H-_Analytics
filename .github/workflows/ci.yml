@@ -68,6 +68,8 @@ jobs:
   portal-tests:
     name: Portal Tests (layout + component contracts)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +90,8 @@ jobs:
   layout-tests:
     name: Layout Tests (Playwright 768px narrow-layout)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4

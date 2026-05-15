@@ -140,6 +140,7 @@ function makeCompleteRun(
     },
     deckR2Key: null,
     pptxR2Key: null,
+    pdfR2Key: null,
     wishListLog: [],
     slotContentHashes: null,
     startedAt: now,
