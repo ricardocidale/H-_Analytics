@@ -2,7 +2,7 @@
 
 > **Replit Agent contract for this repo.** Canonical deep source: `CLAUDE.md`. All architecture rules, stack details, env vars, and inviolable constraints live there — this file holds only what is Replit-specific plus a routing table.
 
-H+ Analytics is a hospitality-sector financial analytics platform. Full product description: `CLAUDE.md` § "Project Source of Truth".
+H+ Analytics is a hospitality-sector financial analytics platform built by **Norfolk AI**. Norfolk AI is the software company; H+ Analytics is the product. Full product description: `CLAUDE.md` § "Project Source of Truth".
 
 ---
 

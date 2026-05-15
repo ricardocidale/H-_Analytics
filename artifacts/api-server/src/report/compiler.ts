@@ -16,6 +16,7 @@ import {
   buildChartsForStatement,
   getMetricDescription,
 } from "../routes/premium-pdf-pipeline";
+import { runMinionOtavioPaginate } from "./minions/otavio-pagination";
 
 interface ExportRow {
   category: string;
@@ -316,11 +317,21 @@ export function compileReport(input: CompileInput): ReportDefinition {
     sections.splice(insertIdx, 0, ...imageSections);
   }
 
+  // Minion Otavio: pre-split large TableSections into page-safe chunks for PDF
+  // output. Other formats (xlsx, pptx, docx) pass through unchanged.
+  const paginatedSections =
+    input.format === "pdf"
+      ? runMinionOtavioPaginate(sections, {
+          orientation: isLandscape ? "landscape" : "portrait",
+          dense: input.densePagination !== false,
+        }).flattenedSections
+      : sections;
+
   return {
     cover,
     tokens,
     orientation: isLandscape ? "landscape" : "portrait",
-    sections,
+    sections: paginatedSections,
     densePagination: input.densePagination !== false,
   };
 }

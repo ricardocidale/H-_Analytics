@@ -220,7 +220,9 @@ Suggest a model switch before starting work when there's a cost win without qual
 
 # Project Source of Truth
 
-H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design). Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
+H+ Analytics is a hospitality-sector financial analytics platform **built and maintained by Norfolk AI**, a software company that builds intelligent financial tools for the hospitality sector. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design). Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
+
+**Norfolk AI** is the software company. H+ Analytics is the product. Never conflate the two.
 
 ---
 
