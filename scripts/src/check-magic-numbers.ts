@@ -570,7 +570,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
 
-  // Non-blocking FEEDS_DEFAULT bypass warning (runs in all non-show/non-init modes)
+  // Non-blocking FEEDS_DEFAULT bypass warning (ratchet/check mode only — skipped in --show, --init, --strict)
   checkFeedsDefaultAnnotations();
 
   // Default: ratchet check against baseline
