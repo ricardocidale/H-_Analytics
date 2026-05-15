@@ -78,6 +78,13 @@ const UNIT_SUFFIX: Record<string, string> = {
   ratio:   "×",
 };
 
+// HTML <input type="number" step="…"> precision per unit. Strings because
+// the DOM attribute is string-typed; these are renderer/input calibrations,
+// not business-model values.
+const INPUT_STEP_USD = "1000";       // $1000 increment for dollar amounts
+const INPUT_STEP_PERCENT = "0.001";  // 0.1% precision (= 10 bps)
+const INPUT_STEP_DEFAULT = "1";
+
 function formatValue(value: number, unit: string): string {
   const prefix = UNIT_PREFIX[unit] ?? "";
   const suffix = UNIT_SUFFIX[unit] ?? "";
@@ -91,9 +98,9 @@ function formatValue(value: number, unit: string): string {
 }
 
 function displayStep(unit: string): string {
-  if (unit === "usd") return "1000";
-  if (unit === "percent") return "0.001";
-  return "1";
+  if (unit === "usd") return INPUT_STEP_USD;
+  if (unit === "percent") return INPUT_STEP_PERCENT;
+  return INPUT_STEP_DEFAULT;
 }
 
 function toInputValue(value: number, unit: string): string {
