@@ -166,12 +166,12 @@ export const DEPRECIATION_YEARS_US_RESIDENTIAL = 27.5;
 // ──────────────────────────────────────────────────────────
 
 export const MONTHS_PER_YEAR = 12;
-// FEEDS_DEFAULT: daysPerMonth
 /**
  * @deprecated Audit #319 R4. Use `getFactoryNumber('daysPerMonth')` from
  * `@shared/model-constants-registry` (universal locality, identical numeric
  * value). Retained for schema column defaults and tests.
  */
+// FEEDS_DEFAULT: daysPerMonth
 export const DAYS_PER_MONTH = 30.5;
 
 // ──────────────────────────────────────────────────────────
@@ -221,7 +221,6 @@ export const DEFAULT_STABILIZATION_MONTHS = 36;
 // INFLATION & COST ESCALATION
 // ──────────────────────────────────────────────────────────
 
-// FEEDS_DEFAULT: inflationRate
 /**
  * @deprecated Audit #319 R4. Use
  * `getFactoryNumber('inflationRate', country, state)` from
@@ -229,12 +228,13 @@ export const DEFAULT_STABILIZATION_MONTHS = 36;
  * other countries pick up locality-aware rates). Retained for schema column
  * defaults and tests.
  */
-export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
 // FEEDS_DEFAULT: inflationRate
+export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
 /**
  * @deprecated Audit #319 R4. Same as `DEFAULT_PROPERTY_INFLATION_RATE` —
  * route through `getFactoryNumber('inflationRate', country, state)`.
  */
+// FEEDS_DEFAULT: inflationRate
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
 // ──────────────────────────────────────────────────────────────────────────────

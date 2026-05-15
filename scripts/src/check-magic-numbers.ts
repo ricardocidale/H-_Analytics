@@ -185,6 +185,9 @@ function checkFeedsDefaultAnnotations(): void {
     return;
   }
 
+  /** Regex matching an actual getFactoryNumber / getEffectiveConstant invocation (open paren required). */
+  const INVOCATION_PATTERN = /\b(?:getFactoryNumber|getEffectiveConstant)\s*\(/;
+
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.startsWith("constants") || !entry.name.endsWith(".ts")) continue;
 
@@ -193,7 +196,13 @@ function checkFeedsDefaultAnnotations(): void {
     const content = fs.readFileSync(filePath, "utf8");
     const lines = content.split("\n");
 
-    const hasCalls = content.includes("getFactoryNumber") || content.includes("getEffectiveConstant");
+    // Strip block comments and line comments before testing for real invocations.
+    // This prevents a @deprecated JSDoc that mentions getFactoryNumber from
+    // suppressing the warning on a file that has no actual call site.
+    const strippedContent = content
+      .replace(/\/\*[\s\S]*?\*\//g, "")    // block comments
+      .replace(/\/\/[^\n]*/g, "");          // line comments
+    const hasCalls = INVOCATION_PATTERN.test(strippedContent);
 
     for (let i = 0; i < lines.length; i++) {
       const trimmed = lines[i].trim();
@@ -202,10 +211,22 @@ function checkFeedsDefaultAnnotations(): void {
 
       const registryKey = fdMatch[1];
 
+      // Verify placement: the annotation must be immediately followed by
+      // export const (the next non-blank line should be the declaration).
+      const nextLine = lines[i + 1]?.trim() ?? "";
+      const isPlacedCorrectly = /^(?:export\s+)?const\s+[A-Z]/.test(nextLine);
+      if (!isPlacedCorrectly) {
+        console.warn(
+          `[FEEDS_DEFAULT warning]  ${rel}:${i + 1}  // FEEDS_DEFAULT: ${registryKey}` +
+          `  — annotation must appear on the line immediately above "export const …".` +
+          `  Found instead: "${nextLine.slice(0, 60)}"`,
+        );
+      }
+
       if (!hasCalls) {
         console.warn(
           `[FEEDS_DEFAULT warning]  ${rel}:${i + 1}  // FEEDS_DEFAULT: ${registryKey}` +
-          `  — file does not call getFactoryNumber/getEffectiveConstant.` +
+          `  — file has no getFactoryNumber/getEffectiveConstant invocation.` +
           `  Possible hardcoded bypass of model-constants registry.`,
         );
       }
