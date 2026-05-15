@@ -72,6 +72,10 @@ args = "check:taxonomy-mirror"
 task = "workflow.run"
 args = "test:pagination"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:report"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -222,6 +226,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run test:pagination"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:report"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:report"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -11,6 +11,7 @@
     "lint": "eslint src --cache --cache-location .eslintcache",
     "test": "vitest run",
     "test:pagination": "vitest run src/report/minions/otavio-pagination.test.ts",
+    "test:report": "vitest run src/report/",
     "dry:costantino": "tsx ./src/scripts/costantino-dry-cycle.ts"
   },
   "dependencies": {
