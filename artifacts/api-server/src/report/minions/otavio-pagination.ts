@@ -48,6 +48,18 @@ const DATA_ROW_WEIGHT = 1.0;
 export interface PaginationOptions {
   orientation: "landscape" | "portrait";
   dense: boolean;
+  /**
+   * Explicit flag set by the caller when the report covers exactly one fiscal
+   * year. When true, all table sections are paginated with the assumptions row
+   * cap (wider label column, single value column) rather than the multi-year
+   * cap. This replaces the old `section.years.length === 1` heuristic which
+   * was brittle: a two-year projection whose last year was dropped would be
+   * silently misclassified, causing incorrect page breaks (CR-01).
+   *
+   * Contract: callers MUST derive this from the canonical year list they pass
+   * to the report compiler, not by inspecting section.years at pagination time.
+   */
+  isSingleYear: boolean;
 }
 
 export interface PaginatedReport {
@@ -82,9 +94,15 @@ export function runMinionOtavioPaginate(
       continue;
     }
 
+    // A section is treated as an "assumptions-style" section — using the wider
+    // single-column row cap — when it either carries the canonical assumptions
+    // title prefix OR the caller has declared this as a single-year report via
+    // opts.isSingleYear. We do NOT fall back to inspecting section.years.length
+    // here; that heuristic was removed in CR-01 because a two-year projection
+    // whose last year was dropped would silently trigger the wrong cap.
     const isAssumptions =
       section.title.startsWith(ASSUMPTIONS_TITLE_PREFIX) ||
-      section.years.length === 1;
+      opts.isSingleYear;
 
     const rowCap = isAssumptions
       ? isLandscape

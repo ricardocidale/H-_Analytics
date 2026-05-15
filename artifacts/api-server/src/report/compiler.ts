@@ -317,6 +317,19 @@ export function compileReport(input: CompileInput): ReportDefinition {
     sections.splice(insertIdx, 0, ...imageSections);
   }
 
+  // Derive isSingleYear from the canonical year list supplied by the caller.
+  // Preference: use input.years when present (single authoritative source).
+  // When only statements are present we require ALL statement year arrays to
+  // have length 1 — checking only statements[0] would reintroduce drift if
+  // a later statement has more years than the first (CR-01 review comment).
+  // Defaults to false when no year information is available at all.
+  const isSingleYear =
+    input.years != null
+      ? input.years.length === 1
+      : statements.length > 0
+        ? statements.every((s) => s.years.length === 1)
+        : false;
+
   // Minion Otavio: pre-split large TableSections into page-safe chunks for PDF
   // output. Other formats (xlsx, pptx, docx) pass through unchanged.
   const paginatedSections =
@@ -324,6 +337,7 @@ export function compileReport(input: CompileInput): ReportDefinition {
       ? runMinionOtavioPaginate(sections, {
           orientation: isLandscape ? "landscape" : "portrait",
           dense: input.densePagination !== false,
+          isSingleYear,
         }).flattenedSections
       : sections;
 
