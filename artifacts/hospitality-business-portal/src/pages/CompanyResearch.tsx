@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useExportSave } from "@/hooks/useExportSave";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useMarketResearch, useGlobalAssumptions } from "@/lib/api";
@@ -89,23 +91,10 @@ export default function CompanyResearch() {
   const isLoading = loadingCompany || loadingGlobal;
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
   if (errorCompany) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-          <IconAlertTriangle className="w-8 h-8 text-destructive" />
-          <p className="text-muted-foreground">Failed to load company research.</p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Failed to load company research" />;
   }
 
   return (

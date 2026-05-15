@@ -68,14 +68,16 @@ export function PctField({ label, tooltip, value, fallback, onChange, min, max, 
             />
           )}
         </Label>
-        <EditableValue
-          value={current}
-          onChange={(v) => onChange(testId.replace("field-", ""), v)}
-          format="percent"
-          min={min}
-          max={max}
-          step={step}
-        />
+        <div className="shrink-0">
+          <EditableValue
+            value={current}
+            onChange={(v) => onChange(testId.replace("field-", ""), v)}
+            format="percent"
+            min={min}
+            max={max}
+            step={step}
+          />
+        </div>
       </div>
       <div className="mt-auto pt-2">
         <Slider
@@ -111,14 +113,16 @@ export function DollarField({ label, tooltip, value, fallback, onChange, min, ma
           <InfoTooltip text={tooltip} />
           {researchRange && <ResearchRangeLabel text={researchRange} />}
         </Label>
-        <EditableValue
-          value={current}
-          onChange={(v) => onChange(testId.replace("field-", ""), v)}
-          format="dollar"
-          min={min}
-          max={max}
-          step={step}
-        />
+        <div className="shrink-0">
+          <EditableValue
+            value={current}
+            onChange={(v) => onChange(testId.replace("field-", ""), v)}
+            format="dollar"
+            min={min}
+            max={max}
+            step={step}
+          />
+        </div>
       </div>
       <div className="mt-auto pt-2">
         <Slider
@@ -154,14 +158,16 @@ export function NumberField({ label, tooltip, value, fallback, onChange, min, ma
           <InfoTooltip text={tooltip} />
           {researchRange && <ResearchRangeLabel text={researchRange} />}
         </Label>
-        <EditableValue
-          value={current}
-          onChange={(v) => onChange(testId.replace("field-", ""), v)}
-          format="number"
-          min={min}
-          max={max}
-          step={step}
-        />
+        <div className="shrink-0">
+          <EditableValue
+            value={current}
+            onChange={(v) => onChange(testId.replace("field-", ""), v)}
+            format="number"
+            min={min}
+            max={max}
+            step={step}
+          />
+        </div>
       </div>
       <div className="mt-auto pt-2">
         <Slider

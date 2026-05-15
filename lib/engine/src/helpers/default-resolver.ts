@@ -87,6 +87,7 @@ export function computePropertyDefaults(
   country: string,
   roomCount: number,
   stateProvince?: string,
+  maxOccupancyFromProperty?: number | null,
 ): PropertyDefaults {
   const sources: Record<string, string> = {};
 
@@ -186,8 +187,8 @@ export function computePropertyDefaults(
   const adrGrowthRate = DEFAULT_ADR_GROWTH_RATE;
   sources.adrGrowthRate = "constant:DEFAULT_ADR_GROWTH_RATE";
 
-  const maxOccupancy = DEFAULT_MAX_OCCUPANCY;
-  sources.maxOccupancy = "constant:DEFAULT_MAX_OCCUPANCY";
+  const maxOccupancy = maxOccupancyFromProperty ?? DEFAULT_MAX_OCCUPANCY;
+  sources.maxOccupancy = maxOccupancyFromProperty != null ? "property:maxOccupancy" : "constant:DEFAULT_MAX_OCCUPANCY";
 
   // ── 4. Scale adjustment (small property cost premium) ────────────────────
   let scaleAdjustment = 0;

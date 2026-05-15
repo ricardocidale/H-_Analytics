@@ -91,6 +91,14 @@
   --spacing: 0.25rem;
 }
 
+/* H+ brand accent — amber/gold "AI at work" signal */
+:root {
+  --accent-pop: 38 92% 50%;
+}
+.dark {
+  --accent-pop: 38 92% 56%;
+}
+
 /* DARK MODE */
 .dark {
   --button-outline: rgba(255,255,255, .10);

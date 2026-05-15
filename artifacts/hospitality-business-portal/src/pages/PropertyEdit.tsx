@@ -24,6 +24,8 @@
  *   changes.
  */
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
@@ -427,47 +429,19 @@ export default function PropertyEdit() {
   const exitYear = modelStartYear + projectionYears - 1;
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (isError) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-          <IconAlertTriangle className="w-8 h-8 text-destructive" />
-          <p className="text-muted-foreground">Failed to load property data. Please try refreshing the page.</p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Failed to load property data" />;
   }
 
   if (!property) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-          <h2 className="text-2xl font-display">Property Not Found</h2>
-          <Link href="/portfolio">
-            <Button>Return to Portfolio</Button>
-          </Link>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Property not found" />;
   }
 
   if (!draft) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   const handleChange = (key: string, value: string | number | boolean | number[] | null) => {

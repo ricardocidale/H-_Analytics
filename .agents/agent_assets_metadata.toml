@@ -137,3 +137,27 @@ id = "RKol7nQpHJjGGg4Ao3FxV"
 uri = "file://exports/slide1.jpg"
 type = "image"
 title = "Slide 1 — Belleayre Mountain"
+
+[[outputs]]
+id = "ujmTprjkOYQLYGbuLRTTI"
+uri = "file://attached_assets/kpi-swiss.jpeg"
+type = "image"
+title = "Swiss — Minimal / Editorial"
+
+[[outputs]]
+id = "G67p4uSvcLuTJgB7WqoZn"
+uri = "file://attached_assets/kpi-animated.jpeg"
+type = "image"
+title = "Animated — Count-up + Sparklines"
+
+[[outputs]]
+id = "6a7cbq3Vh-Rj9KM8K3dYb"
+uri = "file://attached_assets/kpi-glass.jpeg"
+type = "image"
+title = "Glass — Frosted / Gradient"
+
+[[outputs]]
+id = "I926STUgRP-rfk4MkglnZ"
+uri = "file://attached_assets/kpi-bento.jpeg"
+type = "image"
+title = "Bento — Year-by-Year Sparkline Grid"

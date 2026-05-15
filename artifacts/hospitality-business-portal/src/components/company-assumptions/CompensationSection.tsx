@@ -51,8 +51,9 @@ export default function CompensationSection({ formData, onChange, global, resear
               onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
               guidanceContext={gc("staffSalary", "Staff Salary")}
               currentValue={formData.staffSalary ?? global.staffSalary}
+              className="min-w-0"
             />
-            <span data-field="staffSalary">
+            <span data-field="staffSalary" className="shrink-0">
               <EditableValue
                 value={formData.staffSalary ?? global.staffSalary}
                 onChange={(v) => onChange("staffSalary", v)}

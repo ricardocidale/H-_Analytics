@@ -1,5 +1,5 @@
 /**
- * Model Defaults — DB-backed seed values for the Steady State → Defaults page.
+ * Model Defaults — DB-backed seed values for the Model Defaults admin page.
  *
  * Per `docs/architecture/STEADY-STATE.md` §7 (Defaults locked tree) and §3
  * (cascade rule), Defaults are the admin-set seed values that become a user's
@@ -39,7 +39,7 @@ export const modelDefaults = pgTable("model_defaults", {
   // Identity — dotted path, e.g. "mc.funding.baseRaiseSize" or "property.template.startAdr"
   defaultKey: text("default_key").notNull(),
 
-  // UI grouping (drives Steady State → Defaults page tabs and cards)
+  // UI grouping (drives the Model Defaults admin page tabs and cards)
   category: text("category").notNull(),                    // 'management_company' | 'property' | 'macro' | 'market'
   subTab: text("sub_tab").notNull(),                       // e.g. 'funding', 'revenue', 'compensation', 'template', 'macro', 'market'
   cardKey: text("card_key").notNull(),                     // e.g. 'capital_raise_terms', 'fee_structure'

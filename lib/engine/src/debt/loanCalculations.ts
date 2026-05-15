@@ -38,6 +38,8 @@ export interface LoanParams {
   refinanceInterestRate?: number | null;
   refinanceTermYears?: number | null;
   refinanceClosingCostRate?: number | null;
+  refiMaxLtvToOriginal?: number | null;
+  refinanceBasis?: string | null;
   exitCapRate?: number | null;
   dispositionCommission?: number | null;
   depreciationYears?: number | null;
@@ -248,27 +250,58 @@ export function calculateRefinanceParams(
     return defaultResult;
   }
   
-  const refiInterestRate = property.refinanceInterestRate ?? DEFAULT_INTEREST_RATE;
-  const refiTermYears = property.refinanceTermYears ?? DEFAULT_TERM_YEARS;
+  if (property.refinanceLTV == null) {
+    throw new Error("[engine] refinanceLTV must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceInterestRate == null) {
+    throw new Error("[engine] refinanceInterestRate must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceTermYears == null) {
+    throw new Error("[engine] refinanceTermYears must be hydrated before engine call — boundary layer missed");
+  }
+  if (property.refinanceClosingCostRate == null) {
+    throw new Error("[engine] refinanceClosingCostRate must be hydrated before engine call — boundary layer missed");
+  }
+
+  const refiLTV = property.refinanceLTV;
+  const refiInterestRate = property.refinanceInterestRate;
+  const refiTermYears = property.refinanceTermYears;
+  const closingCostRate = property.refinanceClosingCostRate;
   const refiMonthlyRate = refiInterestRate / MONTHS_PER_YEAR;
   const refiTotalPayments = refiTermYears * MONTHS_PER_YEAR;
-  
-  const refiLTV = property.refinanceLTV ?? DEFAULT_REFI_LTV;
-  // Income-capitalization: new loan = stabilized NOI ÷ exit cap rate × refi LTV.
-  // This matches the module header and lender practice — the refi loan is sized against
-  // the property's income-based market value, not its historical cost basis.
-  // yearlyNOIData[refiYear] is the engine's annual NOI for the refi year (already computed).
-  const exitCapRateForRefi = property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const refiYearNOI = yearlyNOIData[refiYear] ?? 0;
-  const incomeCapValue = exitCapRateForRefi > 0 ? refiYearNOI / exitCapRateForRefi : 0;
-  const refiLoanAmount = incomeCapValue * refiLTV;
-  
+
+  // Determine property value for loan sizing based on user-selected basis.
+  // 'appreciated_asset' uses income-cap (NOI / exit cap rate) — requires exitCapRate.
+  // All other bases (purchase_price, purchase_price_plus_improvements, or null/default)
+  // use original cost, keeping the refi conservative and not dependent on NOI projections.
+  const basis = property.refinanceBasis ?? 'purchase_price';
+  let propertyValueForRefi: number;
+  if (basis === 'appreciated_asset') {
+    const exitCapRateForRefi = property.exitCapRate ?? global?.exitCapRate;
+    if (exitCapRateForRefi == null) {
+      throw new Error("[engine] exitCapRate must be hydrated before engine call — boundary layer missed");
+    }
+    const refiYearNOI = yearlyNOIData[refiYear] ?? 0;
+    propertyValueForRefi = exitCapRateForRefi > 0 ? refiYearNOI / exitCapRateForRefi : 0;
+    // Cap at refiMaxLtvToOriginal × purchasePrice to prevent equity stripping.
+    if (property.refiMaxLtvToOriginal != null && property.purchasePrice != null && refiLTV > 0) {
+      const maxValue = (property.refiMaxLtvToOriginal * property.purchasePrice) / refiLTV;
+      propertyValueForRefi = Math.min(propertyValueForRefi, maxValue);
+    }
+  } else if (basis === 'purchase_price_plus_improvements') {
+    propertyValueForRefi = property.purchasePrice + (property.buildingImprovements ?? 0);
+  } else {
+    // 'purchase_price' (default)
+    propertyValueForRefi = property.purchasePrice;
+  }
+
+  let refiLoanAmount = propertyValueForRefi * refiLTV;
+
   let refiMonthlyPayment = 0;
   if (refiLoanAmount > 0) {
     refiMonthlyPayment = pmt(refiLoanAmount, refiMonthlyRate, refiTotalPayments);
   }
-  
-  const closingCostRate = property.refinanceClosingCostRate ?? DEFAULT_REFI_CLOSING_COST_RATE;
+
   const closingCosts = refiLoanAmount * closingCostRate;
   const existingDebt = getAcquisitionOutstandingBalance(loan, refiYear - 1);
   const refiProceeds = Math.max(0, refiLoanAmount - closingCosts - existingDebt);
@@ -394,9 +427,9 @@ export function calculateExitValue(
   loan: LoanCalculation,
   refi: RefinanceCalculation,
   year: number,
-  exitCapRate?: number | null
+  exitCapRate: number
 ): number {
-  const capRate = exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+  const capRate = exitCapRate;
   const grossValue = capRate > 0 ? noi / capRate : 0;
   const commission = grossValue * loan.commissionRate;
   const outstandingDebt = getOutstandingDebtAtYear(loan, refi, year);

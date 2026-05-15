@@ -57,6 +57,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { IconAlertTriangle, IconRefreshCw } from "@/components/icons";
 import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 import { Button } from "@/components/ui/button";
@@ -169,7 +170,7 @@ export default function CompanyAssumptions() {
   // live in Admin → Model Defaults and are seeded before this page loads.
   const getTabGating = (tab: TabKey): { enabled: boolean; reason?: string } => {
     if (!formApi.formData.companyName) {
-      return { enabled: false, reason: "Set a company name in Admin → Steady State first." };
+      return { enabled: false, reason: "Set a company name in Admin → Model Defaults first." };
     }
     if (properties.length === 0) {
       return { enabled: false, reason: "Add at least one property to your portfolio first." };
@@ -231,13 +232,7 @@ export default function CompanyAssumptions() {
   }
 
   if (isLoading || !global) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   // Save is purely a persistence step — per task #738 + the binding rule

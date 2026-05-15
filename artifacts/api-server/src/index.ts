@@ -126,6 +126,7 @@ const PUBLIC_API_PATHS = new Set([
   "/api/health/live",
   "/api/health/ready",
   "/api/health/deep",
+  "/api/system/login-config",
 ]);
 
 const PUBLIC_API_PREFIXES = [

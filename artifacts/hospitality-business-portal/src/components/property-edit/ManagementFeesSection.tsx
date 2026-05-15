@@ -26,7 +26,6 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE } from "@/lib/constants";
 import type { ManagementFeesSectionProps } from "./types";
 
 export default function ManagementFeesSection({ draft, onChange, researchValues, feeDraft, onFeeCategoryChange, totalServiceFeeRate }: ManagementFeesSectionProps) {
@@ -46,10 +45,10 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm font-semibold text-foreground label-text">
+            <Label className="text-sm font-semibold text-foreground label-text min-w-0">
               Service Fee Categories (% of Total Revenue)
             </Label>
-            <span className={`text-sm font-mono font-semibold ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
+            <span className={`text-sm font-mono font-semibold shrink-0 ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
               Total: {(totalServiceFeeRate * 100).toFixed(1)}%
             </span>
           </div>
@@ -82,8 +81,9 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                     onApplyValue={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)}
                     guidanceContext={gc(assumptionKey, cat.name)}
                     currentValue={cat.rate} isPercent
+                    className="min-w-0"
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <EditableValue
                       value={cat.rate * 100}
                       onChange={(val) => onFeeCategoryChange(idx, "rate", val / 100)}
@@ -127,19 +127,22 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   badgeProps={{ entry: researchValues.incentiveFee }}
                   onApplyValue={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)}
                   guidanceContext={gc("incentiveFee", "Incentive Fee")}
-                  currentValue={draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE} isPercent
+                  currentValue={draft.incentiveManagementFeeRate ?? 0} isPercent
+                  className="min-w-0"
                 />
+                <span className="shrink-0">
                 <EditableValue
-                  value={(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100}
+                  value={(draft.incentiveManagementFeeRate ?? 0) * 100}
                   onChange={(val) => onChange("incentiveManagementFeeRate", val / 100)}
                   format="percent"
                   min={0}
                   max={25}
                   step={1}
                 />
+                </span>
               </div>
               <Slider 
-                value={[(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100]}
+                value={[(draft.incentiveManagementFeeRate ?? 0) * 100]}
                 onValueChange={(vals: number[]) => onChange("incentiveManagementFeeRate", vals[0] / 100)}
                 min={0}
                 max={25}

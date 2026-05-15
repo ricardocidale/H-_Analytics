@@ -98,19 +98,13 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
 /**
  * SEED_EXIT_CAP_RATE_LUXURY — L+B Hospitality persona override.
  *
- * Used in the seeded global_assumptions baseline row instead of the
- * system-wide DEFAULT_EXIT_CAP_RATE (8.5%) because the L+B portfolio is
- * boutique-luxury (10–80 rooms, $250–600 ADR), and luxury hotel cap rates
- * compress materially below the broader US hotel average.
- *
- * Grounded in cached benchmark `us_luxury_cap_rate = 6.2%` from
- * CBRE Hotel Cap Rate Survey 2024 (benchmark_snapshots row id=32).
- *
- * The system-wide DEFAULT_EXIT_CAP_RATE is intentionally left at 8.5%
- * as the cascade fallback for any new property/company that has not
- * declared a luxury qualityTier.
+ * Calibrated to CBRE / JLL US luxury boutique hotel cap rate consensus
+ * (2025): 7.5–9.5%; 8.5% is the market midpoint and matches
+ * DEFAULT_EXIT_CAP_RATE, keeping a single coherent reference point.
+ * Prior value of 6.2% (CBRE 2024 cached benchmark) was overly aggressive —
+ * inflated stabilised values by 20–30%, producing IRR outliers > 50%.
  */
-export const SEED_EXIT_CAP_RATE_LUXURY = 0.062;
+export const SEED_EXIT_CAP_RATE_LUXURY = 0.085;
 
 /**
  * SEED_MEDELLIN_DUPLEX_START_ADR — single-key El Poblado luxury STR starting ADR.
@@ -293,7 +287,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_AI_AGENT_NAME = "Rebecca";
 export const DEFAULT_MAX_STALENESS_HOURS = 24;
 export const USE_STABLE_SCENARIO_LOAD = true;
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
@@ -308,7 +301,6 @@ export const DEFAULT_REINVESTMENT_RATE = 0.05;
 
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
-export const DEFAULT_DAY_COUNT_CONVENTION: DayCountConvention = '30/360';
 
 // ── Escalation Method ───────────────────────────────────────────────────
 export type EscalationMethod = 'annual' | 'monthly';

@@ -159,6 +159,18 @@ export const properties = pgTable("properties", {
   // Refinance years after acquisition (when refinancing should occur)
   refinanceYearsAfterAcquisition: integer("refinance_years_after_acquisition"),
 
+  // Refi LTV cap: maximum loan as a multiple of purchasePrice (e.g. 1.00 = no
+  // equity strip). NULL = uncapped. Prevents over-leveraging on Full Equity
+  // properties where a high in-place NOI could otherwise justify a refi loan
+  // that exceeds the original cost basis.
+  refiMaxLtvToOriginal: real("refi_max_ltv_to_original"),
+
+  // Refinance basis: which property value is used to size the refi loan.
+  // 'purchase_price'                  — original purchase price only (default)
+  // 'purchase_price_plus_improvements'— purchase price + building improvements budget
+  // 'appreciated_asset'               — income-cap estimate (NOI / exit cap rate)
+  refinanceBasis: text("refinance_basis"),
+
   // Management Company Fee Rates (per-property, charged by management company)
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
   incentiveManagementFeeRate: real("incentive_management_fee_rate").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
@@ -231,7 +243,7 @@ export const properties = pgTable("properties", {
   // Platform fee rate for STR archetypes (Airbnb/VRBO commission %).
   // Nullable — NULL falls back to BUSINESS_MODEL_DEFAULTS[businessModel].platformFeeRate.
   platformFeeRate: real("platform_fee_rate"),
-  brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "set null" }),
+  brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "restrict" }),
 
   description: text("description"),
 
@@ -451,6 +463,8 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   countryRiskPremium: true,
   dispositionCommission: true,
   refinanceYearsAfterAcquisition: true,
+  refiMaxLtvToOriginal: true,
+  refinanceBasis: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
   franchiseFeeRate: true,

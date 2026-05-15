@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: norfolk
+      POSTGRES_PASSWORD: norfolk
+      POSTGRES_DB: norfolk_dev
+    volumes:
+      - norfolk_pg:/var/lib/postgresql/data
+
+volumes:
+  norfolk_pg:

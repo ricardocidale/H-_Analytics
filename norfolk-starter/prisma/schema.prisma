@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+  // Outside node_modules so Windows AV / Node cannot lock the default query engine path during generate.
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Add your models below ──────────────────────────────────────────────
+// Example:
+//
+// model Post {
+//   id        String   @id @default(cuid())
+//   title     String
+//   content   String?
+//   published Boolean  @default(false)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }

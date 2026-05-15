@@ -70,7 +70,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       `${registryLabel("startAdr", "Starting ADR")} required so ANOI covers ` +
       `annual debt service. Holds occupancy at the current value.`,
-    tooltipFormula: "ADR* = currentADR × [1 + (annualDS − ANOI₀) / slope]",
+    tooltipFormula: "ADR* = current ADR × [1 + (annual debt service − Year 1 ANOI) / slope]",
     format: fmtCurrency,
     higherIsBetter: true,
   },
@@ -79,7 +79,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       `${registryLabel("maxOccupancy", "Max Occupancy")} required so ANOI ` +
       `covers annual debt service. Holds ADR at the current value.`,
-    tooltipFormula: "Occ* = currentOcc × [1 + (annualDS − ANOI₀) / slope]",
+    tooltipFormula: "Occ* = current occupancy × [1 + (annual debt service − Year 1 ANOI) / slope]",
     format: fmtPct,
     higherIsBetter: true,
   },
@@ -88,7 +88,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       "Revenue per available room (ADR × Occupancy) needed for ANOI to cover " +
       "annual debt service.",
-    tooltipFormula: "RevPAR* = ADR* × Occ*",
+    tooltipFormula: "Breakeven RevPAR = Breakeven ADR × Breakeven Occupancy",
     format: fmtCurrency,
     higherIsBetter: true,
   },
@@ -97,7 +97,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       "Year-1 NOI yield required to satisfy the DSCR floor at the current " +
       "purchase price. A higher current cap is safer.",
-    tooltipFormula: "Cap* = (annualDS × DSCRfloor) / purchasePrice",
+    tooltipFormula: "Cap* = (annual debt service × DSCR floor) / purchase price",
     format: fmtPct,
     higherIsBetter: true,
   },
@@ -106,7 +106,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       "Highest annual interest rate the deal can carry while keeping ANOI / " +
       "debt service ≥ DSCR floor.",
-    tooltipFormula: "PMT(loan, r*/12, n) × 12 = ANOI / DSCRfloor → solve r*",
+    tooltipFormula: "Monthly payment(rate) × 12 = ANOI / DSCR floor → solve for rate",
     format: fmtPct,
     higherIsBetter: false,
   },
@@ -115,7 +115,7 @@ const ROW_SPECS: Record<SensitivityBreakevenRow["key"], RowSpec> = {
     tooltipText:
       "Highest exit (terminal) cap rate at sale that still produces a non-" +
       "negative IRR. A lower current exit cap is safer.",
-    tooltipFormula: "IRR(exitCap*) = 0  (interpolated from sampled exit caps)",
+    tooltipFormula: "IRR = 0 at the breakeven exit cap rate (interpolated from scenario range)",
     format: fmtPct,
     higherIsBetter: false,
   },

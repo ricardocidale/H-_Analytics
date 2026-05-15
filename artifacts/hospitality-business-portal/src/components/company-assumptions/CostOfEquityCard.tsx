@@ -144,15 +144,18 @@ export default function CostOfEquityCard({ formData, onChange, global, researchV
                 guardrailKey="wacc.cost_of_equity"
                 currentValue={formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY}
                 isPercent
+                className="min-w-0"
               />
-              <EditableValue
-                value={formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY}
-                onChange={(v) => onChange("costOfEquity", v)}
-                format="percent"
-                min={0.05}
-                max={0.40}
-                step={0.005}
-              />
+              <span className="shrink-0">
+                <EditableValue
+                  value={formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY}
+                  onChange={(v) => onChange("costOfEquity", v)}
+                  format="percent"
+                  min={0.05}
+                  max={0.40}
+                  step={0.005}
+                />
+              </span>
             </div>
             <Slider
               value={[(formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY) * 100]}

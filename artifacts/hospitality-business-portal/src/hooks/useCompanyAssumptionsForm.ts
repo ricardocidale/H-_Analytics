@@ -40,6 +40,7 @@ export const TAB_KEYS = [
   "revenue",
   "compensation",
   "overhead",
+  "mgmt-co-assumptions",
 ] as const;
 export type TabKey = (typeof TAB_KEYS)[number];
 
@@ -49,6 +50,7 @@ export const TAB_LABELS: Record<TabKey, string> = {
   revenue: "Revenue Model",
   compensation: "Compensation",
   overhead: "Overhead",
+  "mgmt-co-assumptions": "Mgmt Co Fees",
 };
 
 /**
@@ -59,7 +61,7 @@ export const TAB_LABELS: Record<TabKey, string> = {
  *   - costOfEquity lives in `funding` (DCF discount rate / WACC Re)
  *   - exitCapRate / salesCommissionRate / industryVertical /
  *     exitRevenueMultiple / property USALI ratios are admin-edited on
- *     Admin → Steady State → Property Underwriting (the legacy
+ *     Admin → Model Defaults → Property Underwriting (the legacy
  *     `property-defaults` tab here was removed). All five surfaces still
  *     write to the same `globalAssumptions` row the engine reads, so the
  *     move is behavior-neutral.
@@ -107,6 +109,9 @@ export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
     "businessInsurance", "travelCost", "itLicense",
     "eventExpense", "marketingRate", "miscOps",
   ] as unknown as Array<keyof GlobalResponse>,
+  // Mgmt Co Assumptions tab reads from management_company_fees + brand_fees tables
+  // (not from GlobalResponse). No fields to track as dirty here.
+  "mgmt-co-assumptions": [] as unknown as Array<keyof GlobalResponse>,
 };
 
 const hydrateSavedTabs = (raw: unknown): Set<TabKey> => {
@@ -190,7 +195,7 @@ export function useCompanyAssumptionsForm(
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
     company: [], funding: [], revenue: [], compensation: [],
-    overhead: [],
+    overhead: [], "mgmt-co-assumptions": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
@@ -206,7 +211,7 @@ export function useCompanyAssumptionsForm(
   const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
     useState<Record<TabKey, string[]>>({
       company: [], funding: [], revenue: [], compensation: [],
-      overhead: [],
+      overhead: [], "mgmt-co-assumptions": [],
     });
 
   // "Keep my value" acknowledgments — keyed by fieldName. Suppress warning
@@ -402,7 +407,7 @@ export function useCompanyAssumptionsForm(
     }
 
     // Note: the exit-multiple band check used to live here too, but that
-    // tab moved to Admin → Steady State → Property Underwriting. The
+    // tab moved to Admin → Model Defaults → Property Underwriting. The
     // PropertyExitDefaultsCard on the admin side runs the inline check;
     // this page no longer owns the field, so it no longer fetches the
     // bands or surfaces a save-time warning for it.

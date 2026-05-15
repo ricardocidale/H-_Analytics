@@ -45,35 +45,91 @@ There are no exceptions.
 
 ---
 
-## 2. Number Taxonomy — FOUR CATEGORIES ONLY
+## 2. Number Taxonomy — Category 2 is LEGACY DEBT (locked 2026-05-13)
 
 Every number falls into exactly one category. Never invent a fifth.
 
 | Category | Name | Pattern |
 |---|---|---|
 | 1 | TRUE CONSTANTS | Math/physics only. `DAYS_PER_MONTH = 30.5 // 365/12` |
-| 2 | DEFAULT VARIABLES | Admin-controlled starting values. `DEFAULT_*` in `constants*.ts` |
-| 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB, fallback `?? DEFAULT_*` |
-| 4 | TABLE-SOURCED VALUES | Authority rates (tax, inflation, depreciation). `getMarketRate()` or `getFactoryNumber()` |
+| 2 | DEFAULT VARIABLES | **LEGACY** — Do NOT create new ones. See rule below. |
+| 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB — no `?? DEFAULT_*` |
+| 4 | TABLE-SOURCED VALUES | Authority rates. `getMarketRate()` or `getFactoryNumber()` |
 
-Full taxonomy + violations: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
+**Category 2 superseding rule:** Business and financial values must NOT
+exist as TypeScript constants — even named ones. `const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975`
+is the same violation as writing `0.0975` inline — the name doesn't change
+that it is hardcoded. These values belong in the database:
+- `model_defaults` table — Layer-1 universal fallback (admin-editable in "Model Defaults" UI)
+- `icp_brackets` rows — Layer-2 bracket overlay (applied at entity creation)
+- `properties` / `companies` column — Layer-3 per-entity value (always populated by the three-layer resolver)
+
+**The three-layer resolver guarantees Layer-3 is always set**, so engine code
+reads `property.exitCapRate` directly — never `?? DEFAULT_EXIT_CAP_RATE`.
+
+The DB schema enforces the invariant: new columns are added as
+`NOT NULL DEFAULT <value>` in migration SQL. The literal in the SQL is
+both the bootstrap value and the not-null enforcement — existing rows are
+backfilled automatically by the DEFAULT clause. This makes TS fallback
+constants structurally unnecessary, not just stylistically bad.
+
+**The ONLY numbers allowed in TypeScript:**
+- Category 1: math/physics absolutes (12, 365, 30.5, π, 86400, etc.)
+- Structural clamps/indices: `0`, `1`, `-1`
+- Algorithm calibration constants: non-financial, non-admin-configurable parameters (IRS/GAAP-derived engine parameters like `NOL_UTILIZATION_CAP = 0.8`; rule-ordering integers like `PRIORITY_* = 100`)
+- `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) — bootstrap-only, source citation required, never imported by runtime code
+- Test assertion / fixture values (`*.test.ts`, `*.spec.ts`) — checker skips these files entirely
+
+**Three violation examples with correct fixes:**
+```ts
+// VIOLATION 1 — named constant for financial value
+export const DEFAULT_EXIT_CAP_RATE = 0.085;
+const exitCap = property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE; // WRONG
+
+// CORRECT 1 — engine reads from DB (resolver guarantees it)
+const exitCap = property.exitCapRate; // always set by three-layer resolver
+
+// VIOLATION 2 — bracket default in TypeScript
+const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975; // WRONG even with a name
+
+// CORRECT 2 — value lives in icp_brackets row, bootstrapped by SQL:
+// INSERT INTO icp_brackets (slug, default_exit_cap_rate)
+// VALUES ('us-tertiary-boutique-resort', 0.0975); -- Source: CBRE 2024 + 75bp
+
+// VIOLATION 3 — service template rates as TS array
+export const DEFAULT_SERVICE_FEE_CATEGORIES = [
+  { name: "Marketing & Brand", rate: 0.02 }, // 2% is DB data, not code
+];
+// CORRECT 3 — these rows live in a DB table (service_fee_templates),
+// bootstrapped by migration SQL, editable by admin without a deploy.
+```
+
+Full taxonomy + legacy migration path: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
 
 ---
 
-## 3. Seed File Rule
+## 3. Seed File Rule (updated 2026-05-13)
 
-Seed files MUST import and reference `DEFAULT_*` constants or named `SEED_*` constants.
-**Never write a raw numeric literal in a seed file.** Raw literals break the
-single-source-of-truth chain and cause silent drift.
+**Migration SQL is the canonical source for bootstrap values.** TypeScript
+seed scripts invoke the resolver flow (`POST /api/properties`) and receive
+DB-populated values — they do NOT carry financial literals or named constants.
 
 ```ts
-// CORRECT
-const SEED_EXIT_CAP_RATE_US = 0.075;
+// CORRECT — seed calls resolver; values come from icp_brackets Layer 2
+await createProperty({ companyId, ...baseFields });
+// exitCapRate arrives from bracket overlay, not a TS constant
+
+// VIOLATION — TS constant in seed
+const SEED_EXIT_CAP_RATE_US = 0.075;   // WRONG — still a hardcoded value
 { exitCapRate: SEED_EXIT_CAP_RATE_US }
 
-// VIOLATION
-{ exitCapRate: 0.075 }
+// VIOLATION — raw literal in seed
+{ exitCapRate: 0.075 }  // WRONG
 ```
+
+When a per-entity confirmed override is required (e.g., Medellin Duplex
+strategic exit at 7.5%), use a SQL migration or a one-off script that writes
+a CONFIRMED-state DB row with a source comment — not a TS constant.
 
 ---
 
@@ -381,7 +437,9 @@ Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/
 
 ### Number taxonomy — the permanent law (never re-derive)
 
-Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — use `?? DEFAULT_X` or `?? getFactoryNumber(key, 'US')`; (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` outside `lib/shared/src/constants*.ts` or `lib/db/src/constants.ts`.
+Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — the fix is NOT `?? DEFAULT_X` (also a violation); use `getFactoryNumber(key, country)` for country-specific rates or rely on the three-layer resolver guarantee (no fallback needed); (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` — a named constant doesn't fix the violation.
+
+**Confirmed exceptions (2026-05-13):** Algorithm calibration constants (non-financial ordering / IRS-derived parameters like `NOL_UTILIZATION_CAP`, `PRIORITY_*`) stay in TypeScript. `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) are acceptable bootstrap-only values with source citations. Test files (`*.test.ts`, `*.spec.ts`) are fully exempt from the checker.
 
 Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local assumption constants.
 
@@ -443,7 +501,8 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |
 | `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full reference (routes, schema, finance, slots, Admin UI) |
 | `docs/slide-system/canonical/coding-agent-instructions.md` | Slide agent workflow — §15 mandates canonical PNG comparison (PNG > JSON) |
-| `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` | Large-repo Shell + CodeRabbit + Compound operating mode (off by default; toggle: `.local/opmode/active`) |
+| `.agents/status/cc.md` | CC current session status (active branch, owned files, handoff notes) |
+| `.agents/status/replit.md` | Replit current session status (active branch, owned files, handoff notes) |
 
 ---
 
@@ -476,29 +535,49 @@ Never merge a PR whose diff contains files outside the stated scope without expl
 
 ---
 
+### Agent coordination — CC ↔ Replit (mandatory session gate)
+
+Two status files prevent work collisions between CC and Replit Agent:
+
+| File | Owner | Counterpart reads |
+|---|---|---|
+| `.agents/status/cc.md` | CC (sole writer) | Replit |
+| `.agents/status/replit.md` | Replit (sole writer) | CC |
+
+**Session start (mandatory):**
+1. Read `.agents/status/replit.md` — note `Active Branch` and `Files Replit Owns Right Now`.
+2. If Replit has an active branch that overlaps files you need, coordinate before touching them.
+3. Update `.agents/status/cc.md`: set `Status: active`, record branch, set `Updated` timestamp.
+
+**Session end (mandatory):**
+1. Set `Status: idle` (or `handoff-pending` if handing off to Replit).
+2. Fill `Handoff to Replit` section with specific pickup instructions if applicable.
+3. Commit the status file as part of your final commit (or standalone `chore(status)` commit).
+
+**Staleness clause:** if `Updated` is >24h old, treat as `idle` regardless of `Status` field.
+
+Full protocol, format spec, and surface restrictions: `agent-collab-status` skill.
+
+---
+
 ### Memory-file harmonization (mandatory shipping gate)
 
 `CLAUDE.md` and `replit.md` are dual memory files covering identical ground for two different agents. They drift by default. **Every session that modifies either file must harmonize the other before shipping.** This applies equally when `ce-work` ships code that affects `CLAUDE.md` content (architecture rules, skill routing, known issues, recent changes).
 
-Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `CLAUDE.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
+Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `CLAUDE.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass, TODO list format and cadence). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
 
 ---
 
-## Natural-language commands — CodeRabbit loop
+## Open TODOs — CC
 
-Six slash commands for iterative CR review loops. Install globally once from H+ Analytics:
-`pnpm coderabbit-loop:install`  — copies commands → `~/.claude/commands/`, helpers → `~/.local/share/coderabbit-loop/`
-
-Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
-
-| Natural-language phrase | Slash command | pnpm equivalent |
+<!-- Check off when done · Add when identified · Prune [x] rows at next session start -->
+<!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
+| | Item | Scope |
 |---|---|---|
-| "turn coderabbit loop on", "arm the loop", "enable coderabbit" | `/coderabbit-loop-on` | `pnpm coderabbit-loop:on` |
-| "turn coderabbit loop off", "disarm the loop", "disable coderabbit" | `/coderabbit-loop-off` | `pnpm coderabbit-loop:off` |
-| "coderabbit loop status", "is the loop on", "loop state" | `/coderabbit-loop-status` | `pnpm coderabbit-loop:status` |
-| "coderabbit loop help", "what are the loop commands" | `/coderabbit-loop-help` | `pnpm coderabbit-loop:help` |
-| "run coderabbit review loop", "review my working tree", "start review loop" | `/coderabbit-loop-review` | `pnpm coderabbit-loop:review` |
-| "run coderabbit autofix", "loop with autofix", "autofix my PR" | `/coderabbit-loop-autofix` | `pnpm coderabbit-loop:autofix` |
+| [x] | U6: bracket-default seeding pathway at `POST /api/properties` — `applyBracketLayerDefaults` in `defaults.ts`, wired before `hydratePropertyFinancials` in `createPropertyRecord` ✓ | Plan 2026-05-13-001 |
+| [ ] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration | Plan 2026-05-13-001 |
+| [ ] | U8: verification — portfolio IRR in 25–30% band + docs | Plan 2026-05-13-001 |
+| [ ] | Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each constant as cleaned up) | Taxonomy cleanup |
 
 ---
 
@@ -507,6 +586,6 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-| 2026-05-12 | **Factory v2 PPTX-as-truth pipeline shipped (Phases A–D).** Slide factory render path pivoted from React+Playwright HTML→PDF to PPTX template substitution (`pptx-automizer`) → LibreOffice headless export. Output is dual-format (PPTX + PDF). The v7 reconstruction package PPTX is the structural template; Builders emit substitution maps; Marco assembles and applies via `substituteSlots`. Wish-list slide appended post-run. Admin UI updated: PPTX + PDF download buttons in FactoryDownloadTab; all factory mutations migrated to `apiRequest()` (CSRF-compliant). Rebecca `download_factory_v2_deck` tool added for agent-native parity. Franco (Playwright→PDF render minion) added to SKILL.md roster. Decision-reversal doc (`slide-deck-generation-decision-reversal-2026-05-03.md`) marked superseded. |
+| 2026-05-13 | **Financial defaults integrity + IRR calibration shipped (Plan 2026-05-13-003, Phases 1–5).** Five root causes of broken IRR fixed: (1) exit cap rate 0.062→0.085 for luxury tier (`SEED_EXIT_CAP_RATE_LUXURY`); (2) `refinanceLtv`→`refinanceLTV` casing bug fixed on 3 SYNC properties; (3) `refiMaxLtvToOriginal` cap wired in both engine refi paths (`refinance-pass.ts` + `loanCalculations.ts`) to prevent equity stripping; (4) null assertions added for fail-fast behavior (Phase 4); (5) `withFinancialHydration` wired at all compute routes (Phase 2). DB migration adds `refi_max_ltv_to_original` column to `properties` (Drizzle 0058/0064, runtime guard `properties-refi-ltv-cap-001.ts`). Startup guard `assertRequiredModelDefaults()` fails boot if model_defaults seed rows are missing. |
+| 2026-05-13 | **Slide factory UI design sweep shipped (Plan 2026-05-13-004).** Two new shared components: `FactoryProgressPill` (fixed-position floating progress rectangle with indeterminate CSS bar + expandable minion details) and `FactoryErrorPill` (floating error pill). All five pipeline tabs rewritten: Lorenzo, Lucca, Agents, Download, and `SlideFactoryPanel` outer loading state. Embedded `<Card>` loading/error containers eliminated across the board — skeleton shimmer (`Skeleton`) replaces spinner-cards for pipeline-wait states; pills float at `bottom: 24px` for active pipeline feedback. Design gates pass: typecheck ✅, lint ✅, spinner-contrast ✅. |
 | 2026-05-11 | **Range-badge quality contract memorized.** Range badges across the entire app must show two independent signals: (1) a small green/yellow/red **range-quality dot** at the right edge of the range value chip indicating whether the *range itself* is plausible per DB-stored guardrails (e.g. cost of equity outliers ∉ [6%, 25%]), and (2) when the user's value falls outside the range, a separate terse chip with one icon (`AlertCircle`) + the lowercase words **"out of range"** — no severity word, no "Med/Low/High" tail, no second dot. The old `Outside suggested range · ● Med` composition in `RangeIndicator.tsx` is deprecated. Guardrails live in a new codebase-seeded `assumption_guardrails` table surfaced under Admin → AI → Intelligence → Knowledge & Resources → Tables (read-only, vector-indexed). A new minion **Fabio** (deterministic range-quality validator, `lib/engine/src/analyst/minions/fabio.ts`) owns the dot color. Full contract + first-cut seed table + rollout list in the SUPERSEDING CONTRACT block at the top of `analyst-intelligence-display`. |
-| 2026-05-11 | **Knowledge & Resources contract memorized (10th restatement).** All non-LLM external resources (Tables incl. Constants/Market Data, APIs, URL Links) live ONLY under `Admin → AI → Intelligence → Knowledge & Resources`. Top-level item `Tables` with sub-items `APIs` and `URL Links`. Accordion rows with status color + brief description; open card shows full info + Agents/Specialists/Minions using it. Tables card has Analyst (regenerate via same workflow) + Save + Cancel; APIs/URL Links card has Analyst = test only. Admin is read-only — codebase + Neon define the inventory, 90-day rolling usage log in DB. Tables use vector DB indexing. Constants may appear discreetly inline on front-of-app calc pages; nothing else. Front-of-app must remove all Tables/APIs/Links presentation. Rules added to `hplus-admin-nav-ia` (SUPERSEDING section) and `front-of-app-admin-isolation`. |

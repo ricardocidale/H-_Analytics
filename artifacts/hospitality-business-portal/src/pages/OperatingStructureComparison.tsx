@@ -183,21 +183,13 @@ export default function OperatingStructureComparison() {
         )}
 
         {cmpError && (
-          <Alert variant="destructive" data-testid="alert-comparison-error">
-            <IconAlertTriangle className="h-4 w-4" />
-            <AlertTitle>Comparison failed</AlertTitle>
-            <AlertDescription>
-              {cmpError instanceof Error ? cmpError.message : "Unknown error"}
-              <Button
-                variant="link"
-                className="ml-2 h-auto p-0"
-                onClick={() => refetch()}
-                data-testid="button-retry"
-              >
-                Retry
-              </Button>
-            </AlertDescription>
-          </Alert>
+          <div role="alert" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground py-1" data-testid="alert-comparison-error">
+            <IconAlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+            <span>{cmpError instanceof Error ? cmpError.message : "Comparison failed"}</span>
+            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => refetch()} data-testid="button-retry">
+              Retry
+            </Button>
+          </div>
         )}
 
         {comparison && recommended && property && (

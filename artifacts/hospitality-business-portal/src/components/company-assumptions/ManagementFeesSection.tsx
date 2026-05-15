@@ -262,7 +262,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
       <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="min-w-0">
               <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
                 <IconPackage className="w-4 h-4 text-muted-foreground" />
                 Service Categories
@@ -272,7 +272,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
                 Toggle services ON/OFF to include or exclude them globally for all properties.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleSync} disabled={syncMutation.isPending} data-testid="button-sync-templates">
@@ -328,12 +328,12 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
               ))}
 
               <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg mt-4">
-                <div className="flex items-center gap-2">
-                  <IconTrending className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <IconTrending className="w-4 h-4 text-primary shrink-0" />
                   <span className="text-sm font-semibold text-primary">Total Base Management Fee</span>
                   <InfoTooltip text="The sum of all active service category rates. This is the effective Base Management Fee charged to each property as a percentage of their Total Revenue. It is deducted from NOI to calculate ANOI in the USALI waterfall." />
                 </div>
-                <span className="text-lg font-display font-bold text-primary font-mono">{(totalServiceRate * 100).toFixed(1)}%</span>
+                <span className="text-lg font-display font-bold text-primary font-mono shrink-0">{(totalServiceRate * 100).toFixed(1)}%</span>
               </div>
             </div>
           )}

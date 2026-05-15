@@ -1,5 +1,5 @@
 /**
- * server/defaults.ts — DB-backed reader for the Steady State → Defaults page.
+ * server/defaults.ts — DB-backed reader for the Model Defaults → Defaults page.
  *
  * The `model_defaults` table holds the admin-managed seed values that become
  * a user's starting assumptions (see `lib/db/src/schema/model-defaults.ts`). The
@@ -23,9 +23,9 @@
  * the Admin UI's Pending Proposals queue. The engine reads only `value`.
  */
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "./db";
-import { modelDefaults, type ModelDefault } from "@workspace/db";
+import { modelDefaults, icpBrackets, managementCompanyFees, brandFees, businessBrands, type ModelDefault, type BracketMixData } from "@workspace/db";
 
 export interface DefaultScope {
   country?: string | null;
@@ -121,4 +121,264 @@ export async function resolveDefaultsByCard(
     if (best !== undefined) out.set(key, best.value);
   });
   return out;
+}
+
+// ── Property financial hydration ──────────────────────────────────────────────
+
+/** Underwriting fields that must be non-null before any engine call. */
+export interface HydratedFinancials {
+  acquisitionLTV: number;
+  refinanceLTV: number;
+  exitCapRate: number;
+  maxOccupancy: number;
+  refiMaxLtvToOriginal: number;
+  refinanceInterestRate: number;
+  refinanceTermYears: number;
+  refinanceClosingCostRate: number;
+}
+
+type PartialFinancials = {
+  acquisitionLTV?: number | null;
+  refinanceLTV?: number | null;
+  exitCapRate?: number | null;
+  maxOccupancy?: number | null;
+  refiMaxLtvToOriginal?: number | null;
+  refinanceInterestRate?: number | null;
+  refinanceTermYears?: number | null;
+  refinanceClosingCostRate?: number | null;
+};
+
+const FINANCIAL_DEFAULT_KEYS = [
+  { field: "acquisitionLTV",          defaultKey: "mc.funding.ltv" },
+  { field: "refinanceLTV",            defaultKey: "mc.funding.refiLtv" },
+  { field: "exitCapRate",             defaultKey: "mc.tax_exit.exitCapRate" },
+  { field: "maxOccupancy",            defaultKey: "mc.property_defaults.maxOccupancy" },
+  { field: "refiMaxLtvToOriginal",    defaultKey: "mc.funding.refiMaxLtvToOriginal" },
+  { field: "refinanceInterestRate",   defaultKey: "mc.funding.refiInterestRate" },
+  { field: "refinanceTermYears",      defaultKey: "mc.funding.refiTermYears" },
+  { field: "refinanceClosingCostRate",defaultKey: "mc.funding.refiClosingCostRate" },
+] as const;
+
+/**
+ * Guarantees all underwriting fields are non-null.
+ *
+ * Precedence: property record value (if set) > model_defaults DB row > error.
+ * The startup guard (assertRequiredModelDefaults) ensures the DB rows exist, so
+ * the error branch is only reached if the DB is empty on a non-guarded path.
+ *
+ * Call this at every server-side boundary before passing a property to the engine.
+ * For batch property arrays, use hydratePropertiesFinancials.
+ */
+export async function hydratePropertyFinancials(
+  property: PartialFinancials,
+  scope: DefaultScope = {},
+): Promise<HydratedFinancials> {
+  const defaultKeys = FINANCIAL_DEFAULT_KEYS.map(m => m.defaultKey) as string[];
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, defaultKeys));
+
+  const resolved = new Map<string, number>();
+  for (const { defaultKey } of FINANCIAL_DEFAULT_KEYS) {
+    const candidates = rows.filter(r => r.defaultKey === defaultKey);
+    const best = pickBest(candidates, scope);
+    if (best !== undefined && typeof best.value === "number") {
+      resolved.set(defaultKey, best.value);
+    }
+  }
+
+  const hydrate = (field: keyof PartialFinancials, defaultKey: string): number => {
+    const existing = property[field];
+    if (existing != null && Number.isFinite(existing)) return existing as number;
+    const dbVal = resolved.get(defaultKey);
+    if (dbVal !== undefined) return dbVal;
+    throw new Error(
+      `hydratePropertyFinancials: required model_defaults key "${defaultKey}" is missing. ` +
+      `Run seedModelDefaults or restart the server to reseed.`,
+    );
+  };
+
+  return {
+    acquisitionLTV:          hydrate("acquisitionLTV",          "mc.funding.ltv"),
+    refinanceLTV:            hydrate("refinanceLTV",            "mc.funding.refiLtv"),
+    exitCapRate:             hydrate("exitCapRate",             "mc.tax_exit.exitCapRate"),
+    maxOccupancy:            hydrate("maxOccupancy",            "mc.property_defaults.maxOccupancy"),
+    refiMaxLtvToOriginal:    hydrate("refiMaxLtvToOriginal",    "mc.funding.refiMaxLtvToOriginal"),
+    refinanceInterestRate:   hydrate("refinanceInterestRate",   "mc.funding.refiInterestRate"),
+    refinanceTermYears:      hydrate("refinanceTermYears",      "mc.funding.refiTermYears"),
+    refinanceClosingCostRate:hydrate("refinanceClosingCostRate","mc.funding.refiClosingCostRate"),
+  };
+}
+
+/**
+ * Batch variant: overlays null financial fields from model_defaults on each property.
+ * Resolved DB rows are fetched once for the whole batch; scope is derived per-property.
+ * Returns a new array with the same objects but null underwriting fields filled in.
+ * Non-fatal: if resolution fails, the original array is returned unchanged.
+ */
+export async function withFinancialHydration<T extends Record<string, unknown>>(
+  properties: T[],
+): Promise<T[]> {
+  if (properties.length === 0) return properties;
+
+  // Fetch all relevant model_defaults rows once for the batch.
+  const defaultKeys = FINANCIAL_DEFAULT_KEYS.map(m => m.defaultKey) as string[];
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, defaultKeys));
+
+  return properties.map(p => {
+    const scope: DefaultScope = {
+      country: p.country as string | null | undefined,
+      businessType: (p.type ?? p.businessType) as string | null | undefined,
+    };
+    const patched: Record<string, unknown> = { ...p };
+    for (const { field, defaultKey } of FINANCIAL_DEFAULT_KEYS) {
+      if (patched[field] != null) continue;
+      const candidates = rows.filter(r => r.defaultKey === defaultKey);
+      const best = pickBest(candidates, scope);
+      if (best !== undefined && typeof best.value === "number") {
+        patched[field] = best.value;
+      }
+    }
+    return patched as T;
+  });
+}
+
+// ── Layer-2 bracket overlay ───────────────────────────────────────────────────
+
+/**
+ * Overlay Layer-2 bracket-mix defaults onto a new property's underwriting fields.
+ *
+ * Must run BEFORE hydratePropertyFinancials (Layer-1): bracket values override
+ * model_defaults when a bracket carries an opinion; Layer-1 fills any remaining
+ * nulls from model_defaults.
+ *
+ * For each of the two fields icp_brackets carries opinions on (exitCapRate,
+ * refiMaxLtvToOriginal), the blended value is the weighted average over all
+ * brackets in the mix that have a non-null value for that field, re-normalizing
+ * by the sum of contributing weights only.
+ *
+ * Only writes to fields still null in createData — user-supplied values win.
+ * May throw; callers wrap in a non-fatal try/catch.
+ */
+export async function applyBracketLayerDefaults(
+  createData: Record<string, unknown>,
+  bracketMixData: BracketMixData | null | undefined,
+): Promise<void> {
+  if (!bracketMixData || !Array.isArray(bracketMixData.entries) || bracketMixData.entries.length === 0) return;
+
+  const entries = bracketMixData.entries.filter(
+    e => typeof e.id === "string" && typeof e.weight === "number" && e.weight > 0,
+  );
+  if (entries.length === 0) return;
+
+  const slugs = entries.map(e => e.id);
+  const rows = await db
+    .select({
+      slug: icpBrackets.slug,
+      defaultExitCapRate: icpBrackets.defaultExitCapRate,
+      defaultRefiMaxLtvToOriginal: icpBrackets.defaultRefiMaxLtvToOriginal,
+    })
+    .from(icpBrackets)
+    .where(inArray(icpBrackets.slug, slugs));
+
+  type RowKey = "defaultExitCapRate" | "defaultRefiMaxLtvToOriginal";
+  const layer2Fields: { field: string; rowKey: RowKey }[] = [
+    { field: "exitCapRate",          rowKey: "defaultExitCapRate" },
+    { field: "refiMaxLtvToOriginal", rowKey: "defaultRefiMaxLtvToOriginal" },
+  ];
+
+  for (const { field, rowKey } of layer2Fields) {
+    if (createData[field] != null) continue;
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const entry of entries) {
+      const row = rows.find(r => r.slug === entry.id);
+      const val = row?.[rowKey];
+      if (val == null) continue;
+      weightedSum += val * entry.weight;
+      totalWeight += entry.weight;
+    }
+
+    if (totalWeight > 0) {
+      createData[field] = weightedSum / totalWeight;
+    }
+  }
+}
+
+// ── Fee column cascade ────────────────────────────────────────────────────────
+
+const MGMT_FEE_COLUMN_MAP: Readonly<Record<string, string>> = {
+  base_mgmt: "baseManagementFeeRate",
+  incentive:  "incentiveManagementFeeRate",
+};
+
+/**
+ * fee_type → property column for brand_fees rows.
+ * OTA channel types (channel_airbnb, channel_vrbo, channel_booking,
+ * channel_plum_guide) and h_plus_str_brand_fee have no matching property
+ * column in Phase 1 — stored in brand_fees for future engine reads.
+ */
+const BRAND_FEE_COLUMN_MAP: Readonly<Record<string, string>> = {
+  royalty:         "royaltyFeeRate",
+  brand_marketing: "brandMarketingFeeRate",
+  loyalty:         "loyaltyProgramFeeRate",
+  reservation:     "reservationFeeRate",
+  brand_tech:      "brandTechnologyFeeRate",
+};
+
+/**
+ * Cascade Layer-2 fee defaults from management_company_fees + brand_fees
+ * into a property data record. Only populates null/undefined fields —
+ * user-supplied values win.
+ *
+ * At creation: user data fields are non-null if supplied, so they are preserved.
+ * At PATCH: validation.data fields are spread into updateData first, so
+ * user-supplied fee values are non-null and are not overwritten.
+ *
+ * Unconditional in Phase 1 — has_mgmt_co_override column gating deferred.
+ * STR-specific brand fees (h_plus_str_brand_fee, channel_*) have no matching
+ * property column in Phase 1 and are silently skipped.
+ *
+ * May throw; callers wrap in a non-fatal try/catch.
+ */
+export async function hydrateFeeColumns(
+  data: Record<string, unknown>,
+): Promise<void> {
+  // Step 1: cascade management_company_fees (applies to all properties)
+  const mgmtRows = await db.select().from(managementCompanyFees);
+  for (const row of mgmtRows) {
+    const col = MGMT_FEE_COLUMN_MAP[row.feeType];
+    if (col !== undefined && data[col] == null) {
+      data[col] = row.rate;
+    }
+  }
+
+  // Step 2: cascade brand_fees by the property's brand slug
+  const brandId = data.brandId as number | null | undefined;
+  if (brandId == null) return;
+
+  const brandRows = await db
+    .select({ slug: businessBrands.slug })
+    .from(businessBrands)
+    .where(eq(businessBrands.id, brandId))
+    .limit(1);
+  if (brandRows.length === 0) return;
+
+  const { slug } = brandRows[0];
+  const feeRows = await db
+    .select()
+    .from(brandFees)
+    .where(eq(brandFees.brandSlug, slug));
+
+  for (const row of feeRows) {
+    const col = BRAND_FEE_COLUMN_MAP[row.feeType];
+    if (col !== undefined && data[col] == null) {
+      data[col] = row.rate;
+    }
+  }
 }

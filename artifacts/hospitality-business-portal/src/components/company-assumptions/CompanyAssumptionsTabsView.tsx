@@ -31,6 +31,7 @@ import {
   TabWarningsPanel,
   type TabValidationWarning,
 } from "@/components/company-assumptions";
+import { MgmtCoAssumptionsSection } from "@/components/company/MgmtCoAssumptionsSection";
 import {
   TAB_FIELDS,
   TAB_LABELS,
@@ -211,6 +212,8 @@ export function CompanyAssumptionsTabsView(props: Props) {
             />
           </div>
         );
+      case "mgmt-co-assumptions":
+        return <MgmtCoAssumptionsSection />;
     }
   };
 

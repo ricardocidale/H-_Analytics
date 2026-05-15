@@ -276,7 +276,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     {
       label: "Home",
       items: [
-        { href: "/", label: "Dashboard", icon: IconDashboard },
+        { href: "/", label: "Portfolio Overview", icon: IconDashboard },
         { href: "/portfolio", label: "Properties", icon: IconProperties },
         { href: "/company", label: "Management Co", icon: IconBriefcase },
       ],
@@ -536,7 +536,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
       {(() => {
         const bottomNavItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-          { href: "/", label: "Dashboard", icon: IconDashboard },
+          { href: "/", label: "Portfolio", icon: IconDashboard },
           { href: "/portfolio", label: "Properties", icon: IconProperties },
           { href: "/company", label: "Company", icon: IconBriefcase },
           { href: "/profile", label: "Profile", icon: IconProfile },

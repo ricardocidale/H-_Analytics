@@ -1,5 +1,6 @@
 import { APP_BRAND_NAME, BRAND_ACCENT_HEX, BRAND_ACCENT_PREFIX } from "@shared/constants";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,24 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const { data: loginConfig } = useQuery<{ loginScreenEnabled: boolean; motd: { enabled: boolean; text: string }; autoLoginEnabled: boolean }>({
+    queryKey: ["/api/system/login-config"],
+    staleTime: 30_000,
+  });
+  const loginScreenEnabled = loginConfig?.loginScreenEnabled ?? true;
+  const motd = loginConfig?.motd;
+
+  // Auto-login for dev environments when the super-admin has enabled the bypass.
+  // The server only returns autoLoginEnabled=true when !isPublishedDeployment(),
+  // so this never fires in Railway production regardless of DB state.
+  const autoLoginTriggered = useRef(false);
+  useEffect(() => {
+    if (loginConfig?.autoLoginEnabled && !autoLoginTriggered.current) {
+      autoLoginTriggered.current = true;
+      handleAdminLogin();
+    }
+  }, [loginConfig?.autoLoginEnabled]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -133,8 +152,25 @@ export default function Login() {
           style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)" }}
         >
 
-          {/* ── Left: form ───────────────────────────────────── */}
+          {/* ── Left: form or restricted-access panel ────── */}
           <div className="bg-card flex flex-col">
+            {!loginScreenEnabled ? (
+              <div className="flex items-center justify-center p-8 md:p-12">
+                <div className="flex flex-col items-center text-center gap-5 w-full max-w-sm">
+                  <SpinningLogo3D size={80} />
+                  <div>
+                    <h1 className="text-2xl font-bold font-display tracking-tight">
+                      Access Restricted
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Sign-ins are currently disabled for this portal.
+                      <br />
+                      Contact your administrator for access.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <form
               onSubmit={handleSubmit}
               className="flex items-center justify-center p-8 md:p-12"
@@ -266,6 +302,7 @@ export default function Login() {
                 </p>
               </div>
             </form>
+            )}
           </div>
 
           {/* ── Right: photo panel ───────────────────── */}
@@ -281,17 +318,29 @@ export default function Login() {
               className="absolute inset-0"
               style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }}
             />
-            {/* Brand text */}
-            <div className="relative z-10 text-center px-8 pb-10">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-2 font-medium">
-                Hospitality Intelligence
-              </p>
-              <h2 className="text-2xl font-display font-bold text-white/90 leading-snug">
-                <span style={{ color: BRAND_ACCENT_HEX }}>{BRAND_ACCENT_PREFIX}</span>{APP_BRAND_NAME.slice(BRAND_ACCENT_PREFIX.length)}
-              </h2>
-              <p className="text-xs text-white/50 mt-2 leading-relaxed max-w-[220px] mx-auto">
-                Dual-entity GAAP modelling and investment simulation for the modern portfolio.
-              </p>
+            {/* Bottom content: MOTD + brand text */}
+            <div className="relative z-10 text-center px-8 pb-10 w-full flex flex-col items-center gap-5">
+              {/* Message of the day */}
+              {motd?.enabled && motd?.text && (
+                <div className="max-w-[240px] mx-auto">
+                  <p className="text-[11px] text-white/70 italic leading-relaxed">
+                    &ldquo;{motd.text}&rdquo;
+                  </p>
+                  <div className="mt-3 h-px bg-white/20" />
+                </div>
+              )}
+              {/* Brand text */}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-2 font-medium">
+                  Hospitality Intelligence
+                </p>
+                <h2 className="text-2xl font-display font-bold text-white/90 leading-snug">
+                  <span style={{ color: BRAND_ACCENT_HEX }}>{BRAND_ACCENT_PREFIX}</span>{APP_BRAND_NAME.slice(BRAND_ACCENT_PREFIX.length)}
+                </h2>
+                <p className="text-xs text-white/50 mt-2 leading-relaxed max-w-[220px] mx-auto">
+                  Dual-entity GAAP modelling and investment simulation for the modern portfolio.
+                </p>
+              </div>
             </div>
           </div>
         </div>

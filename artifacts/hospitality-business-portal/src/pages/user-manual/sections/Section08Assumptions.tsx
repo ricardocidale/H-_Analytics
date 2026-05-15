@@ -81,7 +81,7 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
         </p>
         <p className="text-sm mt-2">
           You can no longer edit these from the Tax or Macro sections. They are managed centrally in
-          <strong> Admin → Steady State → Model Constants</strong>, where each value carries a badge showing its
+          <strong> Admin → Model Defaults → Model Constants</strong>, where each value carries a badge showing its
           source: <strong>Factory</strong> (built-in default), <strong>Analyst</strong> (researched and proposed
           by The Analyst with a citation), or <strong>Manual</strong> (admin override). Whatever the admin
           confirms there is what every calculation across the portal uses — no per-property override possible.
