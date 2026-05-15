@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --cache --cache-location .eslintcache",
     "test": "vitest run",
+    "test:pagination": "vitest run src/report/minions/otavio-pagination.test.ts",
     "dry:costantino": "tsx ./src/scripts/costantino-dry-cycle.ts"
   },
   "dependencies": {

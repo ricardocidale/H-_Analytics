@@ -68,6 +68,10 @@ args = "check:direct-run-guards"
 task = "workflow.run"
 args = "check:taxonomy-mirror"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:pagination"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -210,6 +214,17 @@ args = "pnpm --filter @workspace/scripts run check:taxonomy-mirror"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "test:pagination"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:pagination"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
