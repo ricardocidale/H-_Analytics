@@ -26,12 +26,18 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
+import { useServiceTemplates } from "@/lib/api/services";
+import { useNationalBenchmarks, serviceTemplateNameToServiceLine } from "@/lib/api/national-benchmarks";
 import { DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE } from "@/lib/constants";
 import type { ManagementFeesSectionProps } from "./types";
 
 export default function ManagementFeesSection({ draft, onChange, researchValues, feeDraft, onFeeCategoryChange, totalServiceFeeRate }: ManagementFeesSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
+  const { data: serviceTemplates } = useServiceTemplates();
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -73,6 +79,15 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 'Procurement': 'svcFeeProcurement',
               };
               const assumptionKey = svcKeyMap[cat.name] ?? `svcFee${cat.name.replace(/\s+/g, '')}`;
+              const catNameNorm = cat.name.trim().toLowerCase();
+              const template = serviceTemplates?.find(t => t.name.trim().toLowerCase() === catNameNorm);
+              const isCentralized = template?.serviceModel === "centralized";
+              const templateMarkup = isCentralized ? (template?.serviceMarkup ?? null) : null;
+              const serviceLine = isCentralized ? serviceTemplateNameToServiceLine(cat.name) : null;
+              const markupRow = serviceLine
+                ? (nationalBenchmarks?.markupFactors.find(r => r.serviceLine === serviceLine) ?? null)
+                : null;
+
               return (
               <div key={cat.id} className="space-y-2" data-testid={`fee-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="flex justify-between items-center">
@@ -113,6 +128,21 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   step={0.1}
                   disabled={!cat.isActive}
                 />
+                {isCentralized && markupRow && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span>Cost-Plus Markup: <span className="font-mono">{((templateMarkup ?? 0) * 100).toFixed(0)}%</span></span>
+                    <NationalBenchmarkChip
+                      kind="markup"
+                      currentValue={templateMarkup}
+                      benchmarkValue={markupRow.value}
+                      dot={markupRow.dot}
+                      guardrail={markupRow.guardrail}
+                      source={markupRow.source}
+                      period={markupRow.period}
+                      fetchedAt={markupRow.fetchedAt}
+                    />
+                  </div>
+                )}
               </div>
               );
             })}
