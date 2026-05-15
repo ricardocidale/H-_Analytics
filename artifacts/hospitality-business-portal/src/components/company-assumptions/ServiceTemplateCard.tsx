@@ -420,7 +420,7 @@ export function ServiceTemplateCard({
           )}
 
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 min-w-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -452,7 +452,7 @@ export function ServiceTemplateCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5 text-muted-foreground"
+              className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
               onClick={() => onToggleResearch(t.id)}
               data-testid={`button-research-service-${t.id}`}
             >

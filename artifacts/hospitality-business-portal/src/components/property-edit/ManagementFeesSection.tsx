@@ -46,10 +46,10 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm font-semibold text-foreground label-text">
+            <Label className="text-sm font-semibold text-foreground label-text min-w-0">
               Service Fee Categories (% of Total Revenue)
             </Label>
-            <span className={`text-sm font-mono font-semibold ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
+            <span className={`text-sm font-mono font-semibold shrink-0 ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
               Total: {(totalServiceFeeRate * 100).toFixed(1)}%
             </span>
           </div>
@@ -77,13 +77,14 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
               <div key={cat.id} className="space-y-2" data-testid={`fee-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="flex justify-between items-center">
                   <ResearchContextFieldLabel
+                    className="min-w-0"
                     label={<span className={cat.isActive ? '' : 'text-muted-foreground line-through'}>{cat.name} <InfoTooltip text={`${cat.name} service fee = Total Revenue × ${(cat.rate * 100).toFixed(1)}%. Charged monthly as part of the management company's service fees.`} /></span>}
                     badgeProps={{ value: rv?.display }}
                     onApplyValue={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)}
                     guidanceContext={gc(assumptionKey, cat.name)}
                     currentValue={cat.rate} isPercent
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <EditableValue
                       value={cat.rate * 100}
                       onChange={(val) => onFeeCategoryChange(idx, "rate", val / 100)}

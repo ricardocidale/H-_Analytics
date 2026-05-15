@@ -147,10 +147,10 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground" data-testid="text-land-value-percent">
+                <span className="text-sm font-medium text-foreground min-w-0" data-testid="text-land-value-percent">
                   {((draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT) * 100).toFixed(0)}%
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground shrink-0">
                   Depreciable basis: ${((draft.purchasePrice * (1 - (draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT))) + draft.buildingImprovements).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
               </div>
@@ -442,8 +442,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Loan Term<InfoTooltip text="Amortization period for the loan in years. Longer terms reduce monthly payments but increase total interest paid." /></Label>
-                  <span className="text-sm font-mono text-foreground">{draft.acquisitionTermYears || DEFAULT_TERM_YEARS} yrs</span>
+                  <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Loan Term<InfoTooltip text="Amortization period for the loan in years. Longer terms reduce monthly payments but increase total interest paid." /></Label>
+                  <span className="text-sm font-mono text-foreground shrink-0">{draft.acquisitionTermYears || DEFAULT_TERM_YEARS} yrs</span>
                 </div>
                 <Slider
                   value={[draft.acquisitionTermYears || DEFAULT_TERM_YEARS]}
@@ -532,8 +532,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Years After Acquisition<InfoTooltip text="Number of years after acquisition before refinancing occurs." /></Label>
-                        <span className="text-sm font-mono text-foreground" data-testid="text-refinance-years-after-acquisition">{draft.refinanceYearsAfterAcquisition ?? DEFAULT_REFI_PERIOD_YEARS} yrs</span>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Years After Acquisition<InfoTooltip text="Number of years after acquisition before refinancing occurs." /></Label>
+                        <span className="text-sm font-mono text-foreground shrink-0" data-testid="text-refinance-years-after-acquisition">{draft.refinanceYearsAfterAcquisition ?? DEFAULT_REFI_PERIOD_YEARS} yrs</span>
                       </div>
                       <Slider
                         data-testid="slider-refinance-years-after-acquisition"
@@ -593,8 +593,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Loan Term<InfoTooltip text="Amortization period for the refinance loan in years." /></Label>
-                        <span className="text-sm font-mono text-foreground">{draft.refinanceTermYears || DEFAULT_TERM_YEARS} yrs</span>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Loan Term<InfoTooltip text="Amortization period for the refinance loan in years." /></Label>
+                        <span className="text-sm font-mono text-foreground shrink-0">{draft.refinanceTermYears || DEFAULT_TERM_YEARS} yrs</span>
                       </div>
                       <Slider
                         value={[draft.refinanceTermYears || DEFAULT_TERM_YEARS]}

@@ -128,8 +128,8 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
             <>
               <div className="p-4 rounded-lg bg-muted border border-border">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-foreground">Total Allocation:</span>
-                  <span className="text-lg font-bold text-primary">
+                  <span className="font-medium text-foreground min-w-0">Total Allocation:</span>
+                  <span className="text-lg font-bold text-primary shrink-0">
                     {(costRateTotal * 100).toFixed(1)}%
                   </span>
                 </div>

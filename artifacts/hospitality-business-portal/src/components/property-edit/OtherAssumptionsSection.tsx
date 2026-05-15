@@ -243,7 +243,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               subtree. */}
           <div className="space-y-2 sm:col-span-2" data-field="countryRiskPremium">
             <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <Label className="flex items-center label-text text-foreground gap-1.5">
                   Country Risk Premium
                   <InfoTooltip text="Additional equity return premium for country-specific risk (Damodaran, Jan 2026). Added to the base cost of equity when computing WACC for DCF analysis. US = 0%, Colombia = 2.85%." />
@@ -255,7 +255,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={fetchCRP}

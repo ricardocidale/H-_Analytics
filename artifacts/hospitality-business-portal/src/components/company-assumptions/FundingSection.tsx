@@ -85,8 +85,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
-                <span data-field="capitalRaise1Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
+                <span data-field="capitalRaise1Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
                     onChange={(v) => onChange("capitalRaise1Amount", v)}
@@ -117,8 +117,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 2</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
-                <span data-field="capitalRaise2Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
+                <span data-field="capitalRaise2Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
                     onChange={(v) => onChange("capitalRaise2Amount", v)}
@@ -149,8 +149,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 3</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the third tranche of the capital raise, typically deployed during the expansion phase." /></Label>
-                <span data-field="capitalRaise3Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the third tranche of the capital raise, typically deployed during the expansion phase." /></Label>
+                <span data-field="capitalRaise3Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise3Amount ?? global.capitalRaise3Amount ?? 0}
                     onChange={(v) => onChange("capitalRaise3Amount", v)}
@@ -352,10 +352,11 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                   step={0.5}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
                     Payment Frequency
                     <InfoTooltip text="How often accrued interest is paid out. 'Accrues Only' means interest accumulates as a liability until conversion (standard for convertible notes). Quarterly or annually pays out the accrued interest, reducing cash." />
                   </span>
+                  <span className="shrink-0">
                   <Select
                     value={formData.fundingInterestPaymentFrequency ?? global.fundingInterestPaymentFrequency ?? "accrues_only"}
                     onValueChange={(v) => onChange("fundingInterestPaymentFrequency", v)}
@@ -369,6 +370,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                       <SelectItem value="annually">Paid Annually</SelectItem>
                     </SelectContent>
                   </Select>
+                  </span>
                 </div>
               </>
             )}
