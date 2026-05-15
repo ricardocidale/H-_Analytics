@@ -94,6 +94,69 @@ export function getEffectiveDescriptor(
 }
 
 /**
+ * Return the **As-Purchased** value of one catalogued descriptor — purchased
+ * JSONB blob entry, falling back to the typed-purchased column for the
+ * dual-write migration window. Never falls through to improved-side values.
+ *
+ * Used by the renovation-aware engine pass when it needs the acquisition-state
+ * snapshot (years before `plannedReopeningYear`). For catalogued descriptors
+ * with `scope: "improved_only"` (e.g. `plannedReopeningYear`), there is no
+ * purchased side, so this returns `null`. For descriptors not in the catalog,
+ * falls back to a raw typed-column read at the camelCase variant of
+ * `fieldKey`.
+ *
+ * Pair with `getImprovedDescriptor` for the As-Improved-only side and
+ * `getEffectiveDescriptor` for the full improved-then-purchased chain.
+ */
+export function getPurchasedDescriptor(
+  row: PropertyRow,
+  fieldKey: string,
+): unknown {
+  const entry = PROPERTY_DESCRIPTOR_CATALOG_BY_KEY.get(fieldKey);
+  if (!entry) return readTypedColumn(row, fieldKey);
+  if (entry.scope === "improved_only") return null;
+
+  const purchased = readJsonbBlob(row, "purchased");
+  if (purchased[fieldKey] !== undefined && purchased[fieldKey] !== null) {
+    return purchased[fieldKey];
+  }
+  const typedPurchased = readTypedColumn(row, entry.typedColumnPurchased);
+  return typedPurchased ?? null;
+}
+
+/**
+ * Return the **As-Improved** value of one catalogued descriptor — improved
+ * JSONB blob entry, falling back to the typed-improved column for the
+ * dual-write migration window. Never falls back to the purchased side.
+ *
+ * Used as a "is the renovation hypothesis populated on this field?" predicate
+ * (compare result against null/undefined) and as the value source for the
+ * `plannedReopeningYear` gate (which is `scope: "improved_only"` so it has no
+ * purchased twin). For descriptors with `scope: "purchased_only"` (e.g.
+ * `yearBuilt`), there is no improved side and this returns `null`. For
+ * descriptors not in the catalog, returns `null` (callers should not be
+ * asking for an improved-side value on a non-catalogued field).
+ *
+ * Pair with `getPurchasedDescriptor` for the As-Purchased-only side and
+ * `getEffectiveDescriptor` for the full improved-then-purchased chain.
+ */
+export function getImprovedDescriptor(
+  row: PropertyRow,
+  fieldKey: string,
+): unknown {
+  const entry = PROPERTY_DESCRIPTOR_CATALOG_BY_KEY.get(fieldKey);
+  if (!entry) return null;
+  if (entry.scope === "purchased_only" || entry.scope === "identity") return null;
+
+  const improved = readJsonbBlob(row, "improved");
+  if (improved[fieldKey] !== undefined && improved[fieldKey] !== null) {
+    return improved[fieldKey];
+  }
+  const typedImproved = readTypedColumn(row, entry.typedColumnImproved);
+  return typedImproved ?? null;
+}
+
+/**
  * Return a shallow copy of the row with each catalogued descriptor's typed
  * column rewritten to its effective (Improved ?? Purchased) value. Pass this
  * into the financial engine, Rebecca context-builder, and report exporters in
@@ -127,6 +190,34 @@ export function getEffectivePropertyView<T extends PropertyRow>(row: T): T {
     }
   }
   return out as T;
+}
+
+/**
+ * Returns true if the row carries ANY As-Improved descriptor value — set
+ * either in the `descriptors_improved` JSONB blob OR in a typed As-Improved
+ * column. Used by report builders to decide whether to render an "(As-Improved
+ * …)" section header at all.
+ *
+ * This is a *presence* check, not an effective-value read: the result
+ * specifically reflects whether the operator has populated the As-Improved
+ * side, distinct from `getEffectivePropertyView` which collapses purchased
+ * and improved into one effective value.
+ *
+ * Plan 2026-05-13-002 Unit U3 — replaces the inline predicates in
+ * `report/server-export-data.ts` and `report/assumption-sections.ts` that
+ * directly OR'd together every typed `*Improved` column. New As-Improved
+ * fields added to the catalog automatically participate without code edits.
+ */
+export function hasImprovedSideValues(row: PropertyRow): boolean {
+  const improvedBlob = readJsonbBlob(row, "improved");
+  for (const entry of PROPERTY_DESCRIPTOR_CATALOG) {
+    if (entry.scope !== "parallel" && entry.scope !== "improved_only") continue;
+    const fromBlob = improvedBlob[entry.fieldKey];
+    if (fromBlob !== undefined && fromBlob !== null) return true;
+    const typed = readTypedColumn(row, entry.typedColumnImproved);
+    if (typed !== undefined && typed !== null) return true;
+  }
+  return false;
 }
 
 export interface DescriptorDrift {

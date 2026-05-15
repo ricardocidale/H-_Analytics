@@ -2,7 +2,9 @@
 
 # H+ Analytics
 
-H+ Analytics is a hospitality-sector financial analytics platform built for boutique hotel operators and their investors. It models property-level pro formas, company-wide assumptions, and investor returns — then surfaces that intelligence through an AI assistant (Rebecca), a suite of named AI Specialists, and a precision slide-factory pipeline that produces L+B 6-slide investor decks.
+H+ Analytics is a hospitality-sector financial analytics platform built by **[Norfolk AI](https://norfolkai.com)** for boutique hotel operators and their investors. It models property-level pro formas, company-wide assumptions, and investor returns — then surfaces that intelligence through an AI assistant (Rebecca), a suite of named AI Specialists, and a precision slide-factory pipeline that produces L+B 6-slide investor decks.
+
+Norfolk AI is the software company that builds and maintains H+ Analytics.
 
 ## Tech Stack
 

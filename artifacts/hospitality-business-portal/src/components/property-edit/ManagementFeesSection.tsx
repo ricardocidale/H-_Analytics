@@ -26,12 +26,18 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
+import { useServiceTemplates } from "@/lib/api/services";
+import { useNationalBenchmarks, serviceTemplateNameToServiceLine } from "@/lib/api/national-benchmarks";
 import { DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE } from "@/lib/constants";
 import type { ManagementFeesSectionProps } from "./types";
 
 export default function ManagementFeesSection({ draft, onChange, researchValues, feeDraft, onFeeCategoryChange, totalServiceFeeRate }: ManagementFeesSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
+  const { data: serviceTemplates } = useServiceTemplates();
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -46,10 +52,10 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm font-semibold text-foreground label-text">
+            <Label className="text-sm font-semibold text-foreground label-text min-w-0">
               Service Fee Categories (% of Total Revenue)
             </Label>
-            <span className={`text-sm font-mono font-semibold ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
+            <span className={`text-sm font-mono font-semibold shrink-0 ${totalServiceFeeRate > 0.10 ? 'text-accent-pop' : 'text-foreground'}`} data-testid="text-total-service-fee">
               Total: {(totalServiceFeeRate * 100).toFixed(1)}%
             </span>
           </div>
@@ -73,17 +79,29 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 'Procurement': 'svcFeeProcurement',
               };
               const assumptionKey = svcKeyMap[cat.name] ?? `svcFee${cat.name.replace(/\s+/g, '')}`;
+              const catNameNorm = cat.name.trim().toLowerCase();
+              const template = serviceTemplates?.find(t => t.name.trim().toLowerCase() === catNameNorm);
+              const isCentralized = template?.serviceModel === "centralized";
+              const templateMarkup = isCentralized ? (template?.serviceMarkup ?? null) : null;
+              const serviceLine = isCentralized ? serviceTemplateNameToServiceLine(cat.name) : null;
+              const markupRow = serviceLine
+                ? (nationalBenchmarks?.markupFactors.find(r => r.serviceLine === serviceLine) ?? null)
+                : null;
+
+              const effectiveMarkup = cat.serviceMarkup ?? templateMarkup;
+
               return (
               <div key={cat.id} className="space-y-2" data-testid={`fee-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="flex justify-between items-center">
                   <ResearchContextFieldLabel
+                    className="min-w-0"
                     label={<span className={cat.isActive ? '' : 'text-muted-foreground line-through'}>{cat.name} <InfoTooltip text={`${cat.name} service fee = Total Revenue × ${(cat.rate * 100).toFixed(1)}%. Charged monthly as part of the management company's service fees.`} /></span>}
                     badgeProps={{ value: rv?.display }}
                     onApplyValue={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)}
                     guidanceContext={gc(assumptionKey, cat.name)}
                     currentValue={cat.rate} isPercent
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <EditableValue
                       value={cat.rate * 100}
                       onChange={(val) => onFeeCategoryChange(idx, "rate", val / 100)}
@@ -112,6 +130,37 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   step={0.1}
                   disabled={!cat.isActive}
                 />
+                {isCentralized && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="shrink-0">Cost-Plus Markup:</span>
+                    <EditableValue
+                      value={(effectiveMarkup ?? 0) * 100}
+                      onChange={(val) => onFeeCategoryChange(idx, "serviceMarkup", val === (templateMarkup ?? 0) * 100 ? null : val / 100)}
+                      format="percent"
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="text-[10px]"
+                    />
+                    {cat.serviceMarkup != null && templateMarkup != null && (
+                      <span className="text-[9px] text-muted-foreground/60 italic shrink-0">
+                        (template: {(templateMarkup * 100).toFixed(0)}%)
+                      </span>
+                    )}
+                    {markupRow && (
+                      <NationalBenchmarkChip
+                        kind="markup"
+                        currentValue={effectiveMarkup}
+                        benchmarkValue={markupRow.value}
+                        dot={markupRow.dot}
+                        guardrail={markupRow.guardrail}
+                        source={markupRow.source}
+                        period={markupRow.period}
+                        fetchedAt={markupRow.fetchedAt}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
               );
             })}
@@ -127,19 +176,22 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   badgeProps={{ entry: researchValues.incentiveFee }}
                   onApplyValue={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)}
                   guidanceContext={gc("incentiveFee", "Incentive Fee")}
-                  currentValue={draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE} isPercent
+                  currentValue={draft.incentiveManagementFeeRate ?? 0} isPercent
+                  className="min-w-0"
                 />
+                <span className="shrink-0">
                 <EditableValue
-                  value={(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100}
+                  value={(draft.incentiveManagementFeeRate ?? 0) * 100}
                   onChange={(val) => onChange("incentiveManagementFeeRate", val / 100)}
                   format="percent"
                   min={0}
                   max={25}
                   step={1}
                 />
+                </span>
               </div>
               <Slider 
-                value={[(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100]}
+                value={[(draft.incentiveManagementFeeRate ?? 0) * 100]}
                 onValueChange={(vals: number[]) => onChange("incentiveManagementFeeRate", vals[0] / 100)}
                 min={0}
                 max={25}

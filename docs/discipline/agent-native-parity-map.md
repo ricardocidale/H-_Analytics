@@ -18,6 +18,7 @@ feature ships or a new Rebecca tool is added.
 | Create property | Properties → New | `create_property` (deprecated — use create_property_record + seed_property_fees), `create_property_record` + `seed_property_fees` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
 | Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
+| Edit As-Purchased / As-Improved property fields | Property → Property Assumptions → As Purchased / As Improved | `update_property` / `patch_property` | ✅ |
 | Update property coordinates after geocode | Property → Edit (basic info, auto on address resolve) | `update_property_coordinates` | ✅ |
 | Delete property | Property → Delete | `delete_property` | ✅ |
 | List scenarios | Scenarios sidebar | `list_scenarios` | ✅ |
@@ -226,6 +227,7 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | Regenerate vendor pass-through cost data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Vendor Pass-Through Costs | `regenerate_data_source("vendor-passthrough-costs")` | ✅ |
 | Read Mgmt Co markup factor table | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `get_mgmt_co_markup_factors` | ✅ |
 | Regenerate Mgmt Co markup factor data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `regenerate_data_source("mgmt-co-markup-factors")` | ✅ |
+| View property descriptor catalog | Admin → AI → Intelligence → Knowledge & Resources → Tables → Property Descriptor Catalog | `list_tables` (existing) | ✅ Plan 2026-05-13-002 U2 — read-only K&R Tables surface; catalog is code-defined and re-seeded idempotently on each boot. |
 
 ### Admin Resources (model/api/mcp/source/factory_number registry)
 
@@ -244,6 +246,12 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)
 - When a new Rebecca tool is added → update the corresponding row to ✅
 - When a gap is resolved → flip ⚠️ to ✅
+
+## Report Export Actions (Valentina)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Export financial report as PDF / Excel / CSV / ZIP | Property or company report page → Export | `generate_financial_report_export_link` | ✅ |
 
 ## Compliance Actions (Vito)
 

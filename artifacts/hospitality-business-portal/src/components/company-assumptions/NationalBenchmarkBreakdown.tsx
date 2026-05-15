@@ -115,9 +115,10 @@ export function NationalBenchmarkBreakdown({
   return (
     <div className={cn("rounded-lg border border-border/60 bg-muted/20 overflow-hidden", className)}>
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/30">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground min-w-0">
           National Benchmark Derivation
         </span>
+        <span className="shrink-0">
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -156,6 +157,7 @@ export function NationalBenchmarkBreakdown({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        </span>
       </div>
 
       <table className="w-full text-[10px]">

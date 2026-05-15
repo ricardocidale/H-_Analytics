@@ -227,24 +227,50 @@
     "0056_icp_bracket_catalog": {
       "status": "guarded",
       "guard": "icp-brackets-001.ts",
-      "reason": "Task #1409 — creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
+      "reason": "Task #1409 \u2014 creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
     },
     "0057_icp_bracket_mix": {
       "status": "self-idempotent",
-      "reason": "Task #1412 — single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
+      "reason": "Task #1412 \u2014 single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
     },
     "0058_self_test_logs": {
-      "status": "self-idempotent",
-      "reason": "Task #1403 — Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent — re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
+      "status": "guarded",
+      "guard": "self-test-logs-001.ts",
+      "reason": "Task #1647 / Task #1403 — the original SQL had a type mismatch: finding_id was typed as integer referencing costantino_findings('id'), but the actual PK is uuid named finding_id. The corrected SQL uses uuid. The runtime guard (self-test-logs-001.ts) applies the correct DDL idempotently on every boot, ensuring self_test_interval_days and self_test_logs exist on all environments regardless of whether the journal was applied with the old or new SQL hash."
     },
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
-      "reason": "Task #1437 — single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
+      "reason": "Task #1437 \u2014 single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
     },
     "0063_icp_brackets_default_overlay": {
       "status": "guarded",
       "guard": "icp-brackets-003.ts",
-      "reason": "Plan 2026-05-13-001 U5 — adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
+      "reason": "Plan 2026-05-13-001 U5 \u2014 adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
+    },
+    "0064_properties_refi_ltv_cap": {
+      "status": "guarded",
+      "guard": "properties-refi-ltv-cap-001.ts",
+      "reason": "Plan 2026-05-13-003 Phase 5 \u2014 adds nullable real column refi_max_ltv_to_original to properties. Caps refi loan at (refi_max_ltv_to_original \u00d7 purchase_price) to prevent equity stripping on Full Equity properties. ADD COLUMN IF NOT EXISTS is idempotent. Guarded by properties-refi-ltv-cap-001.ts which re-applies the same ALTER at boot for dev DBs whose _journal.json has drifted past 0064."
+    },
+    "0065_extend_business_brands_multi_flag": {
+      "status": "guarded",
+      "guard": "business-brands-multi-flag-001.ts",
+      "reason": "Plan 2026-05-13-006 U1 \u2014 extends business_brands with slug, business_model, segment, sort_order, is_active, updated_at columns; changes is_default DEFAULT to false; creates partial unique index on slug; seeds h-plus-hotel slug for default brand; backfills NULL brand_id on properties; flips properties.brand_id FK from ON DELETE SET NULL to ON DELETE RESTRICT; sets brand_id NOT NULL. Guarded by business-brands-multi-flag-001.ts which re-applies all DDL idempotently at boot (ADD COLUMN IF NOT EXISTS, DO $$ block for FK swap)."
+    },
+    "0066_create_mgmt_co_and_brand_fees": {
+      "status": "guarded",
+      "guard": "mgmt-co-fees-tables-001.ts",
+      "reason": "Plan 2026-05-13-006 U2 \u2014 drops partial unique index on business_brands.slug, makes slug NOT NULL + adds full UNIQUE constraint (FK target for brand_fees), creates management_company_fees (global Tier-A fee schedule) and brand_fees (per-flag fee schedule) tables, seeds base_mgmt 8.5% + incentive 12% rows, seeds H+ Hotel brand stack (5 rows) + H+ STR Ultra-Luxury OTA fees (5 rows), assigns Medellin Duplex to STR flag. Guarded by mgmt-co-fees-tables-001.ts which re-applies all DDL idempotently (IF NOT EXISTS / DO $$ blocks) and seeds via ON CONFLICT DO NOTHING."
+    },
+    "0067_icp_brackets_match_rules": {
+      "status": "guarded",
+      "guard": "icp-brackets-005.ts",
+      "reason": "Plan 2026-05-13-001 U7 \u2014 adds six match-rule columns to icp_brackets (match_countries, match_business_models, match_quality_tiers, match_keywords jsonb; match_priority integer NOT NULL DEFAULT 0; match_rationale text). All ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-005.ts which re-applies the same ALTERs at boot for dev DBs whose _journal.json has drifted past 0067."
+    },
+    "0068_property_fee_markup": {
+      "status": "guarded",
+      "guard": "property-fee-markup-001.ts",
+      "reason": "Task #1677 \u2014 adds nullable real column service_markup to property_fee_categories. When NULL, the financial engine falls back to the company service template markup. When set, it overrides the template markup for that property/category pair. Guarded by property-fee-markup-001.ts which re-applies the same ALTER at boot via ADD COLUMN IF NOT EXISTS to handle dev DBs whose journal has drifted. Renumbered from 0064 \u2192 0068 to avoid slot collision with main's 0064 (properties_refi_ltv_cap) during the 2026-05-15 merge of main into chore/replit-steady-state-rename."
     }
   }
 }

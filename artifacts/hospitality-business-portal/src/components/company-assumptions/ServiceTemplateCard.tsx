@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import type { ServiceTemplate } from "@shared/schema";
 import { ServiceResearchPanel } from "./ServiceResearchPanel";
 import { NationalBenchmarkBreakdown } from "./NationalBenchmarkBreakdown";
-import { useNationalBenchmarks } from "@/lib/api/national-benchmarks";
+import { useNationalBenchmarks, serviceTemplateNameToServiceLine } from "@/lib/api/national-benchmarks";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
 import { TEMPLATE_TO_SERVICE_LINES } from "@calc/services/national-anchors";
 
 export const SERVICE_HELP: Record<string, string> = {
@@ -190,6 +191,12 @@ export function ServiceTemplateCard({
 
   const { data: nationalBenchmarks } = useNationalBenchmarks();
 
+  const serviceLine = serviceTemplateNameToServiceLine(t.name);
+  const markupRow =
+    t.serviceModel === "centralized" && serviceLine
+      ? (nationalBenchmarks?.markupFactors.find((r) => r.serviceLine === serviceLine) ?? null)
+      : null;
+
   const vendorCostLines = nationalBenchmarks?.vendorCosts.map((r) => r.serviceLine) ?? [];
   const markupFactorLines = nationalBenchmarks?.markupFactors.map((r) => r.serviceLine) ?? [];
   const markupSource =
@@ -341,14 +348,39 @@ export function ServiceTemplateCard({
 
             {t.serviceModel === "centralized" && (
               <div className="bg-primary/10 dark:bg-primary/15 border border-primary/30 dark:border-primary/40 rounded-lg p-3">
-                <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1 flex-wrap">
                   Cost-Plus Markup
                   <InfoTooltip
                     text={`Centralized model: The management company procures this service from vendors and passes the cost through with a ${markupPct}% markup. Effective margin: ${(((t.serviceMarkup ?? 0) / (1 + (t.serviceMarkup ?? 0))) * 100).toFixed(1)}% of fee revenue.`}
                   />
                   <MarkupSourceBadge source={markupSource} className="ml-1" />
+                  {markupRow && (
+                    <NationalBenchmarkChip
+                      kind="markup"
+                      currentValue={t.serviceMarkup ?? null}
+                      benchmarkValue={markupRow.value}
+                      dot={markupRow.dot}
+                      guardrail={markupRow.guardrail}
+                      source={markupRow.source}
+                      period={markupRow.period}
+                      fetchedAt={markupRow.fetchedAt}
+                    />
+                  )}
                 </div>
                 {isEditingMarkup ? (
+                  <div className="flex flex-col gap-1">
+                    {markupRow && (
+                      <NationalBenchmarkChip
+                        kind="markup"
+                        currentValue={inlineMarkupValue !== "" ? Number(inlineMarkupValue) : null}
+                        benchmarkValue={markupRow.value}
+                        dot={markupRow.dot}
+                        guardrail={markupRow.guardrail}
+                        source={markupRow.source}
+                        period={markupRow.period}
+                        fetchedAt={markupRow.fetchedAt}
+                      />
+                    )}
                   <div className="flex items-center gap-1.5">
                     <div className="relative flex-1">
                       <Input
@@ -392,6 +424,7 @@ export function ServiceTemplateCard({
                       <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>
+                  </div>
                 ) : (
                   <Button
                     type="button"
@@ -420,7 +453,7 @@ export function ServiceTemplateCard({
           )}
 
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 min-w-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -452,7 +485,7 @@ export function ServiceTemplateCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5 text-muted-foreground"
+              className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
               onClick={() => onToggleResearch(t.id)}
               data-testid={`button-research-service-${t.id}`}
             >

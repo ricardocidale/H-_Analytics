@@ -11,18 +11,20 @@ export default function KnowledgeRegistryPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
-        Loading knowledge registry…
+      <div className="space-y-2 p-4 animate-pulse">
+        <div className="h-4 bg-muted rounded w-1/3" />
+        <div className="h-12 bg-muted rounded" />
+        <div className="h-12 bg-muted rounded" />
+        <div className="h-12 bg-muted rounded" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="py-12 text-center text-sm text-destructive">
-        Failed to load knowledge registry.
-      </div>
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        Couldn't load registry.
+      </p>
     );
   }
 

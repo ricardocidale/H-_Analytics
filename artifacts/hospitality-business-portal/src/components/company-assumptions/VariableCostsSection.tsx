@@ -49,13 +49,14 @@ export default function VariableCostsSection({ formData, onChange, global, resea
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Travel Cost per Client <InfoTooltip text="Annual budget for site visits, client meetings, and property inspections per managed property. Includes flights, hotel stays, and ground transportation. Industry benchmark: $8K–$18K per managed property per year (AHLA Lodging Survey)." formula="Monthly Travel = Cost × Active Properties ÷ 12" /></>}
               badgeProps={{ value: researchValues.travelCost?.display, entry: researchValues.travelCost ?? undefined, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingSurvey, "data-testid": "badge-travel-per-client" }}
               onApplyValue={() => researchValues.travelCost && onChange("travelCostPerClient", researchValues.travelCost.mid)}
               guidanceContext={gc("travelCost", "Travel Cost per Client")}
               currentValue={formData.travelCostPerClient ?? global.travelCostPerClient}
             />
-            <span data-field="travelCostPerClient">
+            <span data-field="travelCostPerClient" className="shrink-0">
               <EditableValue
                 value={formData.travelCostPerClient ?? global.travelCostPerClient}
                 onChange={(v) => onChange("travelCostPerClient", v)}
@@ -82,13 +83,14 @@ export default function VariableCostsSection({ formData, onChange, global, resea
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>IT/Licensing per Client <InfoTooltip text="Annual software and technology licensing cost per property — includes PMS (property management system), revenue management tools, channel manager, and accounting integrations. Industry benchmark: $2K–$5K per property per year (HFTP Technology Survey)." formula="Monthly IT = Cost × Active Properties ÷ 12" /></>}
               badgeProps={{ value: researchValues.itLicense?.display, entry: researchValues.itLicense ?? undefined, sourceType: "industry", sourceName: CITATIONS.hftpTechnologySurvey, "data-testid": "badge-it-license" }}
               onApplyValue={() => researchValues.itLicense && onChange("itLicensePerClient", researchValues.itLicense.mid)}
               guidanceContext={gc("itLicense", "IT/Licensing per Client")}
               currentValue={formData.itLicensePerClient ?? global.itLicensePerClient}
             />
-            <span data-field="itLicensePerClient">
+            <span data-field="itLicensePerClient" className="shrink-0">
               <EditableValue
                 value={formData.itLicensePerClient ?? global.itLicensePerClient}
                 onChange={(v) => onChange("itLicensePerClient", v)}
@@ -121,15 +123,18 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               guidanceContext={gc("marketingRate", "Marketing")}
               currentValue={formData.marketingRate ?? global.marketingRate}
               isPercent
+              className="min-w-0"
             />
-            <EditableValue
-              value={formData.marketingRate ?? global.marketingRate}
-              onChange={(v) => onChange("marketingRate", v)}
-              format="percent"
-              min={0}
-              max={0.15}
-              step={0.01}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.marketingRate ?? global.marketingRate}
+                onChange={(v) => onChange("marketingRate", v)}
+                format="percent"
+                min={0}
+                max={0.15}
+                step={0.01}
+              />
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Slider
@@ -153,15 +158,18 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               guidanceContext={gc("miscOps", "Misc Operations")}
               currentValue={formData.miscOpsRate ?? global.miscOpsRate}
               isPercent
+              className="min-w-0"
             />
-            <EditableValue
-              value={formData.miscOpsRate ?? global.miscOpsRate}
-              onChange={(v) => onChange("miscOpsRate", v)}
-              format="percent"
-              min={0}
-              max={0.1}
-              step={0.005}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.miscOpsRate ?? global.miscOpsRate}
+                onChange={(v) => onChange("miscOpsRate", v)}
+                format="percent"
+                min={0}
+                max={0.1}
+                step={0.005}
+              />
+            </span>
           </div>
           <Slider
             value={[(formData.miscOpsRate ?? global.miscOpsRate) * 100]}

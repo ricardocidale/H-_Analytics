@@ -47,18 +47,20 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         </h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
+            <Label className="flex items-center text-foreground label-text min-w-0">
               Fixed Cost Escalation Rate
               <InfoTooltip text="Annual inflation factor applied to all fixed overhead costs (office lease, professional services, tech). This compounds each year, so a 3% rate means costs grow ~34% over 10 years." />
             </Label>
-            <EditableValue
-              value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
-              onChange={(v) => onChange("fixedCostEscalationRate", v)}
-              format="percent"
-              min={0}
-              max={0.1}
-              step={0.005}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
+                onChange={(v) => onChange("fixedCostEscalationRate", v)}
+                format="percent"
+                min={0}
+                max={0.1}
+                step={0.005}
+              />
+            </span>
           </div>
           <Slider
             value={[(formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate) * 100]}
@@ -72,13 +74,14 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Office Lease <InfoTooltip text="Annual cost for the management company's corporate office — rent, utilities, and common area charges. This is the Year 1 value; it escalates annually at the rate above. Typical range for early-stage hotel management companies: $24K–$48K/year (HFTP/AICPA benchmarks)." /></>}
               badgeProps={{ value: researchValues.officeLease?.display, entry: researchValues.officeLease ?? undefined, sourceType: "industry", sourceName: CITATIONS.hftpAicpaBenchmarks, "data-testid": "badge-office-lease" }}
               onApplyValue={() => researchValues.officeLease && onChange("officeLeaseStart", researchValues.officeLease.mid)}
               guidanceContext={gc("officeLease", "Office Lease")}
               currentValue={formData.officeLeaseStart ?? global.officeLeaseStart}
             />
-            <span data-field="officeLeaseStart">
+            <span data-field="officeLeaseStart" className="shrink-0">
               <EditableValue
                 value={formData.officeLeaseStart ?? global.officeLeaseStart}
                 onChange={(v) => onChange("officeLeaseStart", v)}
@@ -105,13 +108,14 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Professional Services <InfoTooltip text="Annual budget for external legal counsel, CPA/audit fees, and specialized consulting. Year 1 value, escalates annually. Typical range for early-stage hotel management companies: $18K–$36K/year (AICPA practice benchmarks)." /></>}
               badgeProps={{ value: researchValues.professionalServices?.display, entry: researchValues.professionalServices ?? undefined, sourceType: "industry", sourceName: CITATIONS.aicpaPracticeBenchmarks, "data-testid": "badge-professional-services" }}
               onApplyValue={() => researchValues.professionalServices && onChange("professionalServicesStart", researchValues.professionalServices.mid)}
               guidanceContext={gc("professionalServices", "Professional Services")}
               currentValue={formData.professionalServicesStart ?? global.professionalServicesStart}
             />
-            <span data-field="professionalServicesStart">
+            <span data-field="professionalServicesStart" className="shrink-0">
               <EditableValue
                 value={formData.professionalServicesStart ?? global.professionalServicesStart}
                 onChange={(v) => onChange("professionalServicesStart", v)}
@@ -138,13 +142,14 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Tech Infrastructure <InfoTooltip text="Company-level technology costs — cloud hosting, corporate software subscriptions, cybersecurity, and IT support. Separate from per-property IT licenses (configured in Variable Costs). Typical range: $12K–$24K/year for early-stage hotel management companies (HFTP Technology Survey)." /></>}
               badgeProps={{ value: researchValues.techInfra?.display, entry: researchValues.techInfra ?? undefined, sourceType: "industry", sourceName: CITATIONS.hftpTechnologySurvey, "data-testid": "badge-tech-infra" }}
               onApplyValue={() => researchValues.techInfra && onChange("techInfraStart", researchValues.techInfra.mid)}
               guidanceContext={gc("techInfra", "Tech Infrastructure")}
               currentValue={formData.techInfraStart ?? global.techInfraStart}
             />
-            <span data-field="techInfraStart">
+            <span data-field="techInfraStart" className="shrink-0">
               <EditableValue
                 value={formData.techInfraStart ?? global.techInfraStart}
                 onChange={(v) => onChange("techInfraStart", v)}
@@ -171,13 +176,14 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
+              className="min-w-0"
               label={<>Business Insurance <InfoTooltip text="Annual corporate insurance premium — general liability, errors & omissions (E&O), and cyber liability for the management company. This is the company's own policy, separate from each property's insurance. Year 1 value, escalates annually. Typical range: $8K–$15K/year for small hotel management companies." /></>}
               badgeProps={{ value: researchValues.businessInsurance?.display, entry: researchValues.businessInsurance ?? undefined, sourceType: "industry", sourceName: CITATIONS.insuranceIndustryBenchmarks, "data-testid": "badge-business-insurance" }}
               onApplyValue={() => researchValues.businessInsurance && onChange("businessInsuranceStart", researchValues.businessInsurance.mid)}
               guidanceContext={gc("businessInsurance", "Business Insurance")}
               currentValue={formData.businessInsuranceStart ?? global.businessInsuranceStart}
             />
-            <span data-field="businessInsuranceStart">
+            <span data-field="businessInsuranceStart" className="shrink-0">
               <EditableValue
                 value={formData.businessInsuranceStart ?? global.businessInsuranceStart}
                 onChange={(v) => onChange("businessInsuranceStart", v)}

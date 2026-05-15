@@ -17,7 +17,7 @@
  * Mirrors `companyEvaluator.ts` and `overheadEvaluator.ts` in shape so the
  * save-tab plumbing, dialog UI, and action-button contract stay identical.
  */
-import type { PropertyDefaultsBenchmarks } from "@norfolk/shared/constants-property-defaults-benchmarks";
+import type { PropertyDefaultsBenchmarks } from "@norfolk/shared/model-constants-registry";
 import type { WatchdogResult, WatchdogSeverity, WatchdogAction } from "./capitalRaiseEvaluator";
 
 export interface PropertyDefaultsInputs {

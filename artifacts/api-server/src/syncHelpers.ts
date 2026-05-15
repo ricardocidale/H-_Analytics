@@ -28,6 +28,7 @@ import {
 } from "@shared/constants";
 import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+import { resolveStaffingDefaults } from "./finance/benchmark-resolver";
 import { SEED_OPERATING_RESERVE_USD, SEED_PARTNER_COMP_PHASE1_USD, SEED_PARTNER_COMP_FINAL_USD } from "./constants";
 
 // Audit #319 R4 / #406: registry-backed factory baselines.
@@ -123,12 +124,14 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
     serviceTemplates: { created: 0, skipped: 0 },
   };
 
+  const staffingDefaults = await resolveStaffingDefaults();
+  const seedAssumptions = { ...SEED_GLOBAL_ASSUMPTIONS, ...staffingDefaults };
   const existingAssumptions = await storage.getGlobalAssumptions();
   if (!existingAssumptions) {
-    await storage.upsertGlobalAssumptions(SEED_GLOBAL_ASSUMPTIONS);
+    await storage.upsertGlobalAssumptions(seedAssumptions);
     results.globalAssumptions.created++;
   } else {
-    const updates = fillMissingFields(existingAssumptions as Record<string, unknown>, SEED_GLOBAL_ASSUMPTIONS);
+    const updates = fillMissingFields(existingAssumptions as Record<string, unknown>, seedAssumptions);
     if (Object.keys(updates).length > 0) {
       await storage.upsertGlobalAssumptions({ ...existingAssumptions, ...updates } as Parameters<typeof storage.upsertGlobalAssumptions>[0]);
       results.globalAssumptions.filled++;

@@ -58,6 +58,7 @@ const UnifiedLogsPage = lazy(() => import("@/pages/intelligence/UnifiedLogsPage"
 const AgentsRosterPage = lazy(() => import("@/pages/intelligence/AgentsRosterPage"));
 const SpecialistsRosterPage = lazy(() => import("@/pages/intelligence/SpecialistsRosterPage"));
 const MinionsRosterPage = lazy(() => import("@/pages/intelligence/MinionsRosterPage"));
+const BenchmarkBandsTab = lazy(() => import("@/components/admin/intelligence/BenchmarkBandsTab"));
 
 const REBECCA_SUB_TAB: Partial<Record<IntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -90,6 +91,7 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
   "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
   "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
+  "benchmark-bands":               { title: "Benchmark Bands",          subtitle: "Admin-editable low / mid / high bands for the 24 market calibration groups — compensation, revenue, overhead, property-defaults, and company. Edits take effect in every Specialist watchdog without a code deploy." },
   "logs":                      { title: "Logs",                        subtitle: "Unified log of all agent runs and self-tests — Analyst research, Slide Factory, Iris, and entity self-test history" },
   "runs":                      { title: "Logs",                        subtitle: "Unified log of all agent runs and self-tests — Analyst research, Slide Factory, Iris, and entity self-test history" },
   "roster-agents":             { title: "Agents",                     subtitle: "Every Agent in the system — status at a glance, with a live responsiveness probe per row." },
@@ -220,6 +222,7 @@ function SectionContent({ section }: { section: IntelligenceSection }) {
     case "roster-agents":                  return <AgentsRosterPage />;
     case "roster-specialists":             return <SpecialistsRosterPage />;
     case "roster-minions":                 return <MinionsRosterPage />;
+    case "benchmark-bands":                return <BenchmarkBandsTab />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
@@ -256,6 +259,7 @@ const VALID_SECTIONS = new Set<IntelligenceSection>([
   "resources-tables",
   "knowledge-registry",
   "knowledge-registry-country-data",
+  "benchmark-bands",
   "logs",
   "runs",
   "roster-agents",

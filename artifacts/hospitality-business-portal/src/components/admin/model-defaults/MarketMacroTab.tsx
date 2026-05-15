@@ -82,24 +82,26 @@ export function MarketMacroTab(props: MarketMacroTabProps) {
         </Section>
 
         <Section title="Fiscal Calendar" description="Controls the fiscal year alignment for financial reporting.">
-          <div className="flex items-center justify-between col-span-full" data-testid="field-fiscalYearStartMonth">
-            <Label className="flex items-center text-foreground label-text">
+          <div className="flex items-center justify-between gap-2 col-span-full" data-testid="field-fiscalYearStartMonth">
+            <Label className="flex items-center min-w-0 text-foreground label-text">
               Fiscal Year Start Month
               <InfoTooltip text="The month when the fiscal year begins. Affects how annual summaries are grouped." />
             </Label>
-            <Select
-              value={String(draft.fiscalYearStartMonth ?? 1)}
-              onValueChange={(v) => onChange("fiscalYearStartMonth", parseInt(v))}
-            >
-              <SelectTrigger className="w-40 bg-card border-border" data-testid="select-fiscalYearStartMonth">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((m, i) => (
-                  <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="shrink-0">
+              <Select
+                value={String(draft.fiscalYearStartMonth ?? 1)}
+                onValueChange={(v) => onChange("fiscalYearStartMonth", parseInt(v))}
+              >
+                <SelectTrigger className="w-40 bg-card border-border" data-testid="select-fiscalYearStartMonth">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </Section>
       </div>

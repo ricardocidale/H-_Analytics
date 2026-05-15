@@ -66,7 +66,6 @@ export const DEFAULT_GP_CATCH_UP_TARGET_PCT = 0.20;
 // Waterfall defaults (ADR-011 seed values — industry benchmarks per Preqin 2024 / ILPA 3.0)
 export const DEFAULT_PREFERRED_RETURN = 0.08;    // 8% annual preferred return to LP
 export const DEFAULT_LP_EQUITY_PCT   = 0.90;    // 90% LP / 10% GP equity split
-export const DEFAULT_CATCH_UP_RATE   = 1.00;    // 100% of catch-up dollars to GP
 
 // Structural type mirrors WaterfallTier from @calc/analysis/waterfall — compatible via structural typing.
 export interface WaterfallTierSeed {

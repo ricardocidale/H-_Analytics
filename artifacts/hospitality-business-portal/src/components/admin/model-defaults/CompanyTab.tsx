@@ -13,19 +13,7 @@ import {
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_MARKETING_RATE,
 } from "@shared/constants";
-import {
-  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
-  DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
-  DEFAULT_TECH_INFRA_BENCHMARK_MID,
-  DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
-  DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
-  DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
-} from "@shared/constants-overhead-benchmarks";
-import { DEFAULT_STAFF_SALARY_BENCHMARK_MID } from "@shared/constants-compensation-benchmarks";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-
-// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
-const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import { Section } from "@/components/ui/field-section";
 import { PctField, NumberField, DollarField, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
@@ -34,6 +22,16 @@ import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { COMPANY_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import { IconArrowUp } from "@/components/icons";
+
+const DEFAULT_OFFICE_LEASE_BENCHMARK_MID           = getFactoryNumber("benchmarkOverheadOfficeLeaseMid");
+const DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID  = getFactoryNumber("benchmarkOverheadProfServicesMid");
+const DEFAULT_TECH_INFRA_BENCHMARK_MID             = getFactoryNumber("benchmarkOverheadTechInfraMid");
+const DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID     = getFactoryNumber("benchmarkOverheadBizInsuranceMid");
+const DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID = getFactoryNumber("benchmarkOverheadTravelPerClientMid");
+const DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID  = getFactoryNumber("benchmarkOverheadItLicensePerClientMid");
+const DEFAULT_STAFF_SALARY_BENCHMARK_MID           = getFactoryNumber("benchmarkCompStaffSalaryMid");
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 
 interface CompanyTabProps {
   draft: Draft;

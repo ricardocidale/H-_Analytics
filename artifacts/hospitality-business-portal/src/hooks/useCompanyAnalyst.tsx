@@ -144,7 +144,7 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
       toast({
         title: "Company setup incomplete",
         description:
-          "Company name and start date are required before The Analyst can work. Set them in Admin → Steady State.",
+          "Company name and start date are required before The Analyst can work. Set them in Admin → Model Defaults.",
         variant: "destructive",
       });
       return;

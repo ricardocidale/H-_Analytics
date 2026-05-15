@@ -369,6 +369,7 @@
     "artifacts/api-server/src/routes/ssrf-guard.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
@@ -414,7 +415,6 @@
     "artifacts/api-server/src/routes/scenarios.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/company/company-engine.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1550,6 +1550,7 @@
     "artifacts/api-server/src/routes/admin/specialists/config.ts",
     "artifacts/api-server/src/routes/admin/specialists/identity.ts",
     "artifacts/api-server/src/routes/admin/specialists/runtime.ts",
+    "artifacts/api-server/src/routes/admin/system-auth.ts",
     "artifacts/api-server/src/routes/admin/test-batteries.ts",
     "artifacts/api-server/src/routes/admin/user-defaults.ts",
     "artifacts/api-server/src/routes/ai.ts",
@@ -1604,6 +1605,7 @@
     "artifacts/api-server/src/providers/auth/replit-oidc-impl.ts",
     "artifacts/api-server/src/routes/admin/analyst-tables.ts",
     "artifacts/api-server/src/routes/admin/bulk-draft-runs.ts",
+    "artifacts/api-server/src/routes/auth.ts",
     "artifacts/api-server/src/routes/export-generate.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/routes/scenario-helpers.ts"
@@ -2223,10 +2225,8 @@
     "artifacts/api-server/src/pdf/table-render.tsx",
     "artifacts/api-server/src/routes/market-rates.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-funding.ts"
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "0.70": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2237,7 +2237,8 @@
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
-    "lib/shared/src/constants-benchmarks.ts"
+    "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/constants-funding.ts"
   ],
   "0.80": [
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
@@ -2260,7 +2261,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-quant-panel-prompt.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],

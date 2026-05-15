@@ -393,6 +393,34 @@
       "when": 1778976000000,
       "tag": "0057_descriptor_drift_log",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1778976001000,
+      "tag": "0058_properties_refi_ltv_cap",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1779062400000,
+      "tag": "0059_extend_business_brands_multi_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1779148800000,
+      "tag": "0060_create_mgmt_co_and_brand_fees",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1779235200000,
+      "tag": "0061_icp_brackets_match_rules",
+      "breakpoints": true
     }
   ]
 }

@@ -38,6 +38,24 @@ case ":$PATH:" in
   *) PATH="$HOME/.local/bin:$PATH" ;;
 esac
 
+# ─── Logo & progress helpers (shown on every invocation) ─────────────────────
+cr_banner() {
+  printf '\n╔═══════════════════════════════════════════════╗\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
+  printf   '╚═══════════════════════════════════════════════╝\n\n'
+}
+
+cr_progress() {
+  local step="$1" total="$2" label="${3:-}"
+  local width=20 filled=0 i=0 bar=""
+  filled=$(( step * width / total ))
+  while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i+1)); done
+  while [ "$i" -lt "$width"  ]; do bar="${bar}░"; i=$((i+1)); done
+  printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
+}
+
+cr_banner
+
 action="${1:-status}"
 
 case "$action" in
@@ -69,6 +87,8 @@ MSG
     tmo() { timeout "$@" 2>/dev/null; }
 
     # ---- 1. State + trigger (instant) ----
+    cr_progress 1 4 "reading loop state…"
+
     state="OFF"
     trigger=""
     armed_at=""
@@ -89,6 +109,8 @@ MSG
     echo "  Repo root:         $repo_root"
 
     # ---- 2. Active loop session (if any) ----
+    cr_progress 2 4 "checking active session…"
+
     run_json="$repo_root/.local/coderabbit-loop/run.json"
     if [ -f "$run_json" ]; then
       loop_status="$(python3 -c "import json,sys; d=json.load(open('$run_json')); print(d.get('status','unknown'))" 2>/dev/null || echo unknown)"
@@ -96,9 +118,13 @@ MSG
       loop_iter="$(python3 -c "import json,sys; d=json.load(open('$run_json')); print(d.get('current_iteration',0))" 2>/dev/null || echo 0)"
       loop_started="$(python3 -c "import json,sys; d=json.load(open('$run_json')); print(d.get('started_at','unknown'))" 2>/dev/null || echo unknown)"
       echo "  Active loop:       $loop_status (mode=$loop_mode, iter=$loop_iter, started=$loop_started)"
+    else
+      echo "  Active loop:       none"
     fi
 
     # ---- 3. CLI version (~instant) ----
+    cr_progress 3 4 "probing CLI version…"
+
     if command -v coderabbit >/dev/null 2>&1; then
       cli_path="$(command -v coderabbit)"
       cli_version="$(tmo 2 coderabbit --version 2>/dev/null | head -1)"
@@ -106,23 +132,24 @@ MSG
       echo "  CLI path:          $cli_path"
 
       # ---- 4. CLI auth (slow: 1-8s network probe) ----
-      printf '  CLI auth:          checking… '
+      cr_progress 4 4 "checking CLI auth…"
       auth_out="$(tmo 8 coderabbit auth status 2>&1)"
       auth_rc=$?
-      printf '\r  CLI auth:          '
+      printf '  CLI auth:          '
       if [ $auth_rc -eq 124 ]; then
-        echo "probe timed out (network unreachable?)        "
+        echo "probe timed out (network unreachable?)"
       elif echo "$auth_out" | grep -q "Logged in"; then
         cli_name="$(echo "$auth_out"  | sed -n 's/.*Name:[[:space:]]*//p'  | head -1)"
         cli_email="$(echo "$auth_out" | sed -n 's/.*Email:[[:space:]]*//p' | head -1)"
         msg="authenticated"
         [ -n "$cli_name" ]  && msg="$msg as $cli_name"
         [ -n "$cli_email" ] && msg="$msg <$cli_email>"
-        echo "$msg          "
+        echo "$msg"
       else
         echo "NOT authenticated (run: coderabbit auth login)"
       fi
     else
+      cr_progress 4 4 "checking CLI auth…"
       echo "  CLI:               not installed"
       echo "  CLI auth:          n/a (CLI not installed)"
     fi
@@ -146,6 +173,7 @@ INNER
   help|--help|-h)
     cat <<'HELP'
 coderabbit-loop — command reference
+Created and maintained by Ricardo Cidale
 
 Toggle commands:
   pnpm coderabbit-loop:on       Arm the loop (creates .local/opmode/active)

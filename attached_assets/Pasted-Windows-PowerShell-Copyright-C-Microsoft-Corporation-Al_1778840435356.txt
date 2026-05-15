@@ -1,0 +1,75 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\ricar> notepad "C:\Users\ricar\.claude\skills\plugin-stack\SKILL.md"
+PS C:\Users\ricar> New-Item -ItemType Directory -Force -Path "C:\Users\ricar\.claude\skills\cost-aware" | Out-Null
+PS C:\Users\ricar> notepad "C:\Users\ricar\.claude\skills\cost-aware\SKILL.md"
+PS C:\Users\ricar> find ~/.claude/skills -maxdepth 2 -type f | sort
+FIND: Parameter format not correct
+PS C:\Users\ricar> curl -fsSL https://cli.coderabbit.ai/releases/latest/coderabbit-linux-x64.zip -o /tmp/cr.zip \
+Invoke-WebRequest : A parameter cannot be found that matches parameter name 'fsSL'.
+At line:1 char:6
++ curl -fsSL https://cli.coderabbit.ai/releases/latest/coderabbit-linux ...
++      ~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [Invoke-WebRequest], ParameterBindingException
+    + FullyQualifiedErrorId : NamedParameterNotFound,Microsoft.PowerShell.Commands.InvokeWebRequestCommand
+
+PS C:\Users\ricar>   && python3 -c "import zipfile,os; zipfile.ZipFile('/tmp/cr.zip').extractall('/tmp/cr-bin')" \
+At line:1 char:3
++   && python3 -c "import zipfile,os; zipfile.ZipFile('/tmp/cr.zip').ex ...
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && chmod +x /tmp/cr-bin/coderabbit \
+At line:1 char:3
++   && chmod +x /tmp/cr-bin/coderabbit \
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && mkdir -p ~/.local/bin \
+At line:1 char:3
++   && mkdir -p ~/.local/bin \
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && mv /tmp/cr-bin/coderabbit ~/.local/bin/coderabbit \
+At line:1 char:3
++   && mv /tmp/cr-bin/coderabbit ~/.local/bin/coderabbit \
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.bashrc \
+At line:1 char:3
++   && echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.bashrc \
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && export PATH="$HOME/.local/bin:$PATH" \
+At line:1 char:3
++   && export PATH="$HOME/.local/bin:$PATH" \
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>   && coderabbit --version
+At line:1 char:3
++   && coderabbit --version
++   ~~
+The token '&&' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+
+PS C:\Users\ricar>

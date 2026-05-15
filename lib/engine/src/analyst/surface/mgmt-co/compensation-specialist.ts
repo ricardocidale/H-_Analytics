@@ -7,7 +7,7 @@
  * Phase 1 of P7-B: Tier-0 only. The Tier-1 N+1 graduation lands in P7-B
  * Phase 2 (mirrors Funding G6-P3b / Revenue G2 pattern).
  */
-import type { CompensationBenchmarks } from "@norfolk/shared/constants-compensation-benchmarks";
+import type { CompensationBenchmarks } from "@norfolk/shared/model-constants-registry";
 import {
   evaluateCompensation,
   type CompensationInputs,

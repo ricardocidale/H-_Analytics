@@ -30,6 +30,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import { isAdminRole, APP_BRAND_NAME, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { generateCompanyProForma, generatePropertyProForma, formatMoney, getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { useServiceTemplates } from "@/lib/api/services";
@@ -184,26 +186,11 @@ export default function Company() {
   }, [financials, projectionYears, global]);
 
   if (propertiesLoading || globalLoading || serverCompany.isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (propertiesError || globalError || serverCompany.isError) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-          <IconAlertTriangle className="w-8 h-8 text-destructive" />
-          <p className="text-muted-foreground">
-            {serverCompany.error?.message || "Failed to load company data. Please try refreshing the page."}
-          </p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message={serverCompany.error?.message ?? "Failed to load company data"} />;
   }
 
   if (!properties || !global) {

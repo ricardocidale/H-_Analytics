@@ -103,3 +103,17 @@ export const PPTX_CONTENT_TYPE =
 
 /** admin_resources llm_slot slug for the Lorenzo / Lucca vision pipeline. */
 export const FACTORY_V2_LORENZO_VISION_LLM_SLOT = "factory-v2-lorenzo-vision";
+
+// ──────────────────────────────────────────────────────────
+// FACTORY V2 — PPTX TEMPLATE SOURCE ROW (U7)
+// ──────────────────────────────────────────────────────────
+
+/** admin_resources slug for the bare PPTX template (kind='source'). */
+export const FACTORY_V2_PPTX_TEMPLATE_SLUG = "lb-v7-pptx-template";
+
+/** admin_resources kind for the PPTX template row. */
+export const FACTORY_V2_PPTX_TEMPLATE_KIND = "source" as const;
+
+/** R2 key where the bare PPTX template lives. */
+export const FACTORY_V2_PPTX_TEMPLATE_R2_KEY =
+  "canonical/lb-6-slide/templates/lb-v7-template.pptx";

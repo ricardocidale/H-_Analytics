@@ -186,8 +186,15 @@ describe("GET /api/internal/lb-deck-payload — factory token, signature failure
 
   it("returns 401 with `invalid-signature` reason when sig is tampered", async () => {
     const { token } = signFactoryDeckToken(FAKE_RUN_ID);
-    // Tamper with the last character of the signature
-    const tampered = token.slice(0, -1) + (token.slice(-1) === "A" ? "B" : "A");
+    // Tamper with the FIRST character of the sig segment, not the last character of
+    // the token. A 32-byte SHA256 encodes to 43 base64url chars; the last char's two
+    // lowest bits are non-significant padding and are ignored on decode, so flipping
+    // only those bits leaves the decoded signature bytes identical and verification
+    // still passes. Flipping the first sig character always changes significant bits.
+    const parts = token.split(".");
+    const sig = parts[3];
+    const tamperedSig = (sig[0] === "A" ? "B" : "A") + sig.slice(1);
+    const tampered = [...parts.slice(0, 3), tamperedSig].join(".");
     // Legacy verifier mock — the route falls through after factory sig fails
     mockVerifyLbDeckToken.mockReturnValue({ ok: false, reason: "wrong-kind" });
 

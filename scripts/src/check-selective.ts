@@ -99,6 +99,7 @@ import { collectInputFiles as collectInputFiles_productionImage } from "./check-
 import { collectInputFiles as collectInputFiles_typesMirror } from "./check-types-mirror.js";
 import { collectInputFiles as collectInputFiles_schemaDrift } from "./check-schema-drift.js";
 import { collectInputFiles as collectInputFiles_directRunGuards } from "./check-direct-run-guards.js";
+import { collectInputFiles as collectInputFiles_flexLabelOverflow } from "./check-flex-label-overflow.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -250,6 +251,12 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     label: "direct-run-guards",
     rootScript: "check:direct-run-guards",
     collectInputs: collectInputFiles_directRunGuards,
+  },
+  {
+    name: "flex-label-overflow",
+    label: "flex-label-overflow",
+    rootScript: "check:flex-label-overflow",
+    collectInputs: collectInputFiles_flexLabelOverflow,
   },
 ];
 

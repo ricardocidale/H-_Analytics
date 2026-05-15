@@ -8,6 +8,7 @@ import { acquireInFlight, releaseInFlight } from "../../middleware/analyst-refre
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { indexAllMarketResearch } from "../../ai/vector-indexing";
 import { runIcpBrackets001 } from "../../migrations/icp-brackets-001";
+import { runPropertyDescriptorCatalog001 } from "../../migrations/property-descriptor-catalog-001";
 import { csrfTokenGuard } from "../../middleware/csrf";
 import { z } from "zod";
 import { ICP_CUSTOMER_TYPES, ICP_SERVICE_CONSUMPTION_PROFILES } from "@workspace/db";
@@ -245,16 +246,26 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
   // vector_namespace assets, and live row counts for catalog_table assets.
   app.get("/api/admin/knowledge-registry", requireAdmin, async (_req, res) => {
     try {
-      const [entries, stats, bracketCount] = await Promise.all([
+      const [entries, stats, bracketCount, descriptorCatalogCount] = await Promise.all([
         storage.getAllKnowledgeRegistry(),
         getNamespaceStats().catch(() => ({} as Record<string, number>)),
         db.execute(sql`SELECT COUNT(*)::int AS count FROM icp_brackets WHERE is_active = true`)
           .catch(() => ({ rows: [{ count: 0 }] })),
+        db.execute(sql`SELECT COUNT(*)::int AS count FROM property_descriptor_catalog`)
+          .catch(() => ({ rows: [{ count: 0 }] })),
       ]);
 
-      const catalogRowCount = Number(
-        (bracketCount.rows[0] as { count: number } | undefined)?.count ?? 0,
-      );
+      // Per-catalog row counts. New `catalog_table` registry entries map their
+      // assetRef → live row count here so the K&R Tables list dot/badge stays
+      // accurate. The fallback `null` keeps unknown catalogs from rendering 0.
+      const catalogCounts: Record<string, number> = {
+        "icp-bracket-catalog": Number(
+          (bracketCount.rows[0] as { count: number } | undefined)?.count ?? 0,
+        ),
+        "property-descriptor-catalog": Number(
+          (descriptorCatalogCount.rows[0] as { count: number } | undefined)?.count ?? 0,
+        ),
+      };
 
       const enriched = entries.map((entry) => ({
         ...entry,
@@ -262,7 +273,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           entry.assetType === "vector_namespace"
             ? (stats[entry.assetRef as VectorNamespace] ?? 0)
             : entry.assetType === "catalog_table"
-            ? catalogRowCount
+            ? (catalogCounts[entry.assetRef] ?? null)
             : null,
       }));
 
@@ -282,6 +293,35 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       logAndSendError(res, "Failed to fetch country economic data", error, "AKNW-002");
     }
   });
+
+  // GET /api/admin/knowledge-registry/property-descriptor-catalog/data
+  // Returns every property descriptor catalog row for the admin viewer.
+  // Read-only — the catalog is code-defined (Plan 2026-05-13-002, U2) and
+  // re-seeded idempotently on each boot. Must be registered BEFORE /:id to
+  // prevent path shadowing.
+  app.get(
+    "/api/admin/knowledge-registry/property-descriptor-catalog/data",
+    requireAdmin,
+    async (_req, res) => {
+      try {
+        const result = await db.execute(sql`
+          SELECT field_key, group_name, scope, data_type,
+                 enum_values, unit, display_label, help_text,
+                 sort_order, typed_column_purchased, typed_column_improved
+          FROM property_descriptor_catalog
+          ORDER BY sort_order ASC, field_key ASC
+        `);
+        res.json({ descriptors: result.rows });
+      } catch (error: unknown) {
+        logAndSendError(
+          res,
+          "Failed to fetch property descriptor catalog",
+          error,
+          "AKNW-022",
+        );
+      }
+    },
+  );
 
   // GET /api/admin/knowledge-registry/icp-bracket-catalog/data
   // Returns ALL ICP brackets (active + inactive) for the admin viewer so
@@ -667,6 +707,33 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           return res.json({ success: true, assetRef: entry.assetRef });
         } finally {
           releaseInFlight("icp-bracket-catalog");
+        }
+      }
+
+      // catalog_table — property_descriptor_catalog re-seeded from the codebase
+      // source of truth (`lib/db/src/property-descriptor-catalog-seed.ts`). The
+      // upsert is idempotent and restores any rows that were manually deleted
+      // without overwriting unrelated data.
+      if (entry.assetType === "catalog_table" && entry.assetRef === "property-descriptor-catalog") {
+        if (!acquireInFlight("property-descriptor-catalog")) {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: "Refresh already in flight for property-descriptor-catalog",
+          });
+        }
+        try {
+          const result = await runPropertyDescriptorCatalog001();
+          await storage.updateKnowledgeRegistryRefreshed(id, new Date());
+          logActivity(req, "knowledge-registry-regenerate", "knowledge_registry", null, id, {
+            assetRef: entry.assetRef,
+            rowsUpserted: result.rowsUpserted,
+          });
+          return res.json({
+            success: true,
+            assetRef: entry.assetRef,
+            rowsUpserted: result.rowsUpserted,
+          });
+        } finally {
+          releaseInFlight("property-descriptor-catalog");
         }
       }
 

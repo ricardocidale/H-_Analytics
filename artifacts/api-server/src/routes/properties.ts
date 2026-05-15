@@ -50,8 +50,10 @@ import { WalkScoreService } from "../services/WalkScoreService";
 import { validateFieldChanges, computeFieldAlerts } from "../ai/analyst-watchdog";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
-import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
+import { computeStressScenarios, type StressAssumptions, type StressThresholds } from "@engine/helpers/stress-scenarios";
+import { resolveStressThresholds } from "../finance/benchmark-resolver";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
+import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -88,8 +90,51 @@ export async function createPropertyRecord(
     userId: isAdminRole(user.role) ? null : user.id,
     researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
   };
+
+  const createDataMut = createData as Record<string, unknown>;
+
+  // Layer-2: bracket-mix overlay. Runs before Layer-1 so bracket values can
+  // override model_defaults when the company's bracket mix has an opinion.
+  try {
+    await applyBracketLayerDefaults(createDataMut, globalDefaults?.bracketMix ?? null);
+  } catch (bracketErr: unknown) {
+    logger.warn(
+      `applyBracketLayerDefaults failed at creation (non-blocking): ${bracketErr instanceof Error ? bracketErr.message : bracketErr}`,
+      "properties",
+    );
+  }
+
+  // Layer-1: hydrate underwriting fields from model_defaults for any still null.
+  // Precedence: user-supplied or global-assumptions value > Layer-2 bracket blend > model_defaults row.
+  try {
+    const hydrated = await hydratePropertyFinancials(
+      createDataMut as Parameters<typeof hydratePropertyFinancials>[0],
+      { country: createDataMut.country as string | null, businessType: createDataMut.type as string | null },
+    );
+    for (const [key, val] of Object.entries(hydrated)) {
+      if (createDataMut[key] == null) createDataMut[key] = val;
+    }
+  } catch (hydrateErr: unknown) {
+    logger.warn(
+      `hydratePropertyFinancials failed at creation (non-blocking): ${hydrateErr instanceof Error ? hydrateErr.message : hydrateErr}`,
+      "properties",
+    );
+  }
+
+  // Fee cascade: populate mgmt + brand fee columns from management_company_fees
+  // + brand_fees tables. Runs after Layer-1 so structural underwriting fields
+  // are already set; fee columns that are already non-null (user-supplied) win.
+  try {
+    await hydrateFeeColumns(createDataMut);
+  } catch (feeErr: unknown) {
+    logger.warn(
+      `hydrateFeeColumns failed at creation (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
+      "properties",
+    );
+  }
+
   const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
-  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
+  (createData as Record<string, unknown> & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
 
   const property = await storage.createProperty(createData);
 
@@ -330,7 +375,7 @@ export function register(app: Express) {
       const cats = await storage.getFeeCategoriesByProperty(property.id);
       res.json({
         ...property,
-        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive })),
+        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive, serviceMarkup: c.serviceMarkup ?? null })),
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property", error, "PROP-002");
@@ -469,6 +514,20 @@ export function register(app: Express) {
       );
       if (hasKeyChange) {
         updateData.lastAssumptionChangeAt = new Date();
+      }
+
+      // If brand_id is changing, cascade fee columns for the new brand.
+      // "fill nulls only" — user-supplied fee values in validation.data are
+      // non-null in updateData and are not overwritten by the cascade.
+      if ("brandId" in validation.data) {
+        try {
+          await hydrateFeeColumns(updateData);
+        } catch (feeErr: unknown) {
+          logger.warn(
+            `hydrateFeeColumns failed on brand change for property ${propertyId} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
+            "properties",
+          );
+        }
       }
 
       let property = await storage.updateProperty(propertyId, updateData);
@@ -782,6 +841,7 @@ export function register(app: Express) {
     id: z.number().int().optional(),
     name: z.string().min(1),
     rate: z.number().min(0).max(1),
+    serviceMarkup: z.number().min(0).max(1).nullable().optional(),
     isActive: z.boolean(),
     sortOrder: z.number().int(),
   }));
@@ -805,6 +865,7 @@ export function register(app: Express) {
             return storage.updateFeeCategory(cat.id, {
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             }, propertyId);
@@ -813,6 +874,7 @@ export function register(app: Express) {
               propertyId,
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             });
@@ -985,7 +1047,8 @@ Rewritten description:`;
         assumptions.loanTermYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
       }
 
-      const results = computeStressScenarios(assumptions);
+      const stressThresholds = await resolveStressThresholds();
+      const results = computeStressScenarios(assumptions, stressThresholds);
       res.json(results);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-016");
@@ -1027,7 +1090,8 @@ Rewritten description:`;
         loanTermYears: body.loanTermYears,
       };
 
-      const results = computeStressScenarios(assumptions);
+      const stressThresholds = await resolveStressThresholds();
+      const results = computeStressScenarios(assumptions, stressThresholds);
       res.json(results);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-017");

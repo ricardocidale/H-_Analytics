@@ -754,7 +754,125 @@ function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
     return <IcpBracketCatalogViewer />;
   }
 
+  if (entry.assetType === "catalog_table" && entry.assetRef === "property-descriptor-catalog") {
+    return <PropertyDescriptorCatalogViewer />;
+  }
+
   return null;
+}
+
+// ── PropertyDescriptorCatalogViewer ─────────────────────────────────────────
+// Plan 2026-05-13-002 U2 — read-only K&R Tables surface for the
+// `property_descriptor_catalog` table. The catalog is code-defined (seeded
+// from `lib/db/src/property-descriptor-catalog-seed.ts`) and re-asserted
+// idempotently on each server boot, so this view has no Add / Edit / Delete
+// affordances by design (per `front-of-app-admin-isolation` and the K&R
+// read-only contract).
+
+interface PropertyDescriptorCatalogRow {
+  field_key: string;
+  group_name: string;
+  scope: "identity" | "parallel" | "purchased_only" | "improved_only";
+  data_type: string;
+  enum_values: unknown;
+  unit: string | null;
+  display_label: string;
+  help_text: string | null;
+  sort_order: number;
+  typed_column_purchased: string | null;
+  typed_column_improved: string | null;
+}
+
+function ScopeChip({ scope }: { scope: PropertyDescriptorCatalogRow["scope"] }) {
+  const cls =
+    scope === "parallel"
+      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+      : scope === "improved_only"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+      : scope === "purchased_only"
+      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+      : "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${cls}`}>
+      {scope.replace("_", " ")}
+    </span>
+  );
+}
+
+function PropertyDescriptorCatalogViewer() {
+  const { data, isLoading, isError } = useQuery<{ descriptors: PropertyDescriptorCatalogRow[] }>({
+    queryKey: ["/api/admin/knowledge-registry/property-descriptor-catalog/data"],
+    queryFn: adminFetch<{ descriptors: PropertyDescriptorCatalogRow[] }>(
+      "/api/admin/knowledge-registry/property-descriptor-catalog/data",
+      "Failed to load property descriptor catalog",
+    ),
+  });
+
+  if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
+  if (isError) return <p className="text-xs text-destructive py-2">Failed to load property descriptor catalog.</p>;
+
+  const rows = data?.descriptors ?? [];
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">No descriptors in catalog.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-muted-foreground">
+        Read-only. The catalog is code-defined and re-asserted on every server boot from
+        <code className="mx-1 px-1 py-0.5 rounded bg-muted text-[10px]">lib/db/src/property-descriptor-catalog-seed.ts</code>.
+        New descriptors are added by extending the seed and re-running migrations.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b text-muted-foreground">
+              <th className="text-left py-1.5 pr-3 font-medium">Field</th>
+              <th className="text-left py-1.5 px-2 font-medium hidden sm:table-cell">Group</th>
+              <th className="text-left py-1.5 px-2 font-medium">Scope</th>
+              <th className="text-left py-1.5 px-2 font-medium hidden md:table-cell">Type</th>
+              <th className="text-left py-1.5 px-2 font-medium hidden md:table-cell">Unit</th>
+              <th className="text-left py-1.5 px-2 font-medium hidden lg:table-cell">Typed Columns</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr
+                key={r.field_key}
+                className="border-b border-border/50 align-top"
+                data-testid={`row-property-descriptor-${r.field_key}`}
+              >
+                <td className="py-2 pr-3">
+                  <div className="font-medium text-foreground/90">{r.display_label}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{r.field_key}</div>
+                  {r.help_text && (
+                    <div className="text-[10px] text-muted-foreground/80 mt-0.5 max-w-md">{r.help_text}</div>
+                  )}
+                </td>
+                <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">{r.group_name}</td>
+                <td className="py-2 px-2"><ScopeChip scope={r.scope} /></td>
+                <td className="py-2 px-2 text-muted-foreground hidden md:table-cell">{r.data_type}</td>
+                <td className="py-2 px-2 text-muted-foreground hidden md:table-cell">{r.unit ?? "—"}</td>
+                <td className="py-2 px-2 text-muted-foreground hidden lg:table-cell">
+                  <div className="text-[10px]">
+                    {r.typed_column_purchased && (
+                      <div><span className="text-muted-foreground/70">P:</span> <code>{r.typed_column_purchased}</code></div>
+                    )}
+                    {r.typed_column_improved && (
+                      <div><span className="text-muted-foreground/70">I:</span> <code>{r.typed_column_improved}</code></div>
+                    )}
+                    {!r.typed_column_purchased && !r.typed_column_improved && (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function BenchmarkViewer({ tableId, assetType }: { tableId: string; assetType: string }) {

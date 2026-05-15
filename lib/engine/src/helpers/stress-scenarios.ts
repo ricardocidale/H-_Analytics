@@ -30,6 +30,26 @@ import {
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 import { pmt } from '@calc/shared/pmt';
 
+/**
+ * Runtime-configurable stress thresholds. All fields are optional — if omitted,
+ * the engine falls back to the TS-constant default (which matches the registered
+ * factoryValue in MODEL_CONSTANTS_REGISTRY). Server-side callers should resolve
+ * these from the DB via `resolveStressThresholds()` in benchmark-resolver.ts so
+ * that admin DB edits take effect without a code deploy.
+ */
+export interface StressThresholds {
+  dscrCovenantStandard?: number;
+  dscrCovenantCritical?: number;
+  stressOccupancyShock?: number;
+  stressAdrShock?: number;
+  stressRateShockDecimal?: number;
+  stressRateShockBps?: number;
+  stressCostShock?: number;
+  stressCombinedOccupancyShock?: number;
+  stressCombinedCostShock?: number;
+  stressSeverityNoiThreshold?: number;
+}
+
 // Audit #319 R4: registry-backed daysPerMonth (universal — same value as legacy).
 const DAYS_PER_MONTH = getFactoryNumber('daysPerMonth');
 
@@ -145,10 +165,13 @@ function classifySeverity(
   noiPctChange: number,
   dscr: number,
   hasDebt: boolean,
+  dscrCovenantStandard: number,
+  dscrCovenantCritical: number,
+  stressSeverityNoiThreshold: number,
 ): "low" | "moderate" | "severe" | "critical" {
-  if (hasDebt && dscr < DSCR_COVENANT_CRITICAL) return "critical";
-  if (hasDebt && dscr < DSCR_COVENANT_STANDARD) return "severe";
-  if (noiPctChange < -STRESS_SEVERITY_NOI_THRESHOLD) return "moderate";
+  if (hasDebt && dscr < dscrCovenantCritical) return "critical";
+  if (hasDebt && dscr < dscrCovenantStandard) return "severe";
+  if (noiPctChange < -stressSeverityNoiThreshold) return "moderate";
   return "low";
 }
 
@@ -165,26 +188,42 @@ function formatPct(n: number): string {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 
-export function computeStressScenarios(assumptions: StressAssumptions): StressResult[] {
+export function computeStressScenarios(
+  assumptions: StressAssumptions,
+  thresholds?: StressThresholds,
+): StressResult[] {
+  const t = {
+    dscrCovenantStandard:      thresholds?.dscrCovenantStandard      ?? DSCR_COVENANT_STANDARD,
+    dscrCovenantCritical:      thresholds?.dscrCovenantCritical      ?? DSCR_COVENANT_CRITICAL,
+    stressOccupancyShock:      thresholds?.stressOccupancyShock      ?? STRESS_OCCUPANCY_SHOCK,
+    stressAdrShock:            thresholds?.stressAdrShock            ?? STRESS_ADR_SHOCK,
+    stressRateShockDecimal:    thresholds?.stressRateShockDecimal    ?? STRESS_RATE_SHOCK_DECIMAL,
+    stressRateShockBps:        thresholds?.stressRateShockBps        ?? STRESS_RATE_SHOCK_BPS,
+    stressCostShock:           thresholds?.stressCostShock           ?? STRESS_COST_SHOCK,
+    stressCombinedOccupancyShock: thresholds?.stressCombinedOccupancyShock ?? STRESS_COMBINED_OCCUPANCY_SHOCK,
+    stressCombinedCostShock:   thresholds?.stressCombinedCostShock   ?? STRESS_COMBINED_COST_SHOCK,
+    stressSeverityNoiThreshold: thresholds?.stressSeverityNoiThreshold ?? STRESS_SEVERITY_NOI_THRESHOLD,
+  };
+
   const base = computeAnnualFinancials(assumptions);
   const hasDebt = (assumptions.loanAmount ?? 0) > 0 && (assumptions.interestRate ?? 0) > 0;
   const results: StressResult[] = [];
 
   // ── 1. Occupancy -15% (recession) ────────────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { occupancyMultiplier: STRESS_OCCUPANCY_SHOCK });
+    const stressed = computeAnnualFinancials(assumptions, { occupancyMultiplier: t.stressOccupancyShock });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
-    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
+    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt, t.dscrCovenantStandard, t.dscrCovenantCritical, t.stressSeverityNoiThreshold);
 
     let narrative = `A 15% occupancy decline reduces annual NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     if (hasDebt) {
       narrative += ` DSCR ${stressed.dscr < base.dscr ? 'falls' : 'moves'} to ${stressed.dscr.toFixed(2)}x`;
-      if (stressed.dscr < DSCR_COVENANT_STANDARD) {
-        narrative += `, breaching the typical ${DSCR_COVENANT_STANDARD}x debt covenant. This would require equity injection or fee deferral.`;
+      if (stressed.dscr < t.dscrCovenantStandard) {
+        narrative += `, breaching the typical ${t.dscrCovenantStandard}x debt covenant. This would require equity injection or fee deferral.`;
       } else {
-        narrative += `, remaining above the ${DSCR_COVENANT_STANDARD}x covenant threshold.`;
+        narrative += `, remaining above the ${t.dscrCovenantStandard}x covenant threshold.`;
       }
     }
 
@@ -195,7 +234,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
+      breachesDebtCovenant: hasDebt && stressed.dscr < t.dscrCovenantStandard,
       severity,
       narrative,
     });
@@ -203,15 +242,15 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 2. ADR -10% (rate compression) ───────────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { adrMultiplier: STRESS_ADR_SHOCK });
+    const stressed = computeAnnualFinancials(assumptions, { adrMultiplier: t.stressAdrShock });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
-    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
+    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt, t.dscrCovenantStandard, t.dscrCovenantCritical, t.stressSeverityNoiThreshold);
 
     let narrative = `A 10% ADR reduction lowers annual NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     if (hasDebt) {
-      narrative += ` DSCR adjusts to ${stressed.dscr.toFixed(2)}x${stressed.dscr < DSCR_COVENANT_STANDARD ? ', breaching covenant.' : '.'}`;
+      narrative += ` DSCR adjusts to ${stressed.dscr.toFixed(2)}x${stressed.dscr < t.dscrCovenantStandard ? ', breaching covenant.' : '.'}`;
     }
     narrative += ` Rate compression typically occurs during supply gluts or economic softening.`;
 
@@ -222,7 +261,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
+      breachesDebtCovenant: hasDebt && stressed.dscr < t.dscrCovenantStandard,
       severity,
       narrative,
     });
@@ -230,19 +269,19 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 3. Interest rates +200bps (refinancing risk) ─────────────────────────
   if (hasDebt) {
-    const newRate = (assumptions.interestRate ?? 0) + STRESS_RATE_SHOCK_DECIMAL;
+    const newRate = (assumptions.interestRate ?? 0) + t.stressRateShockDecimal;
     const stressed = computeAnnualFinancials(assumptions, { interestRateOverride: newRate });
     // NOI itself doesn't change — only debt service changes
     const noiChange = 0;
     const noiPctChange = 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
-    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
+    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt, t.dscrCovenantStandard, t.dscrCovenantCritical, t.stressSeverityNoiThreshold);
 
-    const bpsIncrease = STRESS_RATE_SHOCK_BPS;
+    const bpsIncrease = t.stressRateShockBps;
     let narrative = `A ${bpsIncrease}bps interest rate increase (${formatPct(assumptions.interestRate!)} → ${formatPct(newRate)}) raises annual debt service by ${formatCurrency(Math.abs(cashFlowChange))}.`;
     narrative += ` DSCR moves from ${base.dscr.toFixed(2)}x to ${stressed.dscr.toFixed(2)}x.`;
-    if (stressed.dscr < DSCR_COVENANT_STANDARD) {
-      narrative += ` This breaches the ${DSCR_COVENANT_STANDARD}x covenant, triggering potential lender remediation.`;
+    if (stressed.dscr < t.dscrCovenantStandard) {
+      narrative += ` This breaches the ${t.dscrCovenantStandard}x covenant, triggering potential lender remediation.`;
     }
 
     results.push({
@@ -252,7 +291,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: stressed.dscr,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: stressed.dscr < DSCR_COVENANT_STANDARD,
+      breachesDebtCovenant: stressed.dscr < t.dscrCovenantStandard,
       severity,
       narrative,
     });
@@ -260,15 +299,15 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 4. Operating costs +20% (inflation) ──────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { costMultiplier: STRESS_COST_SHOCK });
+    const stressed = computeAnnualFinancials(assumptions, { costMultiplier: t.stressCostShock });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
-    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
+    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt, t.dscrCovenantStandard, t.dscrCovenantCritical, t.stressSeverityNoiThreshold);
 
     let narrative = `A 20% operating cost increase reduces NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     narrative += ` Labor, utilities, and supply chain inflation are the primary drivers.`;
-    if (hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD) {
+    if (hasDebt && stressed.dscr < t.dscrCovenantStandard) {
       narrative += ` DSCR falls to ${stressed.dscr.toFixed(2)}x, breaching covenant.`;
     }
 
@@ -279,7 +318,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
+      breachesDebtCovenant: hasDebt && stressed.dscr < t.dscrCovenantStandard,
       severity,
       narrative,
     });
@@ -288,20 +327,20 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
   // ── 5. Combined stress (occupancy -10% AND costs +10%) ───────────────────
   {
     const stressed = computeAnnualFinancials(assumptions, {
-      occupancyMultiplier: STRESS_COMBINED_OCCUPANCY_SHOCK,
-      costMultiplier: STRESS_COMBINED_COST_SHOCK,
+      occupancyMultiplier: t.stressCombinedOccupancyShock,
+      costMultiplier: t.stressCombinedCostShock,
     });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
-    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
+    const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt, t.dscrCovenantStandard, t.dscrCovenantCritical, t.stressSeverityNoiThreshold);
 
     let narrative = `Stagflation scenario: 10% occupancy decline combined with 10% cost increase reduces NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     if (hasDebt) {
       narrative += ` DSCR moves to ${stressed.dscr.toFixed(2)}x.`;
       if (stressed.dscr < 1.0) {
         narrative += ` Property cannot cover debt service — requires immediate equity injection or loan restructuring.`;
-      } else if (stressed.dscr < DSCR_COVENANT_STANDARD) {
+      } else if (stressed.dscr < t.dscrCovenantStandard) {
         narrative += ` Covenant breach likely triggers lender negotiation.`;
       }
     }
@@ -313,7 +352,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
+      breachesDebtCovenant: hasDebt && stressed.dscr < t.dscrCovenantStandard,
       severity,
       narrative,
     });

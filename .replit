@@ -68,6 +68,22 @@ args = "check:direct-run-guards"
 task = "workflow.run"
 args = "check:taxonomy-mirror"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:pagination"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:report"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:api-server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:flex-label-overflow"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -211,6 +227,50 @@ args = "pnpm --filter @workspace/scripts run check:taxonomy-mirror"
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "test:pagination"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:pagination"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:report"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:report"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:api-server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:flex-label-overflow"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm run check:flex-label-overflow"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -219,6 +279,10 @@ integrations = ["linear:1.0.0"]
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 90000
+
+[[ports]]
+localPort = 3001
+externalPort = 3003
 
 [[ports]]
 localPort = 5000

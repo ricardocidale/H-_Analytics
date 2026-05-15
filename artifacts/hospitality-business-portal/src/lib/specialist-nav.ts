@@ -60,14 +60,14 @@ export function resolveCandidateFieldNavTarget(
       return {
         path: "/admin",
         anchor: anchor ?? "macro-market",
-        label: "Open Steady State — Macro & Market",
+        label: "Open Model Defaults — Macro & Market",
       };
     }
     case "constants": {
       return {
         path: "/admin",
         anchor: anchor ?? "constants",
-        label: "Open Steady State — Constants",
+        label: "Open Model Defaults — Constants",
       };
     }
     default:

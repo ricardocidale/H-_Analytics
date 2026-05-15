@@ -98,19 +98,13 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
 /**
  * SEED_EXIT_CAP_RATE_LUXURY — L+B Hospitality persona override.
  *
- * Used in the seeded global_assumptions baseline row instead of the
- * system-wide DEFAULT_EXIT_CAP_RATE (8.5%) because the L+B portfolio is
- * boutique-luxury (10–80 rooms, $250–600 ADR), and luxury hotel cap rates
- * compress materially below the broader US hotel average.
- *
- * Grounded in cached benchmark `us_luxury_cap_rate = 6.2%` from
- * CBRE Hotel Cap Rate Survey 2024 (benchmark_snapshots row id=32).
- *
- * The system-wide DEFAULT_EXIT_CAP_RATE is intentionally left at 8.5%
- * as the cascade fallback for any new property/company that has not
- * declared a luxury qualityTier.
+ * Calibrated to CBRE / JLL US luxury boutique hotel cap rate consensus
+ * (2025): 7.5–9.5%; 8.5% is the market midpoint and matches
+ * DEFAULT_EXIT_CAP_RATE, keeping a single coherent reference point.
+ * Prior value of 6.2% (CBRE 2024 cached benchmark) was overly aggressive —
+ * inflated stabilised values by 20–30%, producing IRR outliers > 50%.
  */
-export const SEED_EXIT_CAP_RATE_LUXURY = 0.062;
+export const SEED_EXIT_CAP_RATE_LUXURY = 0.085;
 
 /**
  * SEED_MEDELLIN_DUPLEX_START_ADR — single-key El Poblado luxury STR starting ADR.
@@ -141,6 +135,7 @@ export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
  * Default depreciation period — US nonresidential real property (hotels) per
  * IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
  */
+// FEEDS_DEFAULT: depreciationYears
 export const DEPRECIATION_YEARS = 39;
 
 /**
@@ -150,6 +145,7 @@ export const DEPRECIATION_YEARS = 39;
  * the (country, property-type) lookup in
  * `lib/calc/src/research/depreciation-basis.ts` reads as IRS-sourced.
  */
+// FEEDS_DEFAULT: depreciationYears
 export const DEPRECIATION_YEARS_US_NON_RESIDENTIAL = 39;
 
 /**
@@ -169,6 +165,7 @@ export const MONTHS_PER_YEAR = 12;
  * `@shared/model-constants-registry` (universal locality, identical numeric
  * value). Retained for schema column defaults and tests.
  */
+// FEEDS_DEFAULT: daysPerMonth
 export const DAYS_PER_MONTH = 30.5;
 
 // ──────────────────────────────────────────────────────────
@@ -225,11 +222,13 @@ export const DEFAULT_STABILIZATION_MONTHS = 36;
  * other countries pick up locality-aware rates). Retained for schema column
  * defaults and tests.
  */
+// FEEDS_DEFAULT: inflationRate
 export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
 /**
  * @deprecated Audit #319 R4. Same as `DEFAULT_PROPERTY_INFLATION_RATE` —
  * route through `getFactoryNumber('inflationRate', country, state)`.
  */
+// FEEDS_DEFAULT: inflationRate
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
 // ──────────────────────────────────────────────────────────────────────────────
@@ -293,7 +292,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_AI_AGENT_NAME = "Rebecca";
 export const DEFAULT_MAX_STALENESS_HOURS = 24;
 export const USE_STABLE_SCENARIO_LOAD = true;
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
@@ -308,7 +306,6 @@ export const DEFAULT_REINVESTMENT_RATE = 0.05;
 
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
-export const DEFAULT_DAY_COUNT_CONVENTION: DayCountConvention = '30/360';
 
 // ── Escalation Method ───────────────────────────────────────────────────
 export type EscalationMethod = 'annual' | 'monthly';
