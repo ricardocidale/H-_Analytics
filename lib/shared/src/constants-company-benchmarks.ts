@@ -6,6 +6,13 @@
  * and `constants-revenue-benchmarks.ts`: named LOW/MID/HIGH exports per
  * dimension, assembled into a band-object by reference (no inline literals).
  *
+ * @deprecated Values are now seeded into the `model_constants` DB table and
+ * are admin-editable without a deploy. Use `resolveCompanyBenchmarks()`
+ * from `artifacts/api-server/src/finance/benchmark-resolver.ts` for DB-backed
+ * values, or `getFactoryNumber(key)` from `@shared/model-constants-registry`
+ * for TS-only fallbacks. Direct imports here will be removed in a future
+ * cleanup pass.
+ *
  * Persona scope: boutique-luxury hospitality management companies operating
  *   3–25 properties, US-based, founder-led to institutional-scale.
  *

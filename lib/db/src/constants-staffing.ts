@@ -1,3 +1,11 @@
+/**
+ * @deprecated Staffing scalar constants are now seeded into the `model_constants`
+ * DB table and are admin-editable without a deploy. Use `getFactoryNumber(key)`
+ * from `@shared/model-constants-registry` for TS-only fallbacks, or
+ * `resolveXxxBenchmarks()` from `benchmark-resolver.ts` for DB-backed values.
+ * Non-migrated exports (STAFFING_TIERS, ICP_MODEL_PROFILES, QUALITY_TIER_*)
+ * remain authoritative here.
+ */
 export const DEFAULT_STAFF_TIER1_MAX_PROPERTIES = 3;
 export const DEFAULT_STAFF_TIER2_MAX_PROPERTIES = 6;
 

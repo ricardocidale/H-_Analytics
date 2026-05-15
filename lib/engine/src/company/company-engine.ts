@@ -23,14 +23,7 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_PARTNER_COMP,
-  DEFAULT_STAFF_SALARY,
   STAFFING_TIERS,
-  DEFAULT_OFFICE_LEASE,
-  DEFAULT_PROFESSIONAL_SERVICES,
-  DEFAULT_TECH_INFRA,
-  DEFAULT_BUSINESS_INSURANCE,
-  DEFAULT_TRAVEL_PER_CLIENT,
-  DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_CAPITAL_RAISE_TRANCHE,
@@ -141,18 +134,18 @@ export function generateCompanyProForma(
     global.partnerCompYear9 ?? DEFAULT_PARTNER_COMP[8],
     global.partnerCompYear10 ?? DEFAULT_PARTNER_COMP[9],
   ];
-  const staffSalary = global.staffSalary ?? DEFAULT_STAFF_SALARY;
+  const staffSalary = global.staffSalary ?? getFactoryNumber('benchmarkStaffDefaultSalary');
   const tier1Max = global.staffTier1MaxProperties ?? STAFFING_TIERS[0].maxProperties;
   const tier1Fte = global.staffTier1Fte ?? STAFFING_TIERS[0].fte;
   const tier2Max = global.staffTier2MaxProperties ?? STAFFING_TIERS[1].maxProperties;
   const tier2Fte = global.staffTier2Fte ?? STAFFING_TIERS[1].fte;
   const tier3Fte = global.staffTier3Fte ?? STAFFING_TIERS[2].fte;
-  const officeLeaseStart = global.officeLeaseStart ?? DEFAULT_OFFICE_LEASE;
-  const professionalServicesStart = global.professionalServicesStart ?? DEFAULT_PROFESSIONAL_SERVICES;
-  const techInfraStart = global.techInfraStart ?? DEFAULT_TECH_INFRA;
-  const businessInsuranceStart = global.businessInsuranceStart ?? DEFAULT_BUSINESS_INSURANCE;
-  const travelCostPerClient = global.travelCostPerClient ?? DEFAULT_TRAVEL_PER_CLIENT;
-  const itLicensePerClient = global.itLicensePerClient ?? DEFAULT_IT_LICENSE_PER_CLIENT;
+  const officeLeaseStart = global.officeLeaseStart ?? getFactoryNumber('benchmarkStaffDefaultOfficeLease');
+  const professionalServicesStart = global.professionalServicesStart ?? getFactoryNumber('benchmarkStaffDefaultProfServices');
+  const techInfraStart = global.techInfraStart ?? getFactoryNumber('benchmarkStaffDefaultTechInfra');
+  const businessInsuranceStart = global.businessInsuranceStart ?? getFactoryNumber('benchmarkStaffDefaultBizInsurance');
+  const travelCostPerClient = global.travelCostPerClient ?? getFactoryNumber('benchmarkStaffDefaultTravelPerClient');
+  const itLicensePerClient = global.itLicensePerClient ?? getFactoryNumber('benchmarkStaffDefaultItLicensePerClient');
   const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
   const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
   const companyTaxRate = global.companyTaxRate

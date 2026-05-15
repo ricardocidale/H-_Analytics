@@ -18,15 +18,11 @@ import {
   DEFAULT_CAPITAL_RAISE_1_DATE,
   DEFAULT_CAPITAL_RAISE_2_DATE,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_SERVICE_FEE_CATEGORIES,
   SEED_EXIT_CAP_RATE_LUXURY,
-  DEFAULT_OFFICE_LEASE_START,
-  DEFAULT_PROFESSIONAL_SERVICES_START,
-  DEFAULT_TECH_INFRA_START,
   DEFAULT_MISC_OPS_RATE,
 } from "@shared/constants";
-import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
+import { resolveStaffingDefaults } from "../finance/benchmark-resolver";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Task #403 (follow-up to Audit #406): the seeded `companyTaxRate` for the
@@ -129,13 +125,7 @@ export async function seedGlobalAssumptions() {
     partnerCountYear8: 3,
     partnerCountYear9: 3,
     partnerCountYear10: 3,
-    staffSalary: DEFAULT_STAFF_SALARY,
-    officeLeaseStart: DEFAULT_OFFICE_LEASE_START,
-    professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
-    techInfraStart: DEFAULT_TECH_INFRA_START,
-    businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
-    travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
-    itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
+    ...(await resolveStaffingDefaults()),
     marketingRate: SEED_MARKETING_RATE,
     miscOpsRate: DEFAULT_MISC_OPS_RATE,
     commissionRate: DEFAULT_COMMISSION_RATE,

@@ -2,6 +2,13 @@
  * constants-revenue-benchmarks.ts — Cached benchmark ranges that drive the
  * Analyst watchdog on the Revenue tab of Company Assumptions.
  *
+ * @deprecated Values are now seeded into the `model_constants` DB table and
+ * are admin-editable without a deploy. Use `resolveRevenueBenchmarks()`
+ * from `artifacts/api-server/src/finance/benchmark-resolver.ts` for DB-backed
+ * values, or `getFactoryNumber(key)` from `@shared/model-constants-registry`
+ * for TS-only fallbacks. Direct imports here will be removed in a future
+ * cleanup pass.
+ *
  * Mirrors the pattern in `constants-funding.ts` (DEFAULT_CAPITAL_RAISE_BENCHMARKS):
  * a hardcoded low/mid/high band per dimension, grounded in industry sources,
  * stable across all users until the Tier-1 LLM refresh path lands.

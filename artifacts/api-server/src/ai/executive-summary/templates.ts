@@ -5,6 +5,7 @@
  */
 
 import type { Property } from "@workspace/db";
+import type { StressThresholds } from "@engine/helpers/stress-scenarios";
 import { pct, dollars, summarizeWorstStress } from "./finance-helpers";
 import type {
   PropertyExecutiveSummary,
@@ -15,6 +16,7 @@ import type {
 export function buildTemplateSummary(
   p: Property,
   metrics: PropertyExecutiveSummary["keyMetrics"],
+  stressThresholds?: StressThresholds,
 ): PropertyQualitativeSections {
   const tier = p.qualityTier ?? "upscale";
   const model = p.businessModel ?? "hotel";
@@ -36,7 +38,7 @@ export function buildTemplateSummary(
   const marketPosition = `The property operates as a ${tier} asset in the ${p.market || location || "target"} market. ${rooms <= 15 ? "Small room count provides an intimate, high-service experience typical of boutique conversions." : `With ${rooms} rooms, the property benefits from operational scale while maintaining boutique positioning.`}`;
 
   const hasDebt = ltv > 0;
-  const riskFactors = `Key risks include ${hasDebt ? `leverage at ${pct(ltv)} LTV` : "execution risk on conversion timeline"}, ${occupancy > 0.80 ? "aggressive occupancy assumptions" : "market occupancy uncertainty"}, and sensitivity to ${fbShare > 0.15 ? "F&B operational costs" : "ADR compression in a competitive market"}. ${summarizeWorstStress(p)}`;
+  const riskFactors = `Key risks include ${hasDebt ? `leverage at ${pct(ltv)} LTV` : "execution risk on conversion timeline"}, ${occupancy > 0.80 ? "aggressive occupancy assumptions" : "market occupancy uncertainty"}, and sensitivity to ${fbShare > 0.15 ? "F&B operational costs" : "ADR compression in a competitive market"}. ${summarizeWorstStress(p, stressThresholds)}`;
 
   const mitigants = `${hasDebt && metrics.dscr != null && metrics.dscr > 1.25 ? `DSCR of ${metrics.dscr.toFixed(2)}x provides debt cushion. ` : ""}${fbShare > 0.10 ? "Diversified revenue streams reduce dependence on room revenue. " : ""}${tier === "luxury" || tier === "upper_upscale" ? "Premium positioning provides pricing power and lower demand elasticity. " : ""}The management company's brand and operational expertise de-risk execution.`;
 

@@ -3,6 +3,13 @@
  * Analyst watchdog on the Property Defaults surface (Admin → Model Defaults →
  * Property Underwriting tab).
  *
+ * @deprecated Values are now seeded into the `model_constants` DB table and
+ * are admin-editable without a deploy. Use `resolvePropertyDefaultsBenchmarks()`
+ * from `artifacts/api-server/src/finance/benchmark-resolver.ts` for DB-backed
+ * values, or `getFactoryNumber(key)` from `@shared/model-constants-registry`
+ * for TS-only fallbacks. Direct imports here will be removed in a future
+ * cleanup pass.
+ *
  * Mirrors `constants-company-benchmarks.ts`: named LOW/MID/HIGH exports per
  * dimension, assembled into a band-object by reference (no inline literals).
  *

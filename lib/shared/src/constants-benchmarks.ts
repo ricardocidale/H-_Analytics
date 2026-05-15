@@ -11,6 +11,13 @@
  * Long-term home: Neon model_canonicals (written by Intelligence specialists).
  * These constants are the fallback until that migration lands.
  *
+ * @deprecated Values are now seeded into the `model_constants` DB table and
+ * are admin-editable without a deploy. Use `resolveXxxBenchmarks()` from
+ * `artifacts/api-server/src/finance/benchmark-resolver.ts` for DB-backed
+ * values, or `getFactoryNumber(key)` from `@shared/model-constants-registry`
+ * for TS-only fallbacks. Direct imports here will be removed in a future
+ * cleanup pass.
+ *
  * NEVER inline these values in engine/, calc/, or client/ files.
  * All numeric definitions live here; consumers import by name.
  */

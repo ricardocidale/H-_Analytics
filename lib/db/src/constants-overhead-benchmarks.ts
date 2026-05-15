@@ -2,6 +2,13 @@
  * constants-overhead-benchmarks.ts — Cached benchmark ranges that drive the
  * Analyst watchdog on the Overhead tab of Company Assumptions.
  *
+ * @deprecated Values are now seeded into the `model_constants` DB table and
+ * are admin-editable without a deploy. Use `resolveOverheadBenchmarks()`
+ * from `artifacts/api-server/src/finance/benchmark-resolver.ts` for DB-backed
+ * values, or `getFactoryNumber(key)` from `@shared/model-constants-registry`
+ * for TS-only fallbacks. Direct imports here will be removed in a future
+ * cleanup pass.
+ *
  * Mirrors `constants-compensation-benchmarks.ts` and `constants-revenue-benchmarks.ts`:
  * a typed low/mid/high band per dimension, grounded in industry sources,
  * stable across all users until the Tier-1 LLM refresh path lands.

@@ -9,7 +9,7 @@ import type { Property } from "@workspace/db";
 import { dPow } from "@calc/shared/decimal";
 import { getCountryDefaults } from "@shared/countryDefaults";
 import { getRegulatoryProfile } from "@shared/regulatory-data";
-import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
+import { computeStressScenarios, type StressAssumptions, type StressThresholds } from "@engine/helpers/stress-scenarios";
 import { pmt } from "@calc/shared/pmt";
 import type { PropertyExecutiveSummary } from "./types";
 
@@ -143,9 +143,9 @@ function buildStressAssumptions(p: Property): StressAssumptions {
   };
 }
 
-export function summarizeWorstStress(p: Property): string {
+export function summarizeWorstStress(p: Property, stressThresholds?: StressThresholds): string {
   try {
-    const stressResults = computeStressScenarios(buildStressAssumptions(p));
+    const stressResults = computeStressScenarios(buildStressAssumptions(p), stressThresholds);
     const worst = stressResults
       .filter(r => r.severity === "critical" || r.severity === "severe")
       .sort((a, b) => a.impactOnNoiPercent - b.impactOnNoiPercent);

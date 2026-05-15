@@ -39,7 +39,6 @@ import {
 import type { RevenuePromptInputContext } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
 import { buildRevenueCacheKey } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
 import type { RevenueInputs } from "@engine/watchdog/revenueEvaluator";
-import { DEFAULT_REVENUE_BENCHMARKS } from "@shared/constants-revenue-benchmarks";
 import {
   runCompensationSpecialist,
   Tier1UnavailableError as CompensationTier1UnavailableError,
@@ -47,7 +46,6 @@ import {
 import type { CompensationPromptInputContext } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
 import { buildCompensationCacheKey } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
 import type { CompensationInputs } from "@engine/watchdog/compensationEvaluator";
-import { DEFAULT_COMPENSATION_BENCHMARKS } from "@shared/constants-compensation-benchmarks";
 import {
   runOverheadSpecialist,
   Tier1UnavailableError as OverheadTier1UnavailableError,
@@ -55,7 +53,6 @@ import {
 import type { OverheadPromptInputContext } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
 import { buildOverheadCacheKey } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
 import type { OverheadInputs } from "@engine/watchdog/overheadEvaluator";
-import { DEFAULT_OVERHEAD_BENCHMARKS } from "@shared/constants-overhead-benchmarks";
 import {
   runCompanySpecialist,
   Tier1UnavailableError as CompanyTier1UnavailableError,
@@ -63,7 +60,6 @@ import {
 import type { CompanyPromptInputContext } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
 import { buildCompanyCacheKey } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
 import type { CompanyInputs } from "@engine/watchdog/companyEvaluator";
-import { DEFAULT_COMPANY_BENCHMARKS } from "@shared/constants-company-benchmarks";
 import {
   runPropertyDefaultsSpecialist,
   Tier1UnavailableError as PropertyDefaultsTier1UnavailableError,
@@ -71,7 +67,13 @@ import {
 import type { PropertyDefaultsPromptInputContext } from "../ai/specialists/mgmt-co-property-defaults-prompt-input-builder";
 import { buildPropertyDefaultsCacheKey } from "../ai/specialists/mgmt-co-property-defaults-prompt-input-builder";
 import type { PropertyDefaultsInputs } from "@engine/watchdog/propertyDefaultsEvaluator";
-import { DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS } from "@shared/constants-property-defaults-benchmarks";
+import {
+  resolveRevenueBenchmarks,
+  resolveCompensationBenchmarks,
+  resolveOverheadBenchmarks,
+  resolveCompanyBenchmarks,
+  resolvePropertyDefaultsBenchmarks,
+} from "../finance/benchmark-resolver";
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { ENGINE_VERSION } from "../ai/engine-version";
@@ -292,7 +294,7 @@ export async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnTy
 
   const comparables = await getRevenueComparables();
   const startTime = Date.now();
-  const result = await runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
+  const result = await runRevenueSpecialist(ctx, await resolveRevenueBenchmarks(), comparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
@@ -350,7 +352,7 @@ export async function runCompensationV1Path(userId: number): Promise<Awaited<Ret
 
   const comparables = await getCompensationComparables();
   const startTime = Date.now();
-  const result = await runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
+  const result = await runCompensationSpecialist(ctx, await resolveCompensationBenchmarks(), comparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
@@ -404,7 +406,7 @@ export async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnT
 
   const comparables = await getOverheadComparables();
   const startTime = Date.now();
-  const result = await runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
+  const result = await runOverheadSpecialist(ctx, await resolveOverheadBenchmarks(), comparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
@@ -456,7 +458,7 @@ export async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnTy
 
   const comparables = await getCompanyComparables();
   const startTime = Date.now();
-  const result = await runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
+  const result = await runCompanySpecialist(ctx, await resolveCompanyBenchmarks(), comparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
@@ -508,7 +510,7 @@ export async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited
 
   const comparables = await getPropertyDefaultsComparables();
   const startTime = Date.now();
-  const result = await runPropertyDefaultsSpecialist(ctx, DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS, comparables);
+  const result = await runPropertyDefaultsSpecialist(ctx, await resolvePropertyDefaultsBenchmarks(), comparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
