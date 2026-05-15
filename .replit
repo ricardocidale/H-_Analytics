@@ -76,6 +76,10 @@ args = "test:pagination"
 task = "workflow.run"
 args = "test:report"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:api-server"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -237,6 +241,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run test:report"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:api-server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test"
 
 [workflows.workflow.metadata]
 isValidation = true
