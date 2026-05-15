@@ -27,6 +27,104 @@ import {
   STRUCTURE_OVERLAY_COUNTRY_DELTAS,
   type StructureOverlayKey,
 } from "./constants-operating-structures-data";
+// ─── Benchmark value constants (inlined from deprecated constants-*-benchmarks files) ──
+// These values are the TS fallback layer for the model_constants DB table.
+// The authoritative editable values live in the DB; these are last-resort seeds.
+
+// Compensation benchmarks (source: constants-compensation-benchmarks.ts)
+const DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_LOW  = 300_000;
+const DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_MID  = 540_000;
+const DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_HIGH = 900_000;
+const DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_LOW  = 700_000;
+const DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_MID  = 900_000;
+const DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_HIGH = 1_500_000;
+const DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_LOW  = 2;
+const DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_MID  = 3;
+const DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_HIGH = 5;
+const DEFAULT_STAFF_SALARY_BENCHMARK_LOW  = 50_000;
+const DEFAULT_STAFF_SALARY_BENCHMARK_MID  = 75_000;
+const DEFAULT_STAFF_SALARY_BENCHMARK_HIGH = 120_000;
+const DEFAULT_STAFF_TIER3_FTE_BENCHMARK_LOW  = 5;
+const DEFAULT_STAFF_TIER3_FTE_BENCHMARK_MID  = 7;
+const DEFAULT_STAFF_TIER3_FTE_BENCHMARK_HIGH = 12;
+
+// Revenue benchmarks (source: constants-revenue-benchmarks.ts)
+const DEFAULT_MARKETING_RATE_BENCHMARK_LOW  = 0.04;
+const DEFAULT_MARKETING_RATE_BENCHMARK_MID  = 0.06;
+const DEFAULT_MARKETING_RATE_BENCHMARK_HIGH = 0.08;
+const DEFAULT_FB_REVENUE_SHARE_BENCHMARK_LOW  = 0.25;
+const DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID  = 0.32;
+const DEFAULT_FB_REVENUE_SHARE_BENCHMARK_HIGH = 0.40;
+const DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_LOW  = 0.08;
+const DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID  = 0.15;
+const DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_HIGH = 0.22;
+const DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_LOW  = 0.01;
+const DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID  = 0.03;
+const DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_HIGH = 0.05;
+const DEFAULT_CATERING_BOOST_PCT_BENCHMARK_LOW  = 0.00;
+const DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID  = 0.05;
+const DEFAULT_CATERING_BOOST_PCT_BENCHMARK_HIGH = 0.15;
+
+// Overhead benchmarks (source: constants-overhead-benchmarks.ts)
+const DEFAULT_OFFICE_LEASE_BENCHMARK_LOW  = 24_000;
+const DEFAULT_OFFICE_LEASE_BENCHMARK_MID  = 36_000;
+const DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH = 48_000;
+const DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_LOW  = 18_000;
+const DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID  = 27_000;
+const DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_HIGH = 36_000;
+const DEFAULT_TECH_INFRA_BENCHMARK_LOW  = 12_000;
+const DEFAULT_TECH_INFRA_BENCHMARK_MID  = 18_000;
+const DEFAULT_TECH_INFRA_BENCHMARK_HIGH = 24_000;
+const DEFAULT_BUSINESS_INSURANCE_BENCHMARK_LOW  =  8_000;
+const DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID  = 11_500;
+const DEFAULT_BUSINESS_INSURANCE_BENCHMARK_HIGH = 15_000;
+const DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_LOW  =  8_000;
+const DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID  = 13_000;
+const DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_HIGH = 18_000;
+const DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_LOW  = 2_000;
+const DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID  = 3_500;
+const DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_HIGH = 5_000;
+
+// Property-defaults benchmarks (source: constants-property-defaults-benchmarks.ts)
+const DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_LOW  = 0.55;
+const DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID  = 0.65;
+const DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_HIGH = 0.75;
+const DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_LOW  = 0.50;
+const DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID  = 0.60;
+const DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_HIGH = 0.72;
+const DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_LOW  = 0.40;
+const DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID  = 0.60;
+const DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_HIGH = 0.70;
+const DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_LOW  = 0.03;
+const DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_MID  = 0.07;
+const DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_HIGH = 0.12;
+
+// Company benchmarks (source: constants-company-benchmarks.ts)
+const DEFAULT_BASE_MGMT_FEE_BENCHMARK_LOW  = 0.04;
+const DEFAULT_BASE_MGMT_FEE_BENCHMARK_MID  = 0.08;
+const DEFAULT_BASE_MGMT_FEE_BENCHMARK_HIGH = 0.10;
+const DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_LOW  = 0.08;
+const DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID  = 0.10;
+const DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_HIGH = 0.12;
+const DEFAULT_COMPANY_TAX_RATE_BENCHMARK_LOW  = 0.21;
+const DEFAULT_COMPANY_TAX_RATE_BENCHMARK_MID  = 0.26;
+const DEFAULT_COMPANY_TAX_RATE_BENCHMARK_HIGH = 0.30;
+const DEFAULT_COST_OF_EQUITY_BENCHMARK_LOW  = 0.18;
+const DEFAULT_COST_OF_EQUITY_BENCHMARK_MID  = 0.22;
+const DEFAULT_COST_OF_EQUITY_BENCHMARK_HIGH = 0.28;
+import {
+  DSCR_COVENANT_STANDARD, DSCR_COVENANT_CRITICAL,
+  STRESS_OCCUPANCY_SHOCK, STRESS_ADR_SHOCK, STRESS_RATE_SHOCK_DECIMAL,
+  STRESS_COST_SHOCK, STRESS_COMBINED_OCCUPANCY_SHOCK, STRESS_COMBINED_COST_SHOCK,
+  STRESS_SEVERITY_NOI_THRESHOLD,
+  SCALE_ADJUSTMENT_SMALL_PROPERTY, SCALE_ADJUSTMENT_MEDIUM_PROPERTY,
+  DEFAULT_FALLBACK_OCCUPANCY,
+} from "./constants-benchmarks";
+import {
+  DEFAULT_STAFF_SALARY, DEFAULT_OFFICE_LEASE, DEFAULT_PROFESSIONAL_SERVICES,
+  DEFAULT_TECH_INFRA, DEFAULT_BUSINESS_INSURANCE_COMPANY,
+  DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT,
+} from "./constants-staffing";
 
 export type ConstantLocality = "universal" | "country" | "country+state";
 
@@ -198,6 +296,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     factoryValue: () => USALI_FFE_RESERVE_BENCHMARK,
   },
   ...buildStructureOverlayRegistryEntries(),
+  ...buildBenchmarkRegistryEntries(),
 };
 
 /**
@@ -269,6 +368,322 @@ function buildStructureOverlayRegistryEntries(): Record<string, ConstantRegistry
   return entries;
 }
 
+/**
+ * Build registry entries for every market benchmark band scalar.
+ *
+ * Each band dimension (low / mid / high) becomes an independent constant key
+ * so admins can tune individual percentiles without touching the others.
+ * Marked `specialistOwned: false` — these are market calibration estimates,
+ * not authority-published values, and admins are permitted to edit them.
+ * `locality: "universal"` — benchmarks are global (no country or state row).
+ *
+ * Sources: HVS, CBRE, AHLA, STR, BLLA, Damodaran, Duff & Phelps (see
+ * the individual constants-*-benchmarks.ts files for per-key citations).
+ */
+function buildBenchmarkRegistryEntries(): Record<string, ConstantRegistryEntry> {
+  type BandSpec = {
+    keyBase: string;
+    label: string;
+    authority: string;
+    unit: ConstantUnit;
+    factoryLow: () => number;
+    factoryMid: () => number;
+    factoryHigh: () => number;
+  };
+  type ScalarSpec = {
+    key: string;
+    label: string;
+    authority: string;
+    unit: ConstantUnit;
+    factory: () => number;
+  };
+
+  const BANDS: BandSpec[] = [
+    // ── Compensation benchmarks ──────────────────────────────────────────────
+    {
+      keyBase: "benchmarkCompPartnerCompYear1",
+      label: "Compensation — partner total comp Year 1 (USD/yr)",
+      authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)",
+      unit: "usd",
+      factoryLow: () => DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_PARTNER_COMP_YEAR1_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompPartnerCompYear10",
+      label: "Compensation — partner total comp Year 10 (USD/yr)",
+      authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)",
+      unit: "usd",
+      factoryLow: () => DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_PARTNER_COMP_YEAR10_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompPartnerCountYear1",
+      label: "Compensation — founding partner headcount Year 1",
+      authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)",
+      unit: "count",
+      factoryLow: () => DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_PARTNER_COUNT_YEAR1_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompStaffSalary",
+      label: "Compensation — average staff salary (USD/yr)",
+      authority: "AHLA Lodging Industry Survey + hospitality market benchmarks",
+      unit: "usd",
+      factoryLow: () => DEFAULT_STAFF_SALARY_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_STAFF_SALARY_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_STAFF_SALARY_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompStaffTier3Fte",
+      label: "Compensation — Tier-3 FTE count (max-scale staffing)",
+      authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)",
+      unit: "count",
+      factoryLow: () => DEFAULT_STAFF_TIER3_FTE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_STAFF_TIER3_FTE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_STAFF_TIER3_FTE_BENCHMARK_HIGH,
+    },
+    // ── Revenue benchmarks ───────────────────────────────────────────────────
+    {
+      keyBase: "benchmarkRevMarketingRate",
+      label: "Revenue — sales & marketing as % of total revenue (USALI Schedule 4)",
+      authority: "HVS 2024 Hotel Cost Survey (boutique luxury)",
+      unit: "percent",
+      factoryLow: () => DEFAULT_MARKETING_RATE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_MARKETING_RATE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_MARKETING_RATE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkRevFbRevenueShare",
+      label: "Revenue — F&B as % of total revenue",
+      authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix",
+      unit: "percent",
+      factoryLow: () => DEFAULT_FB_REVENUE_SHARE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_FB_REVENUE_SHARE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkRevEventsRevenueShare",
+      label: "Revenue — events as % of total revenue",
+      authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix",
+      unit: "percent",
+      factoryLow: () => DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkRevOtherRevenueShare",
+      label: "Revenue — other operated departments as % of total revenue",
+      authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix",
+      unit: "percent",
+      factoryLow: () => DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkRevCateringBoostPct",
+      label: "Revenue — catering boost additive uplift on F&B",
+      authority: "Industry rule-of-thumb — off-property catering / private events",
+      unit: "percent",
+      factoryLow: () => DEFAULT_CATERING_BOOST_PCT_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_CATERING_BOOST_PCT_BENCHMARK_HIGH,
+    },
+    // ── Overhead benchmarks ──────────────────────────────────────────────────
+    {
+      keyBase: "benchmarkOverheadOfficeLease",
+      label: "Overhead — corporate office lease + utilities (USD/yr)",
+      authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks",
+      unit: "usd",
+      factoryLow: () => DEFAULT_OFFICE_LEASE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkOverheadProfServices",
+      label: "Overhead — professional services: legal + accounting + audit (USD/yr)",
+      authority: "AICPA practice benchmarks for early-stage hospitality companies",
+      unit: "usd",
+      factoryLow: () => DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkOverheadTechInfra",
+      label: "Overhead — corporate tech infrastructure (USD/yr)",
+      authority: "HFTP Technology Survey for corporate-level IT spend",
+      unit: "usd",
+      factoryLow: () => DEFAULT_TECH_INFRA_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_TECH_INFRA_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_TECH_INFRA_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkOverheadBizInsurance",
+      label: "Overhead — business insurance D&O/E&O/cyber (USD/yr)",
+      authority: "Hospitality D&O / E&O / cyber liability premium benchmarks",
+      unit: "usd",
+      factoryLow: () => DEFAULT_BUSINESS_INSURANCE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_BUSINESS_INSURANCE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkOverheadTravelPerClient",
+      label: "Overhead — travel cost per managed property (USD/yr)",
+      authority: "AHLA per-property travel benchmarks",
+      unit: "usd",
+      factoryLow: () => DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkOverheadItLicensePerClient",
+      label: "Overhead — IT/licensing cost per managed property (USD/yr)",
+      authority: "HFTP per-property tech-stack survey",
+      unit: "usd",
+      factoryLow: () => DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_HIGH,
+    },
+    // ── Property-defaults benchmarks ─────────────────────────────────────────
+    {
+      keyBase: "benchmarkPropDefaultsEventExpenseRate",
+      label: "Property defaults — event/banquet cost as fraction of event revenue",
+      authority: "AHLA/USALI F&B and Event Cost Benchmarks (11th ed.) + CBRE Hotel Operations Report",
+      unit: "percent",
+      factoryLow: () => DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkPropDefaultsOtherExpenseRate",
+      label: "Property defaults — other/ancillary cost as fraction of other revenue",
+      authority: "CBRE Trends in the Hotel Industry + USALI undistributed-department benchmarks",
+      unit: "percent",
+      factoryLow: () => DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkPropDefaultsUtilitiesVarSplit",
+      label: "Property defaults — fraction of utilities treated as variable (vs. fixed)",
+      authority: "ENERGY STAR Hotel Energy Intensity benchmarks + Cornell Hotel Sustainability Handbook",
+      unit: "percent",
+      factoryLow: () => DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkPropDefaultsSalesCommissionRate",
+      label: "Property defaults — blended distribution/OTA commission rate",
+      authority: "Kalibri Labs Direct Booking Study + AHLA Distribution Cost Study",
+      unit: "percent",
+      factoryLow: () => DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_SALES_COMMISSION_RATE_BENCHMARK_HIGH,
+    },
+    // ── Company benchmarks ────────────────────────────────────────────────────
+    {
+      keyBase: "benchmarkCompanyBaseMgmtFee",
+      label: "Company — base management fee as % of total property revenue",
+      authority: "AHLA/HLA operator survey + CBRE Hotel Management Fee Study",
+      unit: "percent",
+      factoryLow: () => DEFAULT_BASE_MGMT_FEE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_BASE_MGMT_FEE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_BASE_MGMT_FEE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompanyIncentiveMgmtFee",
+      label: "Company — incentive management fee as % of GOP",
+      authority: "HVS Management Contract Study + STR/AHLA operator terms",
+      unit: "percent",
+      factoryLow: () => DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompanyTaxRate",
+      label: "Company — effective combined federal + state income tax rate",
+      authority: "IRS corporate rates + AICPA combined federal + state benchmarks",
+      unit: "percent",
+      factoryLow: () => DEFAULT_COMPANY_TAX_RATE_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_COMPANY_TAX_RATE_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_COMPANY_TAX_RATE_BENCHMARK_HIGH,
+    },
+    {
+      keyBase: "benchmarkCompanyCostOfEquity",
+      label: "Company — cost of equity (WACC Re / DCF discount rate)",
+      authority: "Damodaran (Lodging) + Duff & Phelps Kroll Cost of Capital Navigator 2024 + KPMG WACC Monitor + CBRE 2024 Hotel Investor Survey",
+      unit: "percent",
+      factoryLow: () => DEFAULT_COST_OF_EQUITY_BENCHMARK_LOW,
+      factoryMid: () => DEFAULT_COST_OF_EQUITY_BENCHMARK_MID,
+      factoryHigh: () => DEFAULT_COST_OF_EQUITY_BENCHMARK_HIGH,
+    },
+  ];
+
+  const SCALARS: ScalarSpec[] = [
+    // ── DSCR covenant thresholds ─────────────────────────────────────────────
+    { key: "benchmarkDscrCovenantStandard", label: "DSCR — standard lender covenant (1.25×)", authority: "Standard lender covenant for hospitality real estate debt", unit: "ratio", factory: () => DSCR_COVENANT_STANDARD },
+    { key: "benchmarkDscrCovenantCritical", label: "DSCR — critical below-1.0× threshold", authority: "Standard lender covenant for hospitality real estate debt", unit: "ratio", factory: () => DSCR_COVENANT_CRITICAL },
+    // ── Stress scenario shock magnitudes ─────────────────────────────────────
+    { key: "benchmarkStressOccupancyShock", label: "Stress — occupancy shock multiplier (−15%)", authority: "CBRE Hotels Research — standard recession/stress scenario calibration", unit: "ratio", factory: () => STRESS_OCCUPANCY_SHOCK },
+    { key: "benchmarkStressAdrShock", label: "Stress — ADR shock multiplier (−10%)", authority: "CBRE Hotels Research — standard recession/stress scenario calibration", unit: "ratio", factory: () => STRESS_ADR_SHOCK },
+    { key: "benchmarkStressRateShockDecimal", label: "Stress — interest rate shock (decimal, +200 bps)", authority: "CBRE Hotels Research — standard recession/stress scenario calibration", unit: "percent", factory: () => STRESS_RATE_SHOCK_DECIMAL },
+    { key: "benchmarkStressCostShock", label: "Stress — operating cost shock multiplier (+20%)", authority: "CBRE Hotels Research — standard recession/stress scenario calibration", unit: "ratio", factory: () => STRESS_COST_SHOCK },
+    { key: "benchmarkStressCombinedOccupancyShock", label: "Stress — combined scenario occupancy shock (−10%)", authority: "CBRE Hotels Research — combined stress scenario calibration", unit: "ratio", factory: () => STRESS_COMBINED_OCCUPANCY_SHOCK },
+    { key: "benchmarkStressCombinedCostShock", label: "Stress — combined scenario cost shock (+10%)", authority: "CBRE Hotels Research — combined stress scenario calibration", unit: "ratio", factory: () => STRESS_COMBINED_COST_SHOCK },
+    { key: "benchmarkStressSeverityNoiThreshold", label: "Stress — NOI decline threshold for moderate severity", authority: "CBRE Hotels Research — stress severity classification", unit: "ratio", factory: () => STRESS_SEVERITY_NOI_THRESHOLD },
+    // ── Scale adjustment ─────────────────────────────────────────────────────
+    { key: "benchmarkScaleAdjSmallProperty", label: "Scale — small-property cost premium (<10 rooms)", authority: "HVS Hotel Cost Benchmarks", unit: "ratio", factory: () => SCALE_ADJUSTMENT_SMALL_PROPERTY },
+    { key: "benchmarkScaleAdjMediumProperty", label: "Scale — medium-property cost premium (10–19 rooms)", authority: "HVS Hotel Cost Benchmarks", unit: "ratio", factory: () => SCALE_ADJUSTMENT_MEDIUM_PROPERTY },
+    // ── Occupancy fallback ───────────────────────────────────────────────────
+    { key: "benchmarkDefaultFallbackOccupancy", label: "Occupancy — fallback when quality tier unknown (Upscale default)", authority: "STR Global Chain Scale Benchmarks", unit: "percent", factory: () => DEFAULT_FALLBACK_OCCUPANCY },
+    // ── Staffing default scalars ─────────────────────────────────────────────
+    { key: "benchmarkStaffDefaultSalary", label: "Staffing — default average staff salary (USD/yr)", authority: "AHLA Lodging Industry Survey + hospitality market benchmarks", unit: "usd", factory: () => DEFAULT_STAFF_SALARY },
+    { key: "benchmarkStaffDefaultOfficeLease", label: "Staffing — default corporate office lease (USD/yr)", authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks", unit: "usd", factory: () => DEFAULT_OFFICE_LEASE },
+    { key: "benchmarkStaffDefaultProfServices", label: "Staffing — default professional services (USD/yr)", authority: "AICPA practice benchmarks for early-stage hospitality companies", unit: "usd", factory: () => DEFAULT_PROFESSIONAL_SERVICES },
+    { key: "benchmarkStaffDefaultTechInfra", label: "Staffing — default tech infrastructure (USD/yr)", authority: "HFTP Technology Survey for corporate-level IT spend", unit: "usd", factory: () => DEFAULT_TECH_INFRA },
+    { key: "benchmarkStaffDefaultBizInsurance", label: "Staffing — default business insurance (USD/yr)", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks", unit: "usd", factory: () => DEFAULT_BUSINESS_INSURANCE_COMPANY },
+    { key: "benchmarkStaffDefaultTravelPerClient", label: "Staffing — default travel cost per property (USD/yr)", authority: "AHLA per-property travel benchmarks", unit: "usd", factory: () => DEFAULT_TRAVEL_PER_CLIENT },
+    { key: "benchmarkStaffDefaultItLicensePerClient", label: "Staffing — default IT/licensing cost per property (USD/yr)", authority: "HFTP per-property tech-stack survey", unit: "usd", factory: () => DEFAULT_IT_LICENSE_PER_CLIENT },
+  ];
+
+  const entries: Record<string, ConstantRegistryEntry> = {};
+
+  for (const b of BANDS) {
+    const triples: Array<[string, () => number]> = [
+      [`${b.keyBase}Low`,  b.factoryLow],
+      [`${b.keyBase}Mid`,  b.factoryMid],
+      [`${b.keyBase}High`, b.factoryHigh],
+    ];
+    for (const [key, factory] of triples) {
+      const bandSuffix = key.slice(b.keyBase.length).toLowerCase();
+      entries[key] = {
+        key,
+        label: `${b.label} — ${bandSuffix}`,
+        locality: "universal",
+        meta: buildMeta(b.label, b.authority, b.label),
+        specialistOwned: false,
+        factoryValue: factory,
+      };
+    }
+  }
+
+  for (const s of SCALARS) {
+    entries[s.key] = {
+      key: s.key,
+      label: s.label,
+      locality: "universal",
+      meta: buildMeta(s.label, s.authority, s.label),
+      specialistOwned: false,
+      factoryValue: s.factory,
+    };
+  }
+
+  return entries;
+}
+
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
 
 /**
@@ -278,7 +693,7 @@ export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
  * "unit" column in the registry. Centralised here so the admin tab
  * and any future renderers stay consistent.
  */
-export type ConstantUnit = "percent" | "years" | "days" | "ratio";
+export type ConstantUnit = "percent" | "years" | "days" | "ratio" | "usd" | "count";
 
 const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
   taxRate: "percent",
@@ -309,6 +724,104 @@ const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
   masterLeaseTenantCapexFactor: "ratio",
   masterLeaseLandlordCapexFactor: "ratio",
   masterLeaseOperatorTakeCapOfGop: "percent",
+  // ── Compensation benchmarks ────────────────────────────────────────────────
+  benchmarkCompPartnerCompYear1Low: "usd",
+  benchmarkCompPartnerCompYear1Mid: "usd",
+  benchmarkCompPartnerCompYear1High: "usd",
+  benchmarkCompPartnerCompYear10Low: "usd",
+  benchmarkCompPartnerCompYear10Mid: "usd",
+  benchmarkCompPartnerCompYear10High: "usd",
+  benchmarkCompPartnerCountYear1Low: "count",
+  benchmarkCompPartnerCountYear1Mid: "count",
+  benchmarkCompPartnerCountYear1High: "count",
+  benchmarkCompStaffSalaryLow: "usd",
+  benchmarkCompStaffSalaryMid: "usd",
+  benchmarkCompStaffSalaryHigh: "usd",
+  benchmarkCompStaffTier3FteLow: "count",
+  benchmarkCompStaffTier3FteMid: "count",
+  benchmarkCompStaffTier3FteHigh: "count",
+  // ── Revenue benchmarks ────────────────────────────────────────────────────
+  benchmarkRevMarketingRateLow: "percent",
+  benchmarkRevMarketingRateMid: "percent",
+  benchmarkRevMarketingRateHigh: "percent",
+  benchmarkRevFbRevenueShareLow: "percent",
+  benchmarkRevFbRevenueShareMid: "percent",
+  benchmarkRevFbRevenueShareHigh: "percent",
+  benchmarkRevEventsRevenueShareLow: "percent",
+  benchmarkRevEventsRevenueShareMid: "percent",
+  benchmarkRevEventsRevenueShareHigh: "percent",
+  benchmarkRevOtherRevenueShareLow: "percent",
+  benchmarkRevOtherRevenueShareMid: "percent",
+  benchmarkRevOtherRevenueShareHigh: "percent",
+  benchmarkRevCateringBoostPctLow: "percent",
+  benchmarkRevCateringBoostPctMid: "percent",
+  benchmarkRevCateringBoostPctHigh: "percent",
+  // ── Overhead benchmarks ───────────────────────────────────────────────────
+  benchmarkOverheadOfficeLeaseLow: "usd",
+  benchmarkOverheadOfficeLeaseMid: "usd",
+  benchmarkOverheadOfficeLeaseHigh: "usd",
+  benchmarkOverheadProfServicesLow: "usd",
+  benchmarkOverheadProfServicesMid: "usd",
+  benchmarkOverheadProfServicesHigh: "usd",
+  benchmarkOverheadTechInfraLow: "usd",
+  benchmarkOverheadTechInfraMid: "usd",
+  benchmarkOverheadTechInfraHigh: "usd",
+  benchmarkOverheadBizInsuranceLow: "usd",
+  benchmarkOverheadBizInsuranceMid: "usd",
+  benchmarkOverheadBizInsuranceHigh: "usd",
+  benchmarkOverheadTravelPerClientLow: "usd",
+  benchmarkOverheadTravelPerClientMid: "usd",
+  benchmarkOverheadTravelPerClientHigh: "usd",
+  benchmarkOverheadItLicensePerClientLow: "usd",
+  benchmarkOverheadItLicensePerClientMid: "usd",
+  benchmarkOverheadItLicensePerClientHigh: "usd",
+  // ── Property-defaults benchmarks ─────────────────────────────────────────
+  benchmarkPropDefaultsEventExpenseRateLow: "percent",
+  benchmarkPropDefaultsEventExpenseRateMid: "percent",
+  benchmarkPropDefaultsEventExpenseRateHigh: "percent",
+  benchmarkPropDefaultsOtherExpenseRateLow: "percent",
+  benchmarkPropDefaultsOtherExpenseRateMid: "percent",
+  benchmarkPropDefaultsOtherExpenseRateHigh: "percent",
+  benchmarkPropDefaultsUtilitiesVarSplitLow: "percent",
+  benchmarkPropDefaultsUtilitiesVarSplitMid: "percent",
+  benchmarkPropDefaultsUtilitiesVarSplitHigh: "percent",
+  benchmarkPropDefaultsSalesCommissionRateLow: "percent",
+  benchmarkPropDefaultsSalesCommissionRateMid: "percent",
+  benchmarkPropDefaultsSalesCommissionRateHigh: "percent",
+  // ── Company benchmarks ────────────────────────────────────────────────────
+  benchmarkCompanyBaseMgmtFeeLow: "percent",
+  benchmarkCompanyBaseMgmtFeeMid: "percent",
+  benchmarkCompanyBaseMgmtFeeHigh: "percent",
+  benchmarkCompanyIncentiveMgmtFeeLow: "percent",
+  benchmarkCompanyIncentiveMgmtFeeMid: "percent",
+  benchmarkCompanyIncentiveMgmtFeeHigh: "percent",
+  benchmarkCompanyTaxRateLow: "percent",
+  benchmarkCompanyTaxRateMid: "percent",
+  benchmarkCompanyTaxRateHigh: "percent",
+  benchmarkCompanyCostOfEquityLow: "percent",
+  benchmarkCompanyCostOfEquityMid: "percent",
+  benchmarkCompanyCostOfEquityHigh: "percent",
+  // ── Stress / DSCR / scale scalars ─────────────────────────────────────────
+  benchmarkDscrCovenantStandard: "ratio",
+  benchmarkDscrCovenantCritical: "ratio",
+  benchmarkStressOccupancyShock: "ratio",
+  benchmarkStressAdrShock: "ratio",
+  benchmarkStressRateShockDecimal: "percent",
+  benchmarkStressCostShock: "ratio",
+  benchmarkStressCombinedOccupancyShock: "ratio",
+  benchmarkStressCombinedCostShock: "ratio",
+  benchmarkStressSeverityNoiThreshold: "ratio",
+  benchmarkScaleAdjSmallProperty: "ratio",
+  benchmarkScaleAdjMediumProperty: "ratio",
+  benchmarkDefaultFallbackOccupancy: "percent",
+  // ── Staffing default scalars ──────────────────────────────────────────────
+  benchmarkStaffDefaultSalary: "usd",
+  benchmarkStaffDefaultOfficeLease: "usd",
+  benchmarkStaffDefaultProfServices: "usd",
+  benchmarkStaffDefaultTechInfra: "usd",
+  benchmarkStaffDefaultBizInsurance: "usd",
+  benchmarkStaffDefaultTravelPerClient: "usd",
+  benchmarkStaffDefaultItLicensePerClient: "usd",
 };
 
 export function getConstantUnit(key: string): ConstantUnit {
@@ -410,6 +923,10 @@ function formatFactoryValue(value: number, unit: ConstantUnit): string {
       return `${value} years`;
     case "days":
       return `${value} days`;
+    case "usd":
+      return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+    case "count":
+      return `${value}`;
     case "ratio":
     default:
       return `${value}`;
@@ -526,3 +1043,67 @@ export function describeFactorySource(
 }
 
 export type { CountryDefaults, UsStateDefaults };
+
+// ─── Benchmark interface types ────────────────────────────────────────────────
+// Defined here so consumers can import from this single non-deprecated module
+// rather than from the deprecated constants-*-benchmarks files.
+
+export interface BenchmarkBand { low: number; mid: number; high: number; }
+
+export interface CompensationBenchmarks {
+  /** Year 1 total management compensation (annual USD). */
+  partnerCompYear1: BenchmarkBand;
+  /** Year 10 total management compensation (annual USD). */
+  partnerCompYear10: BenchmarkBand;
+  /** Year 1 partner headcount. */
+  partnerCountYear1: BenchmarkBand;
+  /** Average annual salary per FTE (USD). */
+  staffSalary: BenchmarkBand;
+  /** Tier-3 FTE count (max-scale staffing model). */
+  staffTier3Fte: BenchmarkBand;
+}
+
+export interface RevenueBenchmarks {
+  /** Sales & Marketing as % of total revenue (USALI Schedule 4). */
+  marketingRate: BenchmarkBand;
+  /** F&B as % of total revenue. */
+  fbRevenueShare: BenchmarkBand;
+  /** Events as % of total revenue. */
+  eventsRevenueShare: BenchmarkBand;
+  /** Other operated departments as % of total revenue. */
+  otherRevenueShare: BenchmarkBand;
+  /** Catering boost on top of base F&B (additive uplift). */
+  cateringBoostPct: BenchmarkBand;
+}
+
+export interface OverheadBenchmarks {
+  /** Annual office lease + utilities (USD). */
+  officeLeaseStart: BenchmarkBand;
+  /** Annual legal + accounting + audit (USD). */
+  professionalServicesStart: BenchmarkBand;
+  /** Annual corporate tech infrastructure (USD). */
+  techInfraStart: BenchmarkBand;
+  /** Annual business insurance — D&O/E&O/cyber for the ManCo (USD). */
+  businessInsuranceStart: BenchmarkBand;
+  /** Annual travel cost per managed property (USD). */
+  travelCostPerClient: BenchmarkBand;
+  /** Annual IT/licensing cost per managed property (USD). */
+  itLicensePerClient: BenchmarkBand;
+}
+
+export interface PropertyDefaultsBenchmarks {
+  eventExpenseRate:       BenchmarkBand;
+  otherExpenseRate:       BenchmarkBand;
+  utilitiesVariableSplit: BenchmarkBand;
+  salesCommissionRate:    BenchmarkBand;
+}
+
+export interface CompanyBenchmarks {
+  baseManagementFee:      BenchmarkBand;
+  incentiveManagementFee: BenchmarkBand;
+  companyTaxRate:         BenchmarkBand;
+  costOfEquity:           BenchmarkBand;
+}
+
+/** Base management fee rate for the live US Market Anchor comparable row. */
+export const LIVE_ANCHOR_BASE_MGMT_FEE_RATE = 0.03;

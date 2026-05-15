@@ -103,7 +103,7 @@ import {
   type PersonaContext,
 } from "@engine/analyst/contracts/verdict";
 import { createVoiceRenderer } from "@engine/analyst/voice/voice-renderer";
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
+import type { OverheadBenchmarks } from "@shared/model-constants-registry";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 import { getParameterValue } from "../parameter-resolver";

@@ -16,7 +16,7 @@ export default function PropertyPhotos() {
   const propertyId = params?.id ? parseInt(params.id) : 0;
   const queryClient = useQueryClient();
 
-  const { data: property, isLoading, isError, refetch } = useProperty(propertyId);
+  const { data: property, isLoading, isError } = useProperty(propertyId);
   const { data: photos = [] } = usePropertyPhotos(propertyId);
   const addPhoto = useAddPropertyPhoto();
   const setHero = useSetHeroPhoto();
@@ -48,7 +48,7 @@ export default function PropertyPhotos() {
   }
 
   if (isError || !property) {
-    return <PageErrorState message="Property not found" onRetry={() => void refetch()} />;
+    return <PageErrorState message="Property not found" />;
   }
 
   return (

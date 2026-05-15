@@ -17,6 +17,7 @@
 // USALI 11th Ed. recommends 4% of gross revenue as the long-run FF&E reserve
 // floor for full-service / boutique hotels. Used as the badge benchmark on
 // the Reserves & Brand Costs panel.
+// FEEDS_DEFAULT: ffeReserveBenchmarkUsali
 export const USALI_FFE_RESERVE_BENCHMARK = 0.04;
 
 // ── Boutique brand-fee stack defaults (% of room revenue) ────────────────

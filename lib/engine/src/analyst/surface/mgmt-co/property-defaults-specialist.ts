@@ -7,7 +7,7 @@
  * Phase 1 of P7-B Property-Defaults: Tier-0 only. The Tier-1 N+1 graduation
  * lands in Phase 2 (mirrors Company G3 / Overhead G3 pattern).
  */
-import type { PropertyDefaultsBenchmarks } from "@norfolk/shared/constants-property-defaults-benchmarks";
+import type { PropertyDefaultsBenchmarks } from "@norfolk/shared/model-constants-registry";
 import {
   evaluatePropertyDefaults,
   type PropertyDefaultsInputs,

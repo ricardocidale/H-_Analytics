@@ -97,7 +97,7 @@ export const insertBusinessBrandSchema = z.object({
   description: z.string().nullable().optional(),
   logoId: z.number().nullable().optional(),
   isDefault: z.boolean().optional(),
-  businessModel: z.enum(["hotel", "str"]).optional(),
+  businessModel: z.string().optional(),
   segment: z.string().nullable().optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),

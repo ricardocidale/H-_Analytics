@@ -635,7 +635,7 @@ export async function buildPropertyExportData(
       // automatically participate without code edits here.
       const reopen = p.plannedReopeningYear != null ? Number(p.plannedReopeningYear) : null;
       const sfx = reopen != null ? ` (As-Improved, from ${reopen})` : " (As-Improved)";
-      const hasImprovedHypothesis = reopen != null || hasImprovedSideValues(p);
+      const hasImprovedHypothesis = hasImprovedSideValues(p);
       if (!hasImprovedHypothesis) return [] as ExportRow[];
       const improved = resolveAsImprovedFacts(p as unknown as Parameters<typeof resolveAsImprovedFacts>[0]);
       const out: ExportRow[] = [];

@@ -494,11 +494,7 @@ with open(path, "w") as f:
             sys.stdout.flush()
 PYEOF
 
-  local api_key_flag=()
-  if [[ -n "${CODERABBIT_API_KEY:-}" ]]; then
-    api_key_flag=(--api-key "$CODERABBIT_API_KEY")
-  fi
-  coderabbit review --type uncommitted --agent "${api_key_flag[@]}" 2>&1 | python3 "$renderer" "$ndjson_file"
+  coderabbit review --type uncommitted --agent 2>&1 | python3 "$renderer" "$ndjson_file"
 }
 
 # ─────────────────────────────────────────────────────────────

@@ -9,7 +9,8 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconSave } from "@/components/icons";
 import { DEFAULT_SERVICE_MARKUP } from "@shared/constants";
 import { NationalBenchmarkBreakdown } from "./NationalBenchmarkBreakdown";
-import { useNationalBenchmarks } from "@/lib/api/national-benchmarks";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
+import { useNationalBenchmarks, serviceTemplateNameToServiceLine } from "@/lib/api/national-benchmarks";
 import { TEMPLATE_TO_SERVICE_LINES } from "@calc/services/national-anchors";
 import {
   deriveTemplateMarkupsFromNationalBenchmarks,
@@ -78,6 +79,23 @@ export function ServiceTemplateDialog({
       : null;
   const derivedMarkupForTemplate = derivedMarkups?.[form.name] ?? null;
 
+  const serviceLine = serviceTemplateNameToServiceLine(form.name);
+  const vendorCostRow = serviceLine
+    ? (nationalBenchmarks?.vendorCosts.find((r) => r.serviceLine === serviceLine) ?? null)
+    : null;
+  const markupRow = serviceLine
+    ? (nationalBenchmarks?.markupFactors.find((r) => r.serviceLine === serviceLine) ?? null)
+    : null;
+
+  const rateDecimal = parseFloat(form.defaultRate) / 100;
+  const markupDecimal = parseFloat(form.serviceMarkup) / 100;
+  const currentVendorCost =
+    isCentralized && Number.isFinite(rateDecimal) && Number.isFinite(markupDecimal)
+      ? rateDecimal / (1 + markupDecimal)
+      : Number.isFinite(rateDecimal)
+      ? rateDecimal
+      : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -116,9 +134,21 @@ export function ServiceTemplateDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-1">
+              <Label className="text-sm font-medium flex items-center gap-1 flex-wrap">
                 Default Fee Rate
                 <InfoTooltip text="The percentage of a property's Total Revenue charged for this service. e.g. 2.0 means 2.0% of Total Revenue. All active service rates sum to the Base Management Fee." />
+                {vendorCostRow && (
+                  <NationalBenchmarkChip
+                    kind="vendor-cost"
+                    currentValue={currentVendorCost}
+                    benchmarkValue={vendorCostRow.value}
+                    dot={vendorCostRow.dot}
+                    guardrail={vendorCostRow.guardrail}
+                    source={vendorCostRow.source}
+                    period={vendorCostRow.period}
+                    fetchedAt={vendorCostRow.fetchedAt}
+                  />
+                )}
               </Label>
               <div className="relative">
                 <Input
@@ -137,9 +167,21 @@ export function ServiceTemplateDialog({
           </div>
           {isCentralized && (
             <div className="space-y-2 bg-muted rounded-lg p-3 border border-border/60">
-              <Label className="text-sm font-medium flex items-center gap-1">
+              <Label className="text-sm font-medium flex items-center gap-1 flex-wrap">
                 Cost-Plus Markup
                 <InfoTooltip text="When the company procures a service for a property, it charges cost × (1 + markup%). e.g. 20% markup means a $1,000 vendor invoice becomes $1,200 to the property. The $200 difference is the company's gross profit on this service." />
+                {markupRow && (
+                  <NationalBenchmarkChip
+                    kind="markup"
+                    currentValue={Number.isFinite(markupDecimal) ? markupDecimal : null}
+                    benchmarkValue={markupRow.value}
+                    dot={markupRow.dot}
+                    guardrail={markupRow.guardrail}
+                    source={markupRow.source}
+                    period={markupRow.period}
+                    fetchedAt={markupRow.fetchedAt}
+                  />
+                )}
               </Label>
               <p className="text-xs text-muted-foreground">
                 If markup is 20% and the company procures a service for $1.00, the property is charged $1.20.

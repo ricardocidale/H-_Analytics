@@ -18,7 +18,7 @@
 import type { CompensationPromptInputContext } from "./mgmt-co-compensation-prompt-input-builder";
 import { COMPENSATION_DIMENSION_KEYS } from "./mgmt-co-compensation-prompt-input-builder";
 import type { CompensationComparableRow } from "./mgmt-co-compensation-orchestrator-adapter";
-import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
+import type { CompensationBenchmarks } from "@shared/model-constants-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
 export function buildQuantPanelSystemPrompt(): string {

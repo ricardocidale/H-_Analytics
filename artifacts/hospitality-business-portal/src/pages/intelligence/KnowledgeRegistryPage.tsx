@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { AssetPanel, type RegistryEntry } from "@/components/admin/intelligence/knowledge-registry/AssetPanel";
 import { adminFetch } from "@/components/admin/hooks";
-import { PageLoadingState } from "@/components/ui/page-loading-state";
-import { PageErrorState } from "@/components/ui/page-error-state";
 
 export default function KnowledgeRegistryPage() {
   const { data: entries, isLoading, isError } = useQuery<RegistryEntry[]>({
@@ -10,9 +9,24 @@ export default function KnowledgeRegistryPage() {
     queryFn: adminFetch<RegistryEntry[]>("/api/admin/knowledge-registry", "Failed to load knowledge registry"),
   });
 
-  if (isLoading) return <PageLoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-2 p-4 animate-pulse">
+        <div className="h-4 bg-muted rounded w-1/3" />
+        <div className="h-12 bg-muted rounded" />
+        <div className="h-12 bg-muted rounded" />
+        <div className="h-12 bg-muted rounded" />
+      </div>
+    );
+  }
 
-  if (isError) return <PageErrorState message="Couldn't load registry." />;
+  if (isError) {
+    return (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        Couldn't load registry.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2 p-4 max-w-4xl" data-testid="knowledge-registry-page">

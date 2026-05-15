@@ -187,6 +187,27 @@ export interface PdfSection {
   [key: string]: unknown;
 }
 
+/**
+ * Inject extra CSS classes into the first .content-page div of a rendered
+ * HTML section string. Used by Valentina's pagination contract to add
+ * `statement-first` (page-break-before) and `chart-solo` (full-page chart).
+ */
+function withPageClass(html: string, ...classes: string[]): string {
+  const cls = classes.filter(Boolean).join(" ");
+  if (!cls) return html;
+  return html.replace('<div class="content-page">', `<div class="content-page ${cls}">`);
+}
+
+/**
+ * Strip the WeasyPrint/Otavio continuation suffix so we can detect when
+ * a genuinely new statement starts. e.g.:
+ *   "Income Statement (cont\u2019d 2/3)"  →  "Income Statement"
+ */
+function extractBaseTitle(title?: string): string {
+  if (!title) return "";
+  return title.replace(/\s+\(cont\u2019d\s+\d+\/\d+\)$/, "").trim();
+}
+
 export function buildPdfHtml(aiResult: { sections?: PdfSection[] }, data: PdfTemplateData): string {
   const sections = aiResult.sections || [];
   const isL = data.orientation === "landscape";
@@ -194,15 +215,28 @@ export function buildPdfHtml(aiResult: { sections?: PdfSection[] }, data: PdfTem
   const _pageH = isL ? "228.6mm" : "279.4mm";
 
   const parts: string[] = [];
+  let lastFinancialBaseTitle = "";
+
   for (const section of sections) {
     switch (section.type) {
       case "cover": parts.push(renderCoverSection(section, data)); break;
       case "table_of_contents": parts.push(renderTableOfContents(section as Parameters<typeof renderTableOfContents>[0], data)); break;
       case "executive_summary": parts.push(renderExecutiveSummarySection(section as Parameters<typeof renderExecutiveSummarySection>[0], data)); break;
       case "metrics_dashboard": parts.push(renderMetricsDashboardSection(section as Parameters<typeof renderMetricsDashboardSection>[0], data)); break;
-      case "financial_table": parts.push(renderFinancialTableSection(section, data)); break;
+      case "financial_table": {
+        const bt = extractBaseTitle(section.title);
+        const isNewStatement = bt !== lastFinancialBaseTitle;
+        lastFinancialBaseTitle = bt;
+        const html = renderFinancialTableSection(section, data);
+        parts.push(isNewStatement ? withPageClass(html, "statement-first") : html);
+        break;
+      }
       case "chart": parts.push(renderChartSection(section, data)); break;
-      case "line_chart": parts.push(renderLineChartSection(section, data)); break;
+      case "line_chart": {
+        const html = renderLineChartSection(section, data);
+        parts.push(withPageClass(html, "statement-first", "chart-solo"));
+        break;
+      }
       case "analysis": parts.push(renderAnalysisSection(section as Parameters<typeof renderAnalysisSection>[0], data)); break;
       default: logger.warn(`Unknown PDF section type "${section.type}" — skipped`, "pdf-template"); break;
     }

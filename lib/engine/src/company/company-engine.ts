@@ -21,14 +21,7 @@
 import {
   PROJECTION_MONTHS,
   DEFAULT_PARTNER_COMP,
-  DEFAULT_STAFF_SALARY,
   STAFFING_TIERS,
-  DEFAULT_OFFICE_LEASE,
-  DEFAULT_PROFESSIONAL_SERVICES,
-  DEFAULT_TECH_INFRA,
-  DEFAULT_BUSINESS_INSURANCE,
-  DEFAULT_TRAVEL_PER_CLIENT,
-  DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_CAPITAL_RAISE_TRANCHE,
@@ -139,18 +132,18 @@ export function generateCompanyProForma(
     global.partnerCompYear9 ?? DEFAULT_PARTNER_COMP[8],
     global.partnerCompYear10 ?? DEFAULT_PARTNER_COMP[9],
   ];
-  const staffSalary = global.staffSalary ?? DEFAULT_STAFF_SALARY;
+  const staffSalary = global.staffSalary ?? getFactoryNumber('benchmarkStaffDefaultSalary');
   const tier1Max = global.staffTier1MaxProperties ?? STAFFING_TIERS[0].maxProperties;
   const tier1Fte = global.staffTier1Fte ?? STAFFING_TIERS[0].fte;
   const tier2Max = global.staffTier2MaxProperties ?? STAFFING_TIERS[1].maxProperties;
   const tier2Fte = global.staffTier2Fte ?? STAFFING_TIERS[1].fte;
   const tier3Fte = global.staffTier3Fte ?? STAFFING_TIERS[2].fte;
-  const officeLeaseStart = global.officeLeaseStart ?? DEFAULT_OFFICE_LEASE;
-  const professionalServicesStart = global.professionalServicesStart ?? DEFAULT_PROFESSIONAL_SERVICES;
-  const techInfraStart = global.techInfraStart ?? DEFAULT_TECH_INFRA;
-  const businessInsuranceStart = global.businessInsuranceStart ?? DEFAULT_BUSINESS_INSURANCE;
-  const travelCostPerClient = global.travelCostPerClient ?? DEFAULT_TRAVEL_PER_CLIENT;
-  const itLicensePerClient = global.itLicensePerClient ?? DEFAULT_IT_LICENSE_PER_CLIENT;
+  const officeLeaseStart = global.officeLeaseStart ?? getFactoryNumber('benchmarkStaffDefaultOfficeLease');
+  const professionalServicesStart = global.professionalServicesStart ?? getFactoryNumber('benchmarkStaffDefaultProfServices');
+  const techInfraStart = global.techInfraStart ?? getFactoryNumber('benchmarkStaffDefaultTechInfra');
+  const businessInsuranceStart = global.businessInsuranceStart ?? getFactoryNumber('benchmarkStaffDefaultBizInsurance');
+  const travelCostPerClient = global.travelCostPerClient ?? getFactoryNumber('benchmarkStaffDefaultTravelPerClient');
+  const itLicensePerClient = global.itLicensePerClient ?? getFactoryNumber('benchmarkStaffDefaultItLicensePerClient');
   const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
   const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
   const companyTaxRate = global.companyTaxRate
@@ -189,6 +182,28 @@ export function generateCompanyProForma(
   }
 
   const propIds = properties.map((p, i) => String(p.id ?? i));
+
+  // ── Per-property, per-category markup override map ──
+  // Built once from PropertyInput.feeCategories. When a property has a
+  // serviceMarkup override on a fee category, it takes precedence over the
+  // company service template markup for that property's portion of the fee.
+  // Map: propId → catName → markup
+  const propCatMarkup = new Map<string, Map<string, number>>();
+  for (let i = 0; i < properties.length; i++) {
+    const propId = propIds[i];
+    const cats = properties[i].feeCategories;
+    if (!cats) continue;
+    const catMap = new Map<string, number>();
+    for (const cat of cats) {
+      if (cat.serviceMarkup != null) {
+        catMap.set(cat.name, cat.serviceMarkup);
+      }
+    }
+    if (catMap.size > 0) {
+      propCatMarkup.set(propId, catMap);
+    }
+  }
+  const hasPropMarkupOverrides = propCatMarkup.size > 0;
 
   for (let m = 0; m < months; m++) {
     const year = Math.floor(m / MONTHS_PER_YEAR);
@@ -298,9 +313,41 @@ export function generateCompanyProForma(
     let totalVendorCost = 0;
     let grossProfit = totalRevenue;
     if (hasServiceTemplates) {
+      // ── Fee-weighted per-category markup overrides ───────────────────────
+      // When properties have property-level serviceMarkup overrides, compute
+      // the fee-weighted average markup per category across all properties.
+      // This reflects the true blended vendor cost-of-service for the company.
+      let categoryMarkupOverrides: Record<string, number> | undefined;
+      if (hasPropMarkupOverrides) {
+        const overrides: Record<string, number> = {};
+        for (const [catName, totalFee] of Object.entries(serviceFeeBreakdown.byCategory)) {
+          if (totalFee <= 0) continue;
+          const perPropFees = serviceFeeBreakdown.byCategoryByPropertyId[catName];
+          if (!perPropFees) continue;
+          let weightedMarkupSum = 0;
+          let weightedFeeSum = 0;
+          for (const [propId, propFee] of Object.entries(perPropFees)) {
+            const markup = propCatMarkup.get(propId)?.get(catName);
+            if (markup != null) {
+              weightedMarkupSum += markup * propFee;
+              weightedFeeSum += propFee;
+            }
+          }
+          // Only override if at least some portion of the fee has a property-level override
+          if (weightedFeeSum > 0) {
+            // Blend: property-level weighted override covers weightedFeeSum;
+            // remaining (totalFee - weightedFeeSum) falls back to template markup.
+            overrides[catName] = weightedMarkupSum / weightedFeeSum;
+          }
+        }
+        if (Object.keys(overrides).length > 0) {
+          categoryMarkupOverrides = overrides;
+        }
+      }
       costOfCentralizedServices = computeCostOfServices(
         serviceFeeBreakdown.byCategory,
         serviceTemplates!,
+        categoryMarkupOverrides,
       );
       totalVendorCost = costOfCentralizedServices.totalVendorCost;
       grossProfit = totalRevenue - totalVendorCost;

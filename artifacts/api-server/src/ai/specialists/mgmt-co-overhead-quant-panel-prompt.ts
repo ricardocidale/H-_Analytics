@@ -18,7 +18,7 @@
 import type { OverheadPromptInputContext } from "./mgmt-co-overhead-prompt-input-builder";
 import { OVERHEAD_DIMENSION_KEYS } from "./mgmt-co-overhead-prompt-input-builder";
 import type { OverheadComparableRow } from "./mgmt-co-overhead-orchestrator-adapter";
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
+import type { OverheadBenchmarks } from "@shared/model-constants-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
 export function buildQuantPanelSystemPrompt(): string {

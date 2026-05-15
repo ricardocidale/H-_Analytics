@@ -117,4 +117,3 @@ The original 6 tests in `renovation-facts.test.ts` were left byte-identical so t
 **Non-goals respected.** Typed columns were NOT dropped, dual-write was NOT removed (those are U8 Replit Agent territory, gated on the 14-day clean drift window driven by U1 telemetry).
 
 **U8 unblocked** on this gate. Replit Agent may start U8 once the 14-day clean drift window also closes (separate gate).
-

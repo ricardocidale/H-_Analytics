@@ -5,6 +5,8 @@ description: "H+ Hospitality Business Portal foundational business domain: dual-
 
 # HBG Business Model
 
+> **Company context:** H+ Analytics is built and maintained by **Norfolk AI**. Norfolk AI is the software company; H+ Analytics (HBG Portal) is the product. Every agent working in this repo must know this.
+
 This skill defines the foundational business domain for the H+ Hospitality Business Portal. All labels, tooltips, section headers, financial structure, and model assumptions must conform to these definitions. Load this skill before any task that touches financial assumptions, UI labels, or the revenue/expense model.
 
 ---

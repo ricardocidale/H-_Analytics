@@ -113,6 +113,7 @@ const propertyInputSchema = z.object({
     name: z.string(),
     rate: z.number(),
     isActive: z.boolean(),
+    serviceMarkup: z.number().nullable().optional(),
   })).optional(),
   arDays: z.number().nullable().optional(),
   apDays: z.number().nullable().optional(),
@@ -693,11 +694,9 @@ export function registerFinanceRoutes(router: Router): void {
       }
 
       const globalAssumptions = await withModelConstants(rawGlobal);
-      const [stampedBase] = await withFinancialHydration(
-        await withPropertyCostAnchors([
-          applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
-        ])
-      );
+      const [stampedBase] = await withFinancialHydration([
+        applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
+      ]);
       const stamped = stampedBase as unknown as PropertyInput;
 
       // Reuse the cached engine output for this property.

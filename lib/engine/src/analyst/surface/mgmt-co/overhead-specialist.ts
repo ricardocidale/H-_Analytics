@@ -7,7 +7,7 @@
  * Phase 1 of P7-B Overhead: Tier-0 only. The Tier-1 N+1 graduation lands
  * in Phase 2 (mirrors Compensation G3 / Revenue G2 / Funding G6-P3b).
  */
-import type { OverheadBenchmarks } from "@norfolk/shared/constants-overhead-benchmarks";
+import type { OverheadBenchmarks } from "@norfolk/shared/model-constants-registry";
 import {
   evaluateOverhead,
   type OverheadInputs,

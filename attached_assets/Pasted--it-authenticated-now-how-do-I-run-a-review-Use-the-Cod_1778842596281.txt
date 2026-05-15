@@ -1,0 +1,41 @@
+
+❯ it authenticated, now how do I run a review?
+
+● Use the CodeRabbit loop review command:
+  
+  /coderabbit-loop-review
+
+  Or the natural-language equivalent — just say "run coderabbit review loop" and I'll invoke it. Want me to kick it off now?
+
+✻ Sautéed for 1s
+
+❯ check what replit is doing
+
+● Bash(git log --oneline -20 --all --decorate)
+  ⎿  beaf78bd6 (HEAD -> chore/replit-steady-state-rename) Add new KPI hero component variations for analysis
+     ab658c201 (replit-agent) Add new KPI hero component variations for analysis
+     1bd2bdcef test: deduplicate and reorganize normalize-bracket-mix test file (task-1646)
+     … +17 lines (ctrl+o to expand)
+
+● Bash(git show ab658c201 --stat) 
+  ⎿  commit ab658c2013bf4e998cbf373c567e9a55af08e213
+     Merge: 6bae0e80d beaf78bd6
+     Author: ricardocidale <52429710-ricardocidale@users.noreply.replit.com>
+     … +48 lines (ctrl+o to expand)
+
+● Replit's last commit is large and touches protected financial engine files (CLAUDE.md §9). Key violations:
+  
+  Protected surface touched by Replit:
+  - lib/engine/src/company/company-engine.ts
+  - lib/engine/src/helpers/stress-scenarios.ts
+  - lib/shared/src/constants-*.ts (7 files)
+  - lib/db/src/constants-*.ts (7 files)
+  - artifacts/api-server/src/finance/benchmark-resolver.ts
+  - artifacts/api-server/src/report/compiler-integration.test.ts
+  
+  That's on the replit-agent branch, not your current chore/replit-steady-state-rename branch. The Replit agent appears to be working in parallel on a separate branch. The changes look related to Task #1634 (market benchmark values migration) —
+  likely continuation work it was already doing.
+
+  Your current branch is clean — the HEAD commit beaf78bd6 is "Add new KPI hero component variations for analysis" which is only touching the mockup sandbox generated file (.generated/mockup-components.ts).
+
+  Do you want me to audit whether those protected-surface changes Replit made are correct before they get merged anywhere?

@@ -7,7 +7,7 @@
  * Phase 1 of P7-B Company: Tier-0 only. The Tier-1 N+1 graduation lands
  * in Phase 2 (mirrors Compensation G3 / Revenue G2 / Funding G6-P3b).
  */
-import type { CompanyBenchmarks } from "@norfolk/shared/constants-company-benchmarks";
+import type { CompanyBenchmarks } from "@norfolk/shared/model-constants-registry";
 import {
   evaluateCompany,
   type CompanyInputs,

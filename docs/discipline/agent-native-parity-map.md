@@ -247,6 +247,12 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 - When a new Rebecca tool is added → update the corresponding row to ✅
 - When a gap is resolved → flip ⚠️ to ✅
 
+## Report Export Actions (Valentina)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Export financial report as PDF / Excel / CSV / ZIP | Property or company report page → Export | `generate_financial_report_export_link` | ✅ |
+
 ## Compliance Actions (Vito)
 
 | UI Action | UI Location | Rebecca Tool | Status |

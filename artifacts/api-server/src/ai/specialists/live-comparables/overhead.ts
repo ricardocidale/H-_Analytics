@@ -11,14 +11,7 @@ import {
   getCannedOverheadComparables,
   type OverheadComparableRow,
 } from "../mgmt-co-overhead-orchestrator-adapter";
-import {
-  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
-  DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
-  DEFAULT_TECH_INFRA_BENCHMARK_MID,
-  DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
-  DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
-  DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
-} from "@shared/constants-overhead-benchmarks";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { LIVE_MIN_OVERHEAD_LIVE_ROWS } from "../../../constants";
 import {
   CHANNEL,
@@ -26,6 +19,13 @@ import {
   fetchWikipediaSummary,
   fetchCNBCHeadlines,
 } from "./shared";
+
+const DEFAULT_OFFICE_LEASE_BENCHMARK_MID            = getFactoryNumber("benchmarkOverheadOfficeLeaseMid");
+const DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID   = getFactoryNumber("benchmarkOverheadProfServicesMid");
+const DEFAULT_TECH_INFRA_BENCHMARK_MID              = getFactoryNumber("benchmarkOverheadTechInfraMid");
+const DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID      = getFactoryNumber("benchmarkOverheadBizInsuranceMid");
+const DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID  = getFactoryNumber("benchmarkOverheadTravelPerClientMid");
+const DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID   = getFactoryNumber("benchmarkOverheadItLicensePerClientMid");
 
 const RESTCOUNTRIES_ALPHA_BASE    = "https://restcountries.com/v3.1/alpha";
 const ALPHA_VANTAGE_RAPIDAPI_HOST = "alpha-vantage.p.rapidapi.com";

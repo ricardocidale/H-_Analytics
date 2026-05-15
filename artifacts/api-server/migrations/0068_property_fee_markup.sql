@@ -1,0 +1,13 @@
+-- 0064_property_fee_markup
+--
+-- Task #1677: Per-property markup override on property_fee_categories.
+--
+-- Adds a nullable real column service_markup to property_fee_categories.
+-- When NULL, the financial engine falls back to the company service template's
+-- service_markup value. When set (0–1), it overrides the template markup for
+-- that property/category pair, enabling remote-location or custom pricing.
+--
+-- Belt-and-suspenders runtime guard: property-fee-markup-001.ts
+--
+-- Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS. Safe to re-run.
+ALTER TABLE "property_fee_categories" ADD COLUMN IF NOT EXISTS "service_markup" real;

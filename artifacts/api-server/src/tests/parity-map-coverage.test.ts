@@ -14,8 +14,9 @@ import { getRebeccaTools } from "../chat/rebecca-tool-definitions";
 const PARITY_MAP = resolve(__dirname, "../../../../docs/discipline/agent-native-parity-map.md");
 
 function extractMapMentions(markdown: string): Set<string> {
-  // Collect all backtick-quoted identifiers (tool names appear as `tool_name` or `tool_v2_name`)
-  const matches = [...markdown.matchAll(/`([a-z][a-z_0-9]*)`/g)];
+  // Collect all backtick-quoted identifiers (tool names appear as `tool_name`).
+  // Pattern includes digits so names like `download_factory_v2_deck` are matched.
+  const matches = [...markdown.matchAll(/`([a-z][a-z0-9_]*)`/g)];
   return new Set(matches.map((m) => m[1]));
 }
 

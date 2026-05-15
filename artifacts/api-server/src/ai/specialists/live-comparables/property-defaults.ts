@@ -13,11 +13,7 @@ import {
   getCannedPropertyDefaultsComparables,
   type PropertyDefaultsComparableRow,
 } from "../mgmt-co-property-defaults-orchestrator-adapter";
-import {
-  DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID,
-  DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID,
-  DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID,
-} from "@shared/constants-property-defaults-benchmarks";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import {
   LIVE_OTA_COMMISSION_BOOKING_COM_FRACTION,
   LIVE_OTA_MIX_HEAVY_FRACTION,
@@ -36,6 +32,10 @@ import {
   fetchWikipediaSummary,
   fetchCNBCHeadlines,
 } from "./shared";
+
+const DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID       = getFactoryNumber("benchmarkPropDefaultsEventExpenseRateMid");
+const DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID       = getFactoryNumber("benchmarkPropDefaultsOtherExpenseRateMid");
+const DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID = getFactoryNumber("benchmarkPropDefaultsUtilitiesVarSplitMid");
 
 const BOOKING_RAPIDAPI_HOST       = "booking-com.p.rapidapi.com";
 // 12 h cache for OTA-rate data (Booking.com pricing varies daily)

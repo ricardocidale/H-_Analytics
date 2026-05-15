@@ -5,6 +5,8 @@ description: "H+ product identity, design tenets, workflow principles, navigatio
 
 ## Product Identity
 
+H+ Analytics (also referred to as HBG Portal) is built and maintained by **Norfolk AI**, a software company focused on intelligent financial tools for the hospitality sector. Norfolk AI is the company; H+ Analytics is the product.
+
 HBG Portal is a "Bloomberg Terminal for boutique hospitality" — it must feel like an indispensable institutional tool that hospitality investment professionals trust for decision-making, not a SaaS web app.
 
 ## Core Design Tenets

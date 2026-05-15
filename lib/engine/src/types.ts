@@ -104,7 +104,7 @@ export interface PropertyInput {
   feeSubordination?: string | null;
   performanceTestEnabled?: boolean | null;
   // Service fee categories
-  feeCategories?: { name: string; rate: number; isActive: boolean }[];
+  feeCategories?: { name: string; rate: number; isActive: boolean; serviceMarkup?: number | null }[];
   // Working capital
   arDays?: number | null;
   apDays?: number | null;

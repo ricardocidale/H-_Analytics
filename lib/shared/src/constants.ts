@@ -135,6 +135,7 @@ export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
  * Default depreciation period — US nonresidential real property (hotels) per
  * IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
  */
+// FEEDS_DEFAULT: depreciationYears
 export const DEPRECIATION_YEARS = 39;
 
 /**
@@ -144,6 +145,7 @@ export const DEPRECIATION_YEARS = 39;
  * the (country, property-type) lookup in
  * `lib/calc/src/research/depreciation-basis.ts` reads as IRS-sourced.
  */
+// FEEDS_DEFAULT: depreciationYears
 export const DEPRECIATION_YEARS_US_NON_RESIDENTIAL = 39;
 
 /**
@@ -163,6 +165,7 @@ export const MONTHS_PER_YEAR = 12;
  * `@shared/model-constants-registry` (universal locality, identical numeric
  * value). Retained for schema column defaults and tests.
  */
+// FEEDS_DEFAULT: daysPerMonth
 export const DAYS_PER_MONTH = 30.5;
 
 // ──────────────────────────────────────────────────────────
@@ -219,11 +222,13 @@ export const DEFAULT_STABILIZATION_MONTHS = 36;
  * other countries pick up locality-aware rates). Retained for schema column
  * defaults and tests.
  */
+// FEEDS_DEFAULT: inflationRate
 export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
 /**
  * @deprecated Audit #319 R4. Same as `DEFAULT_PROPERTY_INFLATION_RATE` —
  * route through `getFactoryNumber('inflationRate', country, state)`.
  */
+// FEEDS_DEFAULT: inflationRate
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
 // ──────────────────────────────────────────────────────────────────────────────

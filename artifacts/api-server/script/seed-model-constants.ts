@@ -24,6 +24,20 @@ import { resolve } from "path";
 import { sql } from "drizzle-orm";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS } from "@shared/countryDefaults";
 import { DAYS_PER_MONTH } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+import {
+  DSCR_COVENANT_STANDARD, DSCR_COVENANT_CRITICAL,
+  STRESS_OCCUPANCY_SHOCK, STRESS_ADR_SHOCK, STRESS_RATE_SHOCK_DECIMAL,
+  STRESS_COST_SHOCK, STRESS_COMBINED_OCCUPANCY_SHOCK, STRESS_COMBINED_COST_SHOCK,
+  STRESS_SEVERITY_NOI_THRESHOLD,
+  SCALE_ADJUSTMENT_SMALL_PROPERTY, SCALE_ADJUSTMENT_MEDIUM_PROPERTY,
+  DEFAULT_FALLBACK_OCCUPANCY,
+} from "@shared/constants-benchmarks";
+import {
+  DEFAULT_STAFF_SALARY, DEFAULT_OFFICE_LEASE, DEFAULT_PROFESSIONAL_SERVICES,
+  DEFAULT_TECH_INFRA, DEFAULT_BUSINESS_INSURANCE_COMPANY,
+  DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT,
+} from "@shared/constants-staffing";
 import { storage } from "../src/storage";
 import { db } from "../src/db";
 
@@ -166,6 +180,120 @@ export async function seedModelConstants(opts: { silent?: boolean } = {}): Promi
         authoritySource: authorityForStateKey(key, state),
       });
     }
+  }
+
+  // ── Universal benchmark rows ────────────────────────────────────────────────
+  type BenchRow = { key: string; value: number; unit: string; authority: string };
+  const BENCHMARK_ROWS: BenchRow[] = [
+    // Compensation bands
+    { key: "benchmarkCompPartnerCompYear1Low",  value: getFactoryNumber("benchmarkCompPartnerCompYear1Low"),  unit: "usd",   authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCompYear1Mid",  value: getFactoryNumber("benchmarkCompPartnerCompYear1Mid"),  unit: "usd",   authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCompYear1High", value: getFactoryNumber("benchmarkCompPartnerCompYear1High"), unit: "usd",   authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCompYear10Low",  value: getFactoryNumber("benchmarkCompPartnerCompYear10Low"),  unit: "usd", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCompYear10Mid",  value: getFactoryNumber("benchmarkCompPartnerCompYear10Mid"),  unit: "usd", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCompYear10High", value: getFactoryNumber("benchmarkCompPartnerCompYear10High"), unit: "usd", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCountYear1Low",  value: getFactoryNumber("benchmarkCompPartnerCountYear1Low"),  unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCountYear1Mid",  value: getFactoryNumber("benchmarkCompPartnerCountYear1Mid"),  unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompPartnerCountYear1High", value: getFactoryNumber("benchmarkCompPartnerCountYear1High"), unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompStaffSalaryLow",  value: getFactoryNumber("benchmarkCompStaffSalaryLow"),  unit: "usd", authority: "AHLA Lodging Industry Survey + hospitality market benchmarks" },
+    { key: "benchmarkCompStaffSalaryMid",  value: getFactoryNumber("benchmarkCompStaffSalaryMid"),  unit: "usd", authority: "AHLA Lodging Industry Survey + hospitality market benchmarks" },
+    { key: "benchmarkCompStaffSalaryHigh", value: getFactoryNumber("benchmarkCompStaffSalaryHigh"), unit: "usd", authority: "AHLA Lodging Industry Survey + hospitality market benchmarks" },
+    { key: "benchmarkCompStaffTier3FteLow",  value: getFactoryNumber("benchmarkCompStaffTier3FteLow"),  unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompStaffTier3FteMid",  value: getFactoryNumber("benchmarkCompStaffTier3FteMid"),  unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    { key: "benchmarkCompStaffTier3FteHigh", value: getFactoryNumber("benchmarkCompStaffTier3FteHigh"), unit: "count", authority: "Hospitality ManCo compensation benchmarks (H+ Analytics 2024)" },
+    // Revenue bands
+    { key: "benchmarkRevMarketingRateLow",  value: getFactoryNumber("benchmarkRevMarketingRateLow"),  unit: "%", authority: "HVS 2024 Hotel Cost Survey (boutique luxury)" },
+    { key: "benchmarkRevMarketingRateMid",  value: getFactoryNumber("benchmarkRevMarketingRateMid"),  unit: "%", authority: "HVS 2024 Hotel Cost Survey (boutique luxury)" },
+    { key: "benchmarkRevMarketingRateHigh", value: getFactoryNumber("benchmarkRevMarketingRateHigh"), unit: "%", authority: "HVS 2024 Hotel Cost Survey (boutique luxury)" },
+    { key: "benchmarkRevFbRevenueShareLow",  value: getFactoryNumber("benchmarkRevFbRevenueShareLow"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevFbRevenueShareMid",  value: getFactoryNumber("benchmarkRevFbRevenueShareMid"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevFbRevenueShareHigh", value: getFactoryNumber("benchmarkRevFbRevenueShareHigh"), unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevEventsRevenueShareLow",  value: getFactoryNumber("benchmarkRevEventsRevenueShareLow"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevEventsRevenueShareMid",  value: getFactoryNumber("benchmarkRevEventsRevenueShareMid"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevEventsRevenueShareHigh", value: getFactoryNumber("benchmarkRevEventsRevenueShareHigh"), unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevOtherRevenueShareLow",  value: getFactoryNumber("benchmarkRevOtherRevenueShareLow"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevOtherRevenueShareMid",  value: getFactoryNumber("benchmarkRevOtherRevenueShareMid"),  unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevOtherRevenueShareHigh", value: getFactoryNumber("benchmarkRevOtherRevenueShareHigh"), unit: "%", authority: "STR/CoStar 2024 + BLLA 2024 boutique luxury operating mix" },
+    { key: "benchmarkRevCateringBoostPctLow",  value: getFactoryNumber("benchmarkRevCateringBoostPctLow"),  unit: "%", authority: "Industry rule-of-thumb — off-property catering / private events" },
+    { key: "benchmarkRevCateringBoostPctMid",  value: getFactoryNumber("benchmarkRevCateringBoostPctMid"),  unit: "%", authority: "Industry rule-of-thumb — off-property catering / private events" },
+    { key: "benchmarkRevCateringBoostPctHigh", value: getFactoryNumber("benchmarkRevCateringBoostPctHigh"), unit: "%", authority: "Industry rule-of-thumb — off-property catering / private events" },
+    // Overhead bands
+    { key: "benchmarkOverheadOfficeLeaseLow",  value: getFactoryNumber("benchmarkOverheadOfficeLeaseLow"),  unit: "usd", authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks" },
+    { key: "benchmarkOverheadOfficeLeaseMid",  value: getFactoryNumber("benchmarkOverheadOfficeLeaseMid"),  unit: "usd", authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks" },
+    { key: "benchmarkOverheadOfficeLeaseHigh", value: getFactoryNumber("benchmarkOverheadOfficeLeaseHigh"), unit: "usd", authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks" },
+    { key: "benchmarkOverheadProfServicesLow",  value: getFactoryNumber("benchmarkOverheadProfServicesLow"),  unit: "usd", authority: "AICPA practice benchmarks for early-stage hospitality companies" },
+    { key: "benchmarkOverheadProfServicesMid",  value: getFactoryNumber("benchmarkOverheadProfServicesMid"),  unit: "usd", authority: "AICPA practice benchmarks for early-stage hospitality companies" },
+    { key: "benchmarkOverheadProfServicesHigh", value: getFactoryNumber("benchmarkOverheadProfServicesHigh"), unit: "usd", authority: "AICPA practice benchmarks for early-stage hospitality companies" },
+    { key: "benchmarkOverheadTechInfraLow",  value: getFactoryNumber("benchmarkOverheadTechInfraLow"),  unit: "usd", authority: "HFTP Technology Survey for corporate-level IT spend" },
+    { key: "benchmarkOverheadTechInfraMid",  value: getFactoryNumber("benchmarkOverheadTechInfraMid"),  unit: "usd", authority: "HFTP Technology Survey for corporate-level IT spend" },
+    { key: "benchmarkOverheadTechInfraHigh", value: getFactoryNumber("benchmarkOverheadTechInfraHigh"), unit: "usd", authority: "HFTP Technology Survey for corporate-level IT spend" },
+    { key: "benchmarkOverheadBizInsuranceLow",  value: getFactoryNumber("benchmarkOverheadBizInsuranceLow"),  unit: "usd", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks" },
+    { key: "benchmarkOverheadBizInsuranceMid",  value: getFactoryNumber("benchmarkOverheadBizInsuranceMid"),  unit: "usd", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks" },
+    { key: "benchmarkOverheadBizInsuranceHigh", value: getFactoryNumber("benchmarkOverheadBizInsuranceHigh"), unit: "usd", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks" },
+    { key: "benchmarkOverheadTravelPerClientLow",  value: getFactoryNumber("benchmarkOverheadTravelPerClientLow"),  unit: "usd", authority: "AHLA per-property travel benchmarks" },
+    { key: "benchmarkOverheadTravelPerClientMid",  value: getFactoryNumber("benchmarkOverheadTravelPerClientMid"),  unit: "usd", authority: "AHLA per-property travel benchmarks" },
+    { key: "benchmarkOverheadTravelPerClientHigh", value: getFactoryNumber("benchmarkOverheadTravelPerClientHigh"), unit: "usd", authority: "AHLA per-property travel benchmarks" },
+    { key: "benchmarkOverheadItLicensePerClientLow",  value: getFactoryNumber("benchmarkOverheadItLicensePerClientLow"),  unit: "usd", authority: "HFTP per-property tech-stack survey" },
+    { key: "benchmarkOverheadItLicensePerClientMid",  value: getFactoryNumber("benchmarkOverheadItLicensePerClientMid"),  unit: "usd", authority: "HFTP per-property tech-stack survey" },
+    { key: "benchmarkOverheadItLicensePerClientHigh", value: getFactoryNumber("benchmarkOverheadItLicensePerClientHigh"), unit: "usd", authority: "HFTP per-property tech-stack survey" },
+    // Property-defaults bands
+    { key: "benchmarkPropDefaultsEventExpenseRateLow",  value: getFactoryNumber("benchmarkPropDefaultsEventExpenseRateLow"),  unit: "%", authority: "AHLA/USALI F&B and Event Cost Benchmarks (11th ed.) + CBRE Hotel Operations Report" },
+    { key: "benchmarkPropDefaultsEventExpenseRateMid",  value: getFactoryNumber("benchmarkPropDefaultsEventExpenseRateMid"),  unit: "%", authority: "AHLA/USALI F&B and Event Cost Benchmarks (11th ed.) + CBRE Hotel Operations Report" },
+    { key: "benchmarkPropDefaultsEventExpenseRateHigh", value: getFactoryNumber("benchmarkPropDefaultsEventExpenseRateHigh"), unit: "%", authority: "AHLA/USALI F&B and Event Cost Benchmarks (11th ed.) + CBRE Hotel Operations Report" },
+    { key: "benchmarkPropDefaultsOtherExpenseRateLow",  value: getFactoryNumber("benchmarkPropDefaultsOtherExpenseRateLow"),  unit: "%", authority: "CBRE Trends in the Hotel Industry + USALI undistributed-department benchmarks" },
+    { key: "benchmarkPropDefaultsOtherExpenseRateMid",  value: getFactoryNumber("benchmarkPropDefaultsOtherExpenseRateMid"),  unit: "%", authority: "CBRE Trends in the Hotel Industry + USALI undistributed-department benchmarks" },
+    { key: "benchmarkPropDefaultsOtherExpenseRateHigh", value: getFactoryNumber("benchmarkPropDefaultsOtherExpenseRateHigh"), unit: "%", authority: "CBRE Trends in the Hotel Industry + USALI undistributed-department benchmarks" },
+    { key: "benchmarkPropDefaultsUtilitiesVarSplitLow",  value: getFactoryNumber("benchmarkPropDefaultsUtilitiesVarSplitLow"),  unit: "%", authority: "ENERGY STAR Hotel Energy Intensity benchmarks + Cornell Hotel Sustainability Handbook" },
+    { key: "benchmarkPropDefaultsUtilitiesVarSplitMid",  value: getFactoryNumber("benchmarkPropDefaultsUtilitiesVarSplitMid"),  unit: "%", authority: "ENERGY STAR Hotel Energy Intensity benchmarks + Cornell Hotel Sustainability Handbook" },
+    { key: "benchmarkPropDefaultsUtilitiesVarSplitHigh", value: getFactoryNumber("benchmarkPropDefaultsUtilitiesVarSplitHigh"), unit: "%", authority: "ENERGY STAR Hotel Energy Intensity benchmarks + Cornell Hotel Sustainability Handbook" },
+    { key: "benchmarkPropDefaultsSalesCommissionRateLow",  value: getFactoryNumber("benchmarkPropDefaultsSalesCommissionRateLow"),  unit: "%", authority: "Kalibri Labs Direct Booking Study + AHLA Distribution Cost Study" },
+    { key: "benchmarkPropDefaultsSalesCommissionRateMid",  value: getFactoryNumber("benchmarkPropDefaultsSalesCommissionRateMid"),  unit: "%", authority: "Kalibri Labs Direct Booking Study + AHLA Distribution Cost Study" },
+    { key: "benchmarkPropDefaultsSalesCommissionRateHigh", value: getFactoryNumber("benchmarkPropDefaultsSalesCommissionRateHigh"), unit: "%", authority: "Kalibri Labs Direct Booking Study + AHLA Distribution Cost Study" },
+    // Company bands
+    { key: "benchmarkCompanyBaseMgmtFeeLow",  value: getFactoryNumber("benchmarkCompanyBaseMgmtFeeLow"),  unit: "%", authority: "AHLA/HLA operator survey + CBRE Hotel Management Fee Study" },
+    { key: "benchmarkCompanyBaseMgmtFeeMid",  value: getFactoryNumber("benchmarkCompanyBaseMgmtFeeMid"),  unit: "%", authority: "AHLA/HLA operator survey + CBRE Hotel Management Fee Study" },
+    { key: "benchmarkCompanyBaseMgmtFeeHigh", value: getFactoryNumber("benchmarkCompanyBaseMgmtFeeHigh"), unit: "%", authority: "AHLA/HLA operator survey + CBRE Hotel Management Fee Study" },
+    { key: "benchmarkCompanyIncentiveMgmtFeeLow",  value: getFactoryNumber("benchmarkCompanyIncentiveMgmtFeeLow"),  unit: "%", authority: "HVS Management Contract Study + STR/AHLA operator terms" },
+    { key: "benchmarkCompanyIncentiveMgmtFeeMid",  value: getFactoryNumber("benchmarkCompanyIncentiveMgmtFeeMid"),  unit: "%", authority: "HVS Management Contract Study + STR/AHLA operator terms" },
+    { key: "benchmarkCompanyIncentiveMgmtFeeHigh", value: getFactoryNumber("benchmarkCompanyIncentiveMgmtFeeHigh"), unit: "%", authority: "HVS Management Contract Study + STR/AHLA operator terms" },
+    { key: "benchmarkCompanyTaxRateLow",  value: getFactoryNumber("benchmarkCompanyTaxRateLow"),  unit: "%", authority: "IRS corporate rates + AICPA combined federal + state benchmarks" },
+    { key: "benchmarkCompanyTaxRateMid",  value: getFactoryNumber("benchmarkCompanyTaxRateMid"),  unit: "%", authority: "IRS corporate rates + AICPA combined federal + state benchmarks" },
+    { key: "benchmarkCompanyTaxRateHigh", value: getFactoryNumber("benchmarkCompanyTaxRateHigh"), unit: "%", authority: "IRS corporate rates + AICPA combined federal + state benchmarks" },
+    { key: "benchmarkCompanyCostOfEquityLow",  value: getFactoryNumber("benchmarkCompanyCostOfEquityLow"),  unit: "%", authority: "Damodaran + Duff & Phelps Kroll Cost of Capital Navigator 2024 + KPMG WACC Monitor + CBRE 2024 Hotel Investor Survey" },
+    { key: "benchmarkCompanyCostOfEquityMid",  value: getFactoryNumber("benchmarkCompanyCostOfEquityMid"),  unit: "%", authority: "Damodaran + Duff & Phelps Kroll Cost of Capital Navigator 2024 + KPMG WACC Monitor + CBRE 2024 Hotel Investor Survey" },
+    { key: "benchmarkCompanyCostOfEquityHigh", value: getFactoryNumber("benchmarkCompanyCostOfEquityHigh"), unit: "%", authority: "Damodaran + Duff & Phelps Kroll Cost of Capital Navigator 2024 + KPMG WACC Monitor + CBRE 2024 Hotel Investor Survey" },
+    // DSCR / stress / scale scalars
+    { key: "benchmarkDscrCovenantStandard",      value: DSCR_COVENANT_STANDARD,         unit: "ratio", authority: "Standard lender covenant for hospitality real estate debt" },
+    { key: "benchmarkDscrCovenantCritical",      value: DSCR_COVENANT_CRITICAL,         unit: "ratio", authority: "Standard lender covenant for hospitality real estate debt" },
+    { key: "benchmarkStressOccupancyShock",      value: STRESS_OCCUPANCY_SHOCK,         unit: "ratio", authority: "CBRE Hotels Research — standard recession/stress scenario calibration" },
+    { key: "benchmarkStressAdrShock",            value: STRESS_ADR_SHOCK,               unit: "ratio", authority: "CBRE Hotels Research — standard recession/stress scenario calibration" },
+    { key: "benchmarkStressRateShockDecimal",    value: STRESS_RATE_SHOCK_DECIMAL,      unit: "%",     authority: "CBRE Hotels Research — standard recession/stress scenario calibration" },
+    { key: "benchmarkStressCostShock",           value: STRESS_COST_SHOCK,              unit: "ratio", authority: "CBRE Hotels Research — standard recession/stress scenario calibration" },
+    { key: "benchmarkStressCombinedOccupancyShock", value: STRESS_COMBINED_OCCUPANCY_SHOCK, unit: "ratio", authority: "CBRE Hotels Research — combined stress scenario calibration" },
+    { key: "benchmarkStressCombinedCostShock",   value: STRESS_COMBINED_COST_SHOCK,     unit: "ratio", authority: "CBRE Hotels Research — combined stress scenario calibration" },
+    { key: "benchmarkStressSeverityNoiThreshold",value: STRESS_SEVERITY_NOI_THRESHOLD,  unit: "ratio", authority: "CBRE Hotels Research — stress severity classification" },
+    { key: "benchmarkScaleAdjSmallProperty",     value: SCALE_ADJUSTMENT_SMALL_PROPERTY,  unit: "ratio", authority: "HVS Hotel Cost Benchmarks" },
+    { key: "benchmarkScaleAdjMediumProperty",    value: SCALE_ADJUSTMENT_MEDIUM_PROPERTY, unit: "ratio", authority: "HVS Hotel Cost Benchmarks" },
+    { key: "benchmarkDefaultFallbackOccupancy",  value: DEFAULT_FALLBACK_OCCUPANCY,     unit: "%",     authority: "STR Global Chain Scale Benchmarks" },
+    // Staffing default scalars
+    { key: "benchmarkStaffDefaultSalary",              value: DEFAULT_STAFF_SALARY,              unit: "usd", authority: "AHLA Lodging Industry Survey + hospitality market benchmarks" },
+    { key: "benchmarkStaffDefaultOfficeLease",         value: DEFAULT_OFFICE_LEASE,              unit: "usd", authority: "AHLA Lodging Industry Survey + HFTP/AICPA practice benchmarks" },
+    { key: "benchmarkStaffDefaultProfServices",        value: DEFAULT_PROFESSIONAL_SERVICES,     unit: "usd", authority: "AICPA practice benchmarks for early-stage hospitality companies" },
+    { key: "benchmarkStaffDefaultTechInfra",           value: DEFAULT_TECH_INFRA,                unit: "usd", authority: "HFTP Technology Survey for corporate-level IT spend" },
+    { key: "benchmarkStaffDefaultBizInsurance",        value: DEFAULT_BUSINESS_INSURANCE_COMPANY, unit: "usd", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks" },
+    { key: "benchmarkStaffDefaultTravelPerClient",     value: DEFAULT_TRAVEL_PER_CLIENT,         unit: "usd", authority: "AHLA per-property travel benchmarks" },
+    { key: "benchmarkStaffDefaultItLicensePerClient",  value: DEFAULT_IT_LICENSE_PER_CLIENT,     unit: "usd", authority: "HFTP per-property tech-stack survey" },
+  ];
+
+  for (const b of BENCHMARK_ROWS) {
+    rows.push({
+      constantKey: b.key,
+      country: null,
+      countrySubdivision: null,
+      value: b.value,
+      unit: b.unit,
+      authoritySource: b.authority,
+    });
   }
 
   // Upsert all rows
