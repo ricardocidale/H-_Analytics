@@ -33,6 +33,7 @@ import {
 import { PropertyInput, GlobalInput } from '../types';
 import { parseLocalDate } from '../helpers/utils';
 import { assertFinite, dDiv, dPow } from '@calc/shared/decimal.js';
+import { getImprovedDescriptor } from '@workspace/db/property-descriptor-accessor';
 
 export interface PropertyEngineContext {
   modelStart: Date;
@@ -251,8 +252,22 @@ export function resolvePropertyAssumptions(
   // `plannedReopeningYear` expressed as a month index relative to modelStart.
   // When unset, reopeningMonthIdx is null and every month stays in the
   // As-Purchased state.
-  const reopeningMonthIdx = property.plannedReopeningYear != null
-    ? (property.plannedReopeningYear - startYear) * MONTHS_PER_YEAR + (0 - startMonth)
+  //
+  // Plan 2026-05-13-002 U7 — reads through `getImprovedDescriptor` so the
+  // value flows through the descriptor-accessor priority chain
+  // (descriptors_improved JSONB blob → typed_improved column). `scope:
+  // "improved_only"` for this descriptor means there is no purchased twin,
+  // so the accessor returns null when no improved value is present, which
+  // preserves the historical "no reopening, stay As-Purchased" branch.
+  const plannedReopeningYearRaw = getImprovedDescriptor(
+    property as unknown as Parameters<typeof getImprovedDescriptor>[0],
+    'plannedReopeningYear',
+  );
+  const plannedReopeningYear = typeof plannedReopeningYearRaw === 'number'
+    ? plannedReopeningYearRaw
+    : null;
+  const reopeningMonthIdx = plannedReopeningYear != null
+    ? (plannedReopeningYear - startYear) * MONTHS_PER_YEAR + (0 - startMonth)
     : null;
 
   const needsDaysLookup = dayCountConvention === 'ACT/360' || dayCountConvention === 'ACT/365';

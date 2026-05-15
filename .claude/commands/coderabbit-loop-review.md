@@ -16,7 +16,9 @@ Run the synchronous iterative working-tree review loop. You are orchestrating th
 
 3. **Changes check.** Run `<helper> check-changes`. If output is `NO_CHANGES`, say: "No uncommitted changes found — nothing to review." and stop.
 
-4. **Initialize scratch.** Run:
+4. **Branch hygiene check.** Run `<helper> branch-hygiene`. If output starts with `HYGIENE_FAIL`, stop and report: "⚠ Replit-Agent commits detected on this branch. Resolve before running the loop — cherry-pick only CC commits onto a clean branch. See CLAUDE.md § CC branch hygiene." Do not proceed.
+
+5. **Initialize scratch.** Run:
    ```
    mkdir -p .local/coderabbit-loop
    chmod 700 .local/coderabbit-loop
@@ -47,12 +49,11 @@ Run `<helper> write-state current_iteration=<N> status=running`.
 
 ### 3b. Run CodeRabbit review
 ```bash
-PATH="$HOME/.local/bin:$PATH" coderabbit review --type uncommitted --agent \
-  2>&1 | tee .local/coderabbit-loop/iteration-<N>.ndjson
+<helper> run-review .local/coderabbit-loop/iteration-<N>.ndjson
 ```
-Capture exit code. If non-zero AND no `complete` event in the ndjson: write state `status=failed`, report the error output, and stop the loop.
-
-Cap NDJSON at 5 MB: if `.local/coderabbit-loop/iteration-<N>.ndjson` exceeds 5 MB, truncate it with a warning.
+This displays an animated progress bar to the user and writes raw NDJSON to the file.
+Stdout on success: `REVIEW_COMPLETE: findings=N ndjson=<path>`.
+If exit code is non-zero AND no `complete` event in the ndjson: write state `status=failed`, report the error output, and stop the loop.
 
 ### 3c. Parse findings
 ```bash
@@ -76,29 +77,23 @@ For each finding from Step 3c:
 3. **Scope filter:** if `fileName` is NOT in the list of currently changed files (from Step 2), print: "⚠ Skipped (out of scope): <file> — <brief>". Do not apply.
 4. Otherwise: locate the file, find the relevant lines (check both the listed line and ±20 lines for stale anchors), and apply the fix using the Edit tool. If the fix is already present on-disk, skip it and note "already applied".
 
-### 3f. Branch hygiene check
-```bash
-<helper> branch-hygiene
-```
-If `HYGIENE_FAIL`, stop the loop and report: "⚠ Replit-Agent commits detected on this branch. Resolve before continuing. Cherry-pick only CC commits onto a clean branch and re-invoke."
-
-### 3g. Auto-checkpoint capture guard
+### 3f. Auto-checkpoint capture guard
 Run `git log -1 --format="%ae"`. If the author email is `52429710-ricardocidale@users.noreply.replit.com`, the last commit was a Replit auto-checkpoint. Recover:
 ```bash
 git reset --soft HEAD~1
 git commit -m "fix(loop-recovery): re-commit after auto-checkpoint capture"
 ```
 
-### 3h. Gate check
+### 3g. Gate check
 Run `<helper> gate-check`. If any gate fails, surface the errors and ask the user whether to continue. If the user wants to continue, proceed; if not, write state `status=gate-failed` and stop.
 
-### 3i. Commit
+### 3h. Commit
 ```bash
 git add -p  # or stage specific files that were edited
 git commit -m "fix(loop-iter-<N>): apply CodeRabbit review findings"
 ```
 
-### 3j. Next iteration
+### 3i. Next iteration
 If iteration < 4, continue to Step 3a with N+1.
 
 ---

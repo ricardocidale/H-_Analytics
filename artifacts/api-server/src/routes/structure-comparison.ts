@@ -19,6 +19,7 @@ import { requireAuth, getAuthUser, checkPropertyAccess } from "../auth";
 import { logger } from "../logger";
 import { parseRouteId } from "./helpers";
 import { withModelConstants } from "../finance/apply-model-constants";
+import { withFinancialHydration } from "../defaults";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { compareOperatingStructures } from "@calc/analysis/structure-comparison";
 import {
@@ -138,8 +139,9 @@ export function registerStructureComparisonRoutes(router: Router): void {
         const { globalAssumptions: rawGlobal, structures, overlays, projectionYears } = validation.data;
         const globalAssumptions = await withModelConstants(rawGlobal);
 
+        const [hydratedProp] = await withFinancialHydration([property as Record<string, unknown>]);
         const result = await recomputeSinglePropertyAndStamp({
-          property: property as unknown as PropertyInput,
+          property: hydratedProp as unknown as PropertyInput,
           globalAssumptions: globalAssumptions as unknown as GlobalInput,
           projectionYears,
         });

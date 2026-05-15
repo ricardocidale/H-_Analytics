@@ -80,8 +80,8 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
   {
     name: "Jano Grande Ranch",
     startAdr: 250, adrGrowthRate: 0.035,
-    startOccupancy: 0.40, maxOccupancy: 0.72, occupancyRampMonths: 9, stabilizationMonths: 36, occupancyGrowthStep: 0.05,
-    purchasePrice: 1200000, buildingImprovements: 400000, preOpeningCosts: 150000, operatingReserve: 300000, roomCount: 20,
+    startOccupancy: 0.30, maxOccupancy: 0.72, occupancyRampMonths: 12, stabilizationMonths: 36, occupancyGrowthStep: 0.05,
+    purchasePrice: 1200000, buildingImprovements: 400000, preOpeningCosts: 150000, operatingReserve: 300000, roomCount: 8,
     costRateRooms: 0.17, costRateFB: 0.10, costRateAdmin: 0.06, costRateMarketing: 0.015,
     costRatePropertyOps: 0.05, costRateUtilities: 0.04, costRateTaxes: 0.016,
     costRateIT: 0.005, costRateFFE: 0.04, costRateOther: 0.05,

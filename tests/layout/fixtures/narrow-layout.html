@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=768, initial-scale=1.0" />
+    <title>Narrow-layout squeeze regression fixture</title>
+    <!--
+      Self-contained fixture replicating the flex row structure produced by
+      FieldHelpers.tsx (PctField / DollarField / NumberField) at the md (768 px)
+      breakpoint.
+
+      CSS mechanics of the bug
+      ────────────────────────
+      Browsers protect flex items from shrinking below their "min-content" size
+      via `min-width: auto` (the spec default). A percent chip like "12.00%"
+      naturally measures ~56 px and normally won't go below that.
+
+      The real application bug occurs in admin layout containers that set
+      `min-width: 0` (or `overflow: hidden`) on descendant flex items, allowing
+      them to collapse. Without `shrink-0` on the chip wrapper, the chip is then
+      subject to that flex-shrink pressure and can be squeezed to near zero.
+
+      This fixture simulates the squeeze by:
+        PROTECTED card   — label: min-width:0 (can shrink), chip wrapper:
+                           flex-shrink:0 (cannot shrink)
+        REGRESSION card  — label: flex-shrink:0 (rigid, no min-width override),
+                           chip: min-width:0 + flex-shrink:1 (can shrink to zero)
+
+      Container width = 246 px inner (270 px card − 24 px padding), simulating
+      one column of a 2-column grid at 768 px.  Label content is white-space:nowrap
+      and wide enough (~200 px) that only 38 px remain for the chip — well below
+      the chip's natural ~56 px, demonstrating the squeeze.
+
+      The PROTECTED chip keeps its full natural width because flex-shrink:0 on
+      its wrapper takes it entirely out of the flex-shrink calculation.
+    -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: sans-serif; font-size: 14px; background: #fff; }
+
+      /* ── Card layout ────────────────────────────────────────────── */
+      .page-container { width: 768px; padding: 16px; }
+      .grid-2col {
+        display: grid;
+        grid-template-columns: 270px 270px;
+        gap: 20px;
+      }
+      .card {
+        width: 270px;
+        padding: 12px;            /* inner = 246 px */
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* ── Shared field-row structure ─────────────────────────────── */
+      .field-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      /* ── Label (Tailwind: Label className in FieldHelpers) ──────── */
+      .label-protected {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        font-size: 0.875rem;
+        /* min-w-0: allows the label to shrink so pressure goes to label, not chip */
+        min-width: 0;
+        flex-shrink: 1;
+      }
+      /* Unprotected label: rigid — it does NOT have min-w-0; it cannot shrink.
+         We also set flex-shrink:0 explicitly to simulate the worst case. */
+      .label-unprotected {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 4px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        flex-shrink: 0;           /* label is rigid, chip absorbs all pressure */
+      }
+
+      /* ── Badge (ResearchRangeLabel / InfoTooltip) ───────────────── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 1px 6px;
+        border: 1px solid #94a3b8;
+        border-radius: 999px;
+        font-size: 11px;
+        color: #475569;
+      }
+
+      /* ── Chip wrappers ──────────────────────────────────────────── */
+      /* Protected chip wrapper: flex-shrink:0 → chip never shrinks */
+      .chip-wrapper-protected {
+        flex-shrink: 0;
+      }
+      /* Chip span (common styles) */
+      .chip {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        white-space: nowrap;
+        color: #0f766e;
+      }
+      /* Unprotected chip: IS a direct flex item; min-width:0 lets it collapse. */
+      .chip-unprotected {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        white-space: nowrap;
+        color: #0f766e;
+        min-width: 0;             /* overrides browser default min-width:auto */
+        flex-shrink: 1;           /* participates in flex shrink */
+        overflow: hidden;         /* clips text rather than stretching container */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-container">
+      <div class="grid-2col">
+
+        <!-- ── Card A: CORRECT layout (shrink-0 wrapper + min-w-0 label) ── -->
+        <div class="card" id="card-correct">
+          <h2 style="font-size:12px; font-weight:600;">Protected (shrink-0 + min-w-0)</h2>
+
+          <!-- PctField: percent chip protected -->
+          <div class="field-row" data-testid="pct-field-row">
+            <label class="label-protected">
+              <span>Macro Inflation Rate</span>
+              <span class="badge">6%–10%</span>
+            </label>
+            <div class="chip-wrapper-protected">
+              <span class="chip"
+                    data-testid="editable-value-chip"
+                    data-format="percent">12.00%</span>
+            </div>
+          </div>
+
+          <!-- DollarField: dollar chip protected -->
+          <div class="field-row" data-testid="dollar-field-row">
+            <label class="label-protected">
+              <span>Average Daily Rate start</span>
+              <span class="badge">$200–$450</span>
+            </label>
+            <div class="chip-wrapper-protected">
+              <span class="chip"
+                    data-testid="editable-value-chip"
+                    data-format="dollar">$1,250</span>
+            </div>
+          </div>
+
+          <!-- NumberField: number chip protected -->
+          <div class="field-row" data-testid="number-field-row">
+            <label class="label-protected">
+              <span>Occupancy ramp months to stabilized</span>
+              <span class="badge">12–24</span>
+            </label>
+            <div class="chip-wrapper-protected">
+              <span class="chip"
+                    data-testid="editable-value-chip"
+                    data-format="number">24</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Card B: REGRESSION (no shrink-0 wrapper, no min-w-0 label) ── -->
+        <!--
+          The label is rigid (flex-shrink:0, nowrap) and wide (~200 px).
+          The chip has min-width:0 + flex-shrink:1, so it absorbs all the
+          pressure. In a 246 px container with a 200 px label and an 8 px gap,
+          the chip receives ≈ 38 px — well below its natural ~56 px.
+          The test asserts this chip measures ≤ 15 px to confirm the squeeze.
+        -->
+        <div class="card" id="card-regression">
+          <h2 style="font-size:12px; font-weight:600;">Unprotected (regression)</h2>
+
+          <div class="field-row" data-testid="pct-field-row-unprotected">
+            <label class="label-unprotected">
+              <span>Macro Inflation Rate</span>
+              <span class="badge">6%–10%</span>
+            </label>
+            <span class="chip-unprotected"
+                  data-testid="editable-value-chip-unprotected"
+                  data-format="percent">12.00%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>

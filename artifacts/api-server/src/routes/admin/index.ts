@@ -31,6 +31,8 @@ import { registerMinionSelfTestRoutes } from "./minion-self-tests";
 import { registerSelfTestLogsRoutes } from "./self-test-logs";
 import { registerAssumptionGuardrailRoutes } from "./assumption-guardrails";
 import { registerBenchmarkBandRoutes } from "./benchmark-bands";
+import { registerAdminFeesRoutes } from "./fees";
+import { registerSystemAuthRoutes } from "./system-auth";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -68,4 +70,6 @@ export function register(app: Express) {
   registerSelfTestLogsRoutes(app);
   registerAssumptionGuardrailRoutes(app);
   registerBenchmarkBandRoutes(app);
+  registerAdminFeesRoutes(app);
+  registerSystemAuthRoutes(app);
 }

@@ -329,7 +329,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
 
               <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg mt-4">
                 <div className="flex items-center gap-2 min-w-0">
-                  <IconTrending className="w-4 h-4 text-primary" />
+                  <IconTrending className="w-4 h-4 text-primary shrink-0" />
                   <span className="text-sm font-semibold text-primary">Total Base Management Fee</span>
                   <InfoTooltip text="The sum of all active service category rates. This is the effective Base Management Fee charged to each property as a percentage of their Total Revenue. It is deducted from NOI to calculate ANOI in the USALI waterfall." />
                 </div>

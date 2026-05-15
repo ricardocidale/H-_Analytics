@@ -1,4 +1,6 @@
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { useProperty, useAddPropertyPhoto, useSetHeroPhoto, usePropertyPhotos } from "@/lib/api";
 import { PropertyImagePicker, PhotoAlbumGrid } from "@/features/property-images";
@@ -42,27 +44,11 @@ export default function PropertyPhotos() {
   };
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" data-testid="loading-spinner" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (isError || !property) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-          <IconAlertTriangle className="w-12 h-12 text-destructive" />
-          <p className="text-lg text-foreground" data-testid="text-error">Property not found</p>
-          <Link href="/portfolio">
-            <Button variant="outline" data-testid="link-portfolio">Back to Portfolio</Button>
-          </Link>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Property not found" />;
   }
 
   return (

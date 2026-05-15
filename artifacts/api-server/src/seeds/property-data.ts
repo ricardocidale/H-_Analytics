@@ -98,6 +98,23 @@ const SEED_ADR_GROWTH_RATE_ELEVATED = 0.035;    // Above-default growth (Catskil
 const SEED_ADR_GROWTH_RATE_HIGH = 0.04;         // High-growth markets (Casa Medellín)
 const SEED_ADR_GROWTH_RATE_MODEST = 0.025;      // Conservative growth (stabilized US portfolio properties)
 
+// US acquisition and refinance LTV calibrations — Plan 2026-05-13-003 Phase 3
+const SEED_US_ACQ_LTV = 0.65;              // standard US boutique hotel acquisition LTV
+const SEED_US_HIGH_YIELD_ACQ_LTV = 0.60;  // lower LTV for higher-rate Financed markets (Blue Ridge, Scott's House)
+const SEED_US_HIGH_YIELD_REFI_LTV = 0.75; // income-based refi sizing LTV (Full Equity + Financed with stabilised income)
+const SEED_US_STD_ACQ_INT_RATE = 0.075;   // standard US acquisition rate (10yr Treasury ~4.5% + ~300bp, Q1-2026)
+const SEED_US_LOW_ACQ_INT_RATE = 0.07;    // lower-rate US market (Ogden Valley, Utah portfolio)
+const SEED_US_HIGH_YIELD_INT_RATE = 0.09; // higher-rate market (Blue Ridge Manor / Asheville NC)
+// Other-revenue rev share tiers — concierge, transfers, spa add-ons
+const SEED_REV_SHARE_OTHER_HIGH = 0.08;    // premium ancillary capture (Jano Grande, Loch Sheldrake, Scott's House)
+const SEED_REV_SHARE_OTHER_MID = 0.07;     // standard ancillary (Belleayre Mountain)
+const SEED_REV_SHARE_OTHER_LOW = 0.06;     // limited ancillary (Cartagena / San Diego)
+const SEED_REV_SHARE_OTHER_MINIMAL = 0.05; // minimal ancillary (Lakeview Haven Lodge)
+// Refi LTV-to-original cap: refi loan may not exceed 70% of original purchase price.
+// Recalibrated from 1.00 → 0.70 per Plan 2026-05-13-005 to prevent equity stripping.
+// Matches DEFAULT_REFI_MAX_LTV_TO_ORIGINAL in constants-funding.ts. Source: Plan 2026-05-13-005.
+const SEED_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
+
 // Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
 // (US baseline = 0.012). Same source-of-truth used by the schema column default.
 const SEED_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
@@ -220,12 +237,12 @@ export const SEED_INITIAL_PROPERTIES = [
     buildingImprovements: 400000,
     preOpeningCosts: 150000,
     operatingReserve: 300000,
-    roomCount: 20,
+    roomCount: 8,
     startAdr: SEED_JANO_GRANDE_START_ADR,
     adrGrowthRate: SEED_ADR_GROWTH_RATE_ELEVATED,
-    startOccupancy: 0.40,
+    startOccupancy: 0.30,
     maxOccupancy: 0.72,
-    occupancyRampMonths: 9,
+    occupancyRampMonths: 12,
     stabilizationMonths: 36,
     occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP,
     // Engine note: acquisitionLTV is only applied when type = "Financed".
@@ -236,11 +253,12 @@ export const SEED_INITIAL_PROPERTIES = [
     acquisitionInterestRate: SEED_COLOMBIA_ACQ_INTEREST_RATE,
     willRefinance: "Yes",
     refinanceDate: "2029-12-01",
-    refinanceLTV: 0.75,
+    refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV,
     refinanceInterestRate: SEED_REFI_INTEREST_RATE_COLOMBIA,
     refinanceTermYears: 25,
     refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE,
     refinanceYearsAfterAcquisition: 3,
+    refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
     costRateRooms: 0.17,
     costRateFB: 0.10,
@@ -254,7 +272,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.05,
     revShareEvents: SEED_REV_SHARE_EVENTS_MID,
     revShareFB: SEED_REV_SHARE_FB_REDUCED,
-    revShareOther: 0.08,
+    revShareOther: SEED_REV_SHARE_OTHER_HIGH,
     cateringBoostPercent: SEED_CATERING_BOOST_HIGH,
     exitCapRate: SEED_COLOMBIA_EXIT_CAP_RATE_HACIENDA,
     taxRate: 0.35,
@@ -292,15 +310,16 @@ export const SEED_INITIAL_PROPERTIES = [
     // Full Equity properties return loan amount = 0 regardless of LTV stored.
     // This property carries acquisition leverage — type must be "Financed".
     type: "Financed",
-    acquisitionLTV: 0.65,
-    acquisitionInterestRate: 0.075,
+    acquisitionLTV: SEED_US_ACQ_LTV,
+    acquisitionInterestRate: SEED_US_STD_ACQ_INT_RATE,
     willRefinance: "Yes",
     refinanceDate: "2030-05-01",
-    refinanceLTV: 0.75,
+    refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV,
     refinanceInterestRate: SEED_REFI_INTEREST_RATE_US,
     refinanceTermYears: 25,
     refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE,
     refinanceYearsAfterAcquisition: 3,
+    refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
     costRateRooms: 0.19,
     costRateFB: 0.09,
@@ -314,7 +333,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.04,
     revShareEvents: SEED_REV_SHARE_EVENTS_HIGH,
     revShareFB: SEED_REV_SHARE_FB_REDUCED,
-    revShareOther: 0.08,
+    revShareOther: SEED_REV_SHARE_OTHER_HIGH,
     cateringBoostPercent: SEED_CATERING_BOOST_MID_HIGH,
     exitCapRate: SEED_US_MOUNTAIN_EXIT_CAP_RATE,
     taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE,
@@ -352,15 +371,16 @@ export const SEED_INITIAL_PROPERTIES = [
     // Full Equity properties return loan amount = 0 regardless of LTV stored.
     // This property carries acquisition leverage — type must be "Financed".
     type: "Financed",
-    acquisitionLTV: 0.65,
-    acquisitionInterestRate: 0.075,
+    acquisitionLTV: SEED_US_ACQ_LTV,
+    acquisitionInterestRate: SEED_US_STD_ACQ_INT_RATE,
     willRefinance: "Yes",
     refinanceDate: "2030-09-01",
-    refinanceLTV: 0.75,
+    refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV,
     refinanceInterestRate: SEED_REFI_INTEREST_RATE_US,
     refinanceTermYears: 25,
     refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE,
     refinanceYearsAfterAcquisition: 3,
+    refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
     costRateRooms: 0.20,
     costRateFB: 0.09,
@@ -374,7 +394,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.04,
     revShareEvents: SEED_REV_SHARE_EVENTS_MID,
     revShareFB: 0.28,
-    revShareOther: 0.07,
+    revShareOther: SEED_REV_SHARE_OTHER_MID,
     cateringBoostPercent: SEED_CATERING_BOOST_MID,
     exitCapRate: DEFAULT_EXIT_CAP_RATE,
     taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE,
@@ -409,8 +429,8 @@ export const SEED_INITIAL_PROPERTIES = [
     stabilizationMonths: 24,
     occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP,
     type: "Financed",
-    acquisitionLTV: 0.60,
-    acquisitionInterestRate: 0.07,
+    acquisitionLTV: SEED_US_HIGH_YIELD_ACQ_LTV,
+    acquisitionInterestRate: SEED_US_LOW_ACQ_INT_RATE,
     acquisitionTermYears: 25,
     acquisitionClosingCostRate: 0.025,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
@@ -426,7 +446,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.04,
     revShareEvents: SEED_REV_SHARE_EVENTS_MID,
     revShareFB: 0.20,
-    revShareOther: 0.08,
+    revShareOther: SEED_REV_SHARE_OTHER_HIGH,
     cateringBoostPercent: SEED_CATERING_BOOST_MID,
     exitCapRate: DEFAULT_EXIT_CAP_RATE,
     taxRate: 0.22,
@@ -463,8 +483,8 @@ export const SEED_INITIAL_PROPERTIES = [
     stabilizationMonths: 18,
     occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP,
     type: "Financed",
-    acquisitionLTV: 0.65,
-    acquisitionInterestRate: 0.07,
+    acquisitionLTV: SEED_US_ACQ_LTV,
+    acquisitionInterestRate: SEED_US_LOW_ACQ_INT_RATE,
     acquisitionTermYears: 25,
     acquisitionClosingCostRate: 0.025,
     dispositionCommission: DEFAULT_COMMISSION_RATE,
@@ -480,7 +500,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.04,
     revShareEvents: 0.15,
     revShareFB: SEED_REV_SHARE_FB_REDUCED,
-    revShareOther: 0.05,
+    revShareOther: SEED_REV_SHARE_OTHER_MINIMAL,
     cateringBoostPercent: 0.15,
     exitCapRate: SEED_US_NORTHEAST_EXIT_CAP_RATE,
     taxRate: 0.22,
@@ -532,7 +552,7 @@ export const SEED_INITIAL_PROPERTIES = [
     costRateOther: 0.04,
     revShareEvents: SEED_REV_SHARE_EVENTS_MID,
     revShareFB: 0.24,
-    revShareOther: 0.06,
+    revShareOther: SEED_REV_SHARE_OTHER_LOW,
     cateringBoostPercent: SEED_CATERING_BOOST_MID,
     exitCapRate: SEED_CARTAGENA_EXIT_CAP_RATE,
     taxRate: 0.35,
@@ -542,11 +562,11 @@ export const SEED_INITIAL_PROPERTIES = [
 ];
 
 export const SEED_SYNC_PROPERTIES = [
-  { ...SEED_PROPERTY_DEFAULTS, name: "The Hudson Estate", streetAddress: "142 Old Post Road", city: "Millbrook", stateProvince: "NY", zipPostalCode: "12545", country: "United States", location: "Hudson Valley, New York", market: "North America", imageUrl: "/api/media/property-ny.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-06-01", operationsStartDate: "2026-12-01", purchasePrice: 3800000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 385, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_MID_HIGH, exitCapRate: SEED_US_NORTHEAST_EXIT_CAP_RATE, willRefinance: "Yes", refinanceDate: "2029-12-01", refinanceLtv: 0.75, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_MID },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Eden Summit Lodge", streetAddress: "3850 Nordic Valley Road", city: "Eden", stateProvince: "UT", zipPostalCode: "84310", location: "Ogden Valley, Utah", market: "North America", imageUrl: "/api/media/property-utah.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-01-01", operationsStartDate: "2027-07-01", purchasePrice: 4000000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 425, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_HIGH, willRefinance: "Yes", refinanceDate: "2030-07-01", refinanceLtv: 0.75, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_MID },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Austin Hillside", streetAddress: "4100 Mount Bonnell Drive", city: "Austin", stateProvince: "TX", zipPostalCode: "78731", location: "Hill Country, Texas", market: "North America", imageUrl: "/api/media/property-austin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-04-01", operationsStartDate: "2028-01-01", purchasePrice: 3500000, buildingImprovements: 1100000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 320, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.09, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_MID, willRefinance: "Yes", refinanceDate: "2031-01-01", refinanceLtv: 0.75, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_LOWER },
+  { ...SEED_PROPERTY_DEFAULTS, name: "The Hudson Estate", streetAddress: "142 Old Post Road", city: "Millbrook", stateProvince: "NY", zipPostalCode: "12545", country: "United States", location: "Hudson Valley, New York", market: "North America", imageUrl: "/api/media/property-ny.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-06-01", operationsStartDate: "2026-12-01", purchasePrice: 3800000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 385, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_MID_HIGH, exitCapRate: SEED_US_NORTHEAST_EXIT_CAP_RATE, willRefinance: "Yes", refinanceDate: "2029-12-01", refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL, revShareEvents: SEED_REV_SHARE_EVENTS_MID },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Eden Summit Lodge", streetAddress: "3850 Nordic Valley Road", city: "Eden", stateProvince: "UT", zipPostalCode: "84310", location: "Ogden Valley, Utah", market: "North America", imageUrl: "/api/media/property-utah.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-01-01", operationsStartDate: "2027-07-01", purchasePrice: 4000000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 425, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_HIGH, willRefinance: "Yes", refinanceDate: "2030-07-01", refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL, revShareEvents: SEED_REV_SHARE_EVENTS_MID },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Austin Hillside", streetAddress: "4100 Mount Bonnell Drive", city: "Austin", stateProvince: "TX", zipPostalCode: "78731", location: "Hill Country, Texas", market: "North America", imageUrl: "/api/media/property-austin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-04-01", operationsStartDate: "2028-01-01", purchasePrice: 3500000, buildingImprovements: 1100000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 320, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Full Equity", costRateFB: 0.09, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_MID, willRefinance: "Yes", refinanceDate: "2031-01-01", refinanceLTV: SEED_US_HIGH_YIELD_REFI_LTV, refinanceInterestRate: SEED_REFI_INTEREST_RATE_US, refinanceTermYears: 25, refinanceClosingCostRate: DEFAULT_REFI_CLOSING_COST_RATE, refiMaxLtvToOriginal: SEED_REFI_MAX_LTV_TO_ORIGINAL, revShareEvents: SEED_REV_SHARE_EVENTS_LOWER },
   { ...SEED_PROPERTY_DEFAULTS, name: "Casa Medellín", streetAddress: "Carrera 43A #7-50, El Poblado", city: "Medellín", stateProvince: "Antioquia", zipPostalCode: "050021", country: "Colombia", location: "El Poblado, Medellín", market: "Latin America", imageUrl: "/api/media/property-medellin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-09-01", operationsStartDate: "2028-07-01", purchasePrice: 3800000, buildingImprovements: 1000000, preOpeningCosts: 200000, operatingReserve: 600000, roomCount: 30, startAdr: SEED_CASA_MEDELLIN_START_ADR, adrGrowthRate: SEED_ADR_GROWTH_RATE_HIGH, startOccupancy: 0.50, maxOccupancy: 0.78, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Financed", costRateFB: 0.075, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_MEDELLIN, exitCapRate: SEED_CASA_MEDELLIN_EXIT_CAP_RATE, acquisitionLTV: SEED_COLOMBIA_ACQ_LTV, acquisitionInterestRate: SEED_COLOMBIA_ACQ_INTEREST_RATE, acquisitionTermYears: 25, acquisitionClosingCostRate: DEFAULT_ACQ_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_COLOMBIA, depreciationYears: 20 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/api/media/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_HIGH, exitCapRate: SEED_US_MOUNTAIN_EXIT_CAP_RATE, acquisitionLTV: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: DEFAULT_ACQ_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_LOWER },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/api/media/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: SEED_ADR_GROWTH_RATE_MODEST, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: SEED_CATERING_BOOST_HIGH, exitCapRate: SEED_US_MOUNTAIN_EXIT_CAP_RATE, acquisitionLTV: SEED_US_HIGH_YIELD_ACQ_LTV, acquisitionInterestRate: SEED_US_HIGH_YIELD_INT_RATE, acquisitionTermYears: 25, acquisitionClosingCostRate: DEFAULT_ACQ_CLOSING_COST_RATE, revShareEvents: SEED_REV_SHARE_EVENTS_LOWER },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

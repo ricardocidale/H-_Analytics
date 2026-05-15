@@ -45,7 +45,7 @@ export type AdminSection =
   | "brand"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
-  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance"
+  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
   | "property-heroes"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
@@ -58,7 +58,7 @@ export type AdminSection =
   | "required-fields"
   // Model Defaults (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
-  | "constants"
+  | "constants" | "defaults-mgmt-co-fees" | "defaults-brands"
   // AI Research → Specialists (P5). The 7 read-only assignment+health surface
   // sections are derived from `SPECIALIST_SECTION_TO_ID` keys below — single
   // source of truth, compile-enforced. To add a Specialist section, edit ONLY
@@ -116,6 +116,8 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "defaults-property": "model-defaults",
   "defaults-market-macro": "model-defaults",
   "constants": "model-defaults",
+  "defaults-mgmt-co-fees": "model-defaults",
+  "defaults-brands": "model-defaults",
 };
 
 /**
@@ -194,6 +196,7 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
+        { value: "defaults-brands",             label: "Brands",             icon: IconBriefcase },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
         { value: "reference-ranges",            label: "Reference Ranges",   icon: IconRuler },
@@ -256,9 +259,10 @@ function buildNavGroups(): NavGroup[] {
       icon: IconDashboard,
       description: "Database, observability, and activity logs",
       sections: [
-        { value: "database",      label: "Database",      icon: IconDatabase },
-        { value: "observability", label: "Observability", icon: IconDashboard },
-        { value: "activity",      label: "Activity",      icon: IconActivity },
+        { value: "database",        label: "Database",      icon: IconDatabase },
+        { value: "observability",   label: "Observability", icon: IconDashboard },
+        { value: "activity",        label: "Activity",      icon: IconActivity },
+        { value: "login-settings",  label: "Login",         icon: IconShieldCheck },
       ],
     },
   ];

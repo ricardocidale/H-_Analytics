@@ -96,7 +96,7 @@ export function DdTemplateTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <CardTitle className="text-base">Hospitality Due-Diligence Template</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Canonical checklist seeded onto every acquisition target. Editing a row
@@ -104,7 +104,7 @@ export function DdTemplateTab() {
                 flag for every property created from this version.
               </p>
             </div>
-            <Badge variant="outline" data-testid="badge-template-version">
+            <Badge variant="outline" className="shrink-0" data-testid="badge-template-version">
               v{DD_TEMPLATE_VERSION}
             </Badge>
           </div>
@@ -130,7 +130,7 @@ export function DdTemplateTab() {
                   data-testid={`row-template-${item.key}`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Input
                         value={item.label}
                         onChange={(e) => setField(item.id, "label", e.target.value)}
@@ -139,7 +139,7 @@ export function DdTemplateTab() {
                       />
                       <p className="text-xs text-muted-foreground mt-1 font-mono">{item.key}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground">Stop gate</span>
                       <Switch
                         checked={item.isStopGate}

@@ -216,8 +216,151 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("self_test_logs_001");
   }
 
+  // Plan 2026-05-13-003 Phase 5 — refi LTV cap column on properties.
+  // Belt-and-suspenders companion to 0064_properties_refi_ltv_cap.sql.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("properties_refi_ltv_cap_001"))) {
+    const { runPropertiesRefiLtvCap001 } = await import("../migrations/properties-refi-ltv-cap-001");
+    await runPropertiesRefiLtvCap001();
+    await markMigrationApplied("properties_refi_ltv_cap_001");
+  }
+
+  // Plan 2026-05-13-005 P2 — recalibrate refi_max_ltv_to_original on all property rows.
+  // Fixes rows seeded with 1.00 (uncapped) to the correct 0.70 cap. Also fills any NULLs.
+  // One-time migration; no every-boot assertion (slider allows values up to 150%).
+  if (!(await isMigrationApplied("properties_refi_ltv_recalibration_001"))) {
+    const { runPropertiesRefiLtvRecalibration001 } = await import("../migrations/properties-refi-ltv-recalibration-001");
+    await runPropertiesRefiLtvRecalibration001();
+    await markMigrationApplied("properties_refi_ltv_recalibration_001");
+  }
+
+  // Plan 2026-05-13-006 U1 — extend business_brands for multi-flag brand family model.
+  // Belt-and-suspenders companion to 0065_extend_business_brands_multi_flag.sql.
+  // Adds slug, business_model, segment, sort_order, is_active, updated_at columns,
+  // flips FK on properties.brand_id to ON DELETE RESTRICT, backfills NULLs, sets NOT NULL.
+  if (!(await isMigrationApplied("business_brands_multi_flag_001"))) {
+    const { runBusinessBrandsMultiFlag001 } = await import("../migrations/business-brands-multi-flag-001");
+    await runBusinessBrandsMultiFlag001();
+    await markMigrationApplied("business_brands_multi_flag_001");
+  }
+
+  // Plan 2026-05-13-006 U2 — create management_company_fees + brand_fees tables.
+  // Belt-and-suspenders companion to 0066_create_mgmt_co_and_brand_fees.sql.
+  // Creates both tables, makes business_brands.slug NOT NULL + UNIQUE (FK target),
+  // seeds Tier-A mgmt fees, seeds H+ Hotel + STR Ultra-Luxury brand fees,
+  // and assigns Medellin Duplex to the STR flag.
+  if (!(await isMigrationApplied("mgmt_co_fees_tables_001"))) {
+    const { runMgmtCoFeesTables001 } = await import("../migrations/mgmt-co-fees-tables-001");
+    await runMgmtCoFeesTables001();
+    await markMigrationApplied("mgmt_co_fees_tables_001");
+  }
+
+  // Plan 2026-05-13-006 U3 — seed assumption guardrails for mgmt co + brand fee columns.
+  // Runtime-only migration: no SQL file, no journal entry, no migration-guards.json entry.
+  // Seeds 7 assumption_guardrails rows (ON CONFLICT DO NOTHING) for the fee columns
+  // populated by hydrateFeeColumns.
+  if (!(await isMigrationApplied("assumption_guardrails_mgmt_co_fees_001"))) {
+    const { runAssumptionGuardrailsMgmtCoFees001 } = await import("../migrations/assumption-guardrails-mgmt-co-fees-001");
+    await runAssumptionGuardrailsMgmtCoFees001();
+    await markMigrationApplied("assumption_guardrails_mgmt_co_fees_001");
+  }
+
+  // Plan 2026-05-13-001 Path A — fix bracket slug mismatch + backfill Layer-2 overlay values.
+  // Renames 3 of 4 icp_brackets slugs to match bracket-catalog.ts IDs so
+  // applyBracketLayerDefaults() can resolve all four entries. Also populates
+  // default_exit_cap_rate and default_refi_max_ltv_to_original on all brackets.
+  if (!(await isMigrationApplied("icp_brackets_004"))) {
+    const { runIcpBrackets004 } = await import("../migrations/icp-brackets-004");
+    await runIcpBrackets004();
+    await markMigrationApplied("icp_brackets_004");
+  }
+
+  // Plan 2026-05-13-001 U1 — demo property exit-cap calibration + Duplex overrides.
+  // Sets calibrated exit_cap_rate on 6 INITIAL properties + Medellin Duplex, and
+  // corrects Duplex max_occupancy. Targets the 25–30% IRR band for the demo portfolio.
+  if (!(await isMigrationApplied("properties_demo_seed_overrides_001"))) {
+    const { runPropertiesDemoSeedOverrides001 } = await import("../migrations/properties-demo-seed-overrides-001");
+    await runPropertiesDemoSeedOverrides001();
+    await markMigrationApplied("properties_demo_seed_overrides_001");
+  }
+
+  // Plan 2026-05-13-001 U8 — full-equity refi rule: Medellin Duplex.
+  // User-confirmed rule (2026-05-13): full-equity acquisitions (LTV=null) are
+  // refinanced 3 years after operations begin; financed properties are not.
+  if (!(await isMigrationApplied("properties_demo_seed_overrides_002"))) {
+    const { runPropertiesDemoSeedOverrides002 } = await import("../migrations/properties-demo-seed-overrides-002");
+    await runPropertiesDemoSeedOverrides002();
+    await markMigrationApplied("properties_demo_seed_overrides_002");
+  }
+
+  // Plan 2026-05-13-001 U8 — LTV default recalibration: mc.funding.ltv and
+  // mc.funding.refiLtv both corrected to 0.70 per user directive (2026-05-13).
+  if (!(await isMigrationApplied("model_defaults_ltv_recalibration_001"))) {
+    const { runModelDefaultsLtvRecalibration001 } = await import("../migrations/model-defaults-ltv-recalibration-001");
+    await runModelDefaultsLtvRecalibration001();
+    await markMigrationApplied("model_defaults_ltv_recalibration_001");
+  }
+
+  // Plan 2026-05-13-001 U8 — enforce full-equity refi rule on demo portfolio.
+  // Sets acquisition_ltv=0 for Jano/Loch/Belleayre/Medellin Duplex (full-equity);
+  // recalibrates refi_ltv=0.70 for Jano/Loch/Belleayre.
+  if (!(await isMigrationApplied("properties_full_equity_refi_rule_001"))) {
+    const { runPropertiesFullEquityRefiRule001 } = await import("../migrations/properties-full-equity-refi-rule-001");
+    await runPropertiesFullEquityRefiRule001();
+    await markMigrationApplied("properties_full_equity_refi_rule_001");
+  }
+
+  // Plan 2026-05-13-001 U7 — Davi best-fit match-rule columns on icp_brackets.
+  // Adds 6 columns so Davi (per-property classifier minion) can match properties
+  // to brackets using DB-stored rules (no code change needed when rules evolve).
+  if (!(await isMigrationApplied("icp_brackets_005"))) {
+    const { runIcpBrackets005 } = await import("../migrations/icp-brackets-005");
+    await runIcpBrackets005();
+    await markMigrationApplied("icp_brackets_005");
+  }
+
+  // Plan 2026-05-13-001 U7 (catalog rewrite) — geography-tier brackets replacing
+  // the 4 service-profile brackets. DELETEs old slugs, UPSERTs 5 new geography-tier
+  // brackets with Layer-2 defaults and Davi match rules. Idempotent (ON CONFLICT DO UPDATE).
+  if (!(await isMigrationApplied("icp_brackets_006"))) {
+    const { runIcpBrackets006 } = await import("../migrations/icp-brackets-006");
+    await runIcpBrackets006();
+    await markMigrationApplied("icp_brackets_006");
+  }
+
+  // DB audit fix 2026-05-14 — model_defaults NULLS NOT DISTINCT unique index.
+  // Prevents duplicate rows on every boot when scope columns are all NULL.
+  // PostgreSQL NULL ≠ NULL inside standard unique indexes; NULLS NOT DISTINCT
+  // makes re-seeding fully idempotent. See db-storage-audit-2026-05-14.md.
+  if (!(await isMigrationApplied("model_defaults_unique_nulls_not_distinct_001"))) {
+    const { runModelDefaultsUniqueNullsNotDistinct001 } = await import("../migrations/model-defaults-unique-nulls-not-distinct-001");
+    await runModelDefaultsUniqueNullsNotDistinct001();
+    await markMigrationApplied("model_defaults_unique_nulls_not_distinct_001");
+  }
+
+  // 2026-05-14 — Seed model_defaults rows for the three refi params that
+  // previously fell back to hardcoded TS constants (Category 2 violations):
+  // mc.funding.refiInterestRate, mc.funding.refiTermYears, mc.funding.refiClosingCostRate.
+  // Also backfills null property columns from those defaults.
+  if (!(await isMigrationApplied("model_defaults_refi_params_001"))) {
+    const { runModelDefaultsRefiParams001 } = await import("../migrations/model-defaults-refi-params-001");
+    await runModelDefaultsRefiParams001();
+    await markMigrationApplied("model_defaults_refi_params_001");
+  }
+
+  // 2026-05-14 — Add refinance_basis column to properties (default: 'purchase_price').
+  // Three-way selector: purchase_price | purchase_price_plus_improvements | appreciated_asset.
+  // Backfills all existing rows to 'purchase_price' (the conservative default that was
+  // previously hardcoded in the engine).
+  if (!(await isMigrationApplied("properties_refinance_basis_001"))) {
+    const { runPropertiesRefinanceBasis001 } = await import("../migrations/properties-refinance-basis-001");
+    await runPropertiesRefinanceBasis001();
+    await markMigrationApplied("properties_refinance_basis_001");
+  }
+
   // Task #1677 — per-property markup override on property_fee_categories.
-  // Belt-and-suspenders companion to 0064_property_fee_markup.sql.
+  // Belt-and-suspenders companion to 0068_property_fee_markup.sql (renumbered from 0064
+  // during 2026-05-15 merge of main; main owned slot 0064 with properties_refi_ltv_cap).
   // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
   if (!(await isMigrationApplied("property_fee_markup_001"))) {
     const { runPropertyFeeMarkup001 } = await import("../migrations/property-fee-markup-001");

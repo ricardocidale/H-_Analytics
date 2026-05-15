@@ -123,15 +123,18 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               guidanceContext={gc("marketingRate", "Marketing")}
               currentValue={formData.marketingRate ?? global.marketingRate}
               isPercent
+              className="min-w-0"
             />
-            <EditableValue
-              value={formData.marketingRate ?? global.marketingRate}
-              onChange={(v) => onChange("marketingRate", v)}
-              format="percent"
-              min={0}
-              max={0.15}
-              step={0.01}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.marketingRate ?? global.marketingRate}
+                onChange={(v) => onChange("marketingRate", v)}
+                format="percent"
+                min={0}
+                max={0.15}
+                step={0.01}
+              />
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Slider
@@ -155,15 +158,18 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               guidanceContext={gc("miscOps", "Misc Operations")}
               currentValue={formData.miscOpsRate ?? global.miscOpsRate}
               isPercent
+              className="min-w-0"
             />
-            <EditableValue
-              value={formData.miscOpsRate ?? global.miscOpsRate}
-              onChange={(v) => onChange("miscOpsRate", v)}
-              format="percent"
-              min={0}
-              max={0.1}
-              step={0.005}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.miscOpsRate ?? global.miscOpsRate}
+                onChange={(v) => onChange("miscOpsRate", v)}
+                format="percent"
+                min={0}
+                max={0.1}
+                step={0.005}
+              />
+            </span>
           </div>
           <Slider
             value={[(formData.miscOpsRate ?? global.miscOpsRate) * 100]}

@@ -2,6 +2,7 @@ import type { Request } from "express";
 import { storage } from "../../storage";
 import { getAuthUser } from "../../auth";
 import { isAdminRole } from "@shared/constants";
+import { getEffectivePropertyView, type PropertyRow } from "@workspace/db";
 import { logger } from "../../logger";
 import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../../ai/context-pack/company-pack";
@@ -69,9 +70,15 @@ export async function assembleResearchV2Prompt(
           icpConfig,
         );
 
-        // Task 4.5: Enrich propertyContext with entity-aware fields from DB property
+        // Task 4.5: Enrich propertyContext with entity-aware fields from DB property.
+        // Plan 2026-05-13-002 U3 — descriptor reads (fbVenues, fbSeats,
+        // eventSpaceSqft, totalBuildingSqft, lastRenovationYear) go through
+        // the accessor's effective view so the LLM sees the post-renovation
+        // (As-Improved) value when one is set, falling back to As-Purchased
+        // otherwise. Non-descriptor fields are read raw.
         if (params.propertyContext) {
           const p = property as Record<string, any>;
+          const view = getEffectivePropertyView(p as PropertyRow) as Record<string, any>;
           params.propertyContext = {
             ...params.propertyContext,
             qualityTier: p.qualityTier ?? undefined,
@@ -82,13 +89,13 @@ export async function assembleResearchV2Prompt(
             serviceLevel: p.serviceLevel ?? undefined,
             locationType: p.locationType ?? undefined,
             marketTier: p.marketTier ?? undefined,
-            fbVenues: p.fbVenues ?? undefined,
-            fbSeats: p.fbSeats ?? undefined,
-            eventSpaceSqft: p.eventSpaceSqft ?? undefined,
+            fbVenues: view.fbVenues ?? undefined,
+            fbSeats: view.fbSeats ?? undefined,
+            eventSpaceSqft: view.eventSpaceSqft ?? undefined,
             totalPropertyAcreage: p.totalPropertyAcreage ?? undefined,
-            totalBuildingSqft: p.totalBuildingSqft ?? undefined,
+            totalBuildingSqft: view.totalBuildingSqft ?? undefined,
             yearBuilt: p.yearBuilt ?? undefined,
-            lastRenovationYear: p.lastRenovationYear ?? undefined,
+            lastRenovationYear: view.lastRenovationYear ?? undefined,
             revShareFB: p.revShareFB ?? undefined,
             revShareEvents: p.revShareEvents ?? undefined,
             depreciationYears: p.depreciationYears ?? undefined,

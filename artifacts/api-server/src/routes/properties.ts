@@ -53,6 +53,7 @@ import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions, type StressThresholds } from "@engine/helpers/stress-scenarios";
 import { resolveStressThresholds } from "../finance/benchmark-resolver";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
+import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -89,8 +90,51 @@ export async function createPropertyRecord(
     userId: isAdminRole(user.role) ? null : user.id,
     researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
   };
+
+  const createDataMut = createData as Record<string, unknown>;
+
+  // Layer-2: bracket-mix overlay. Runs before Layer-1 so bracket values can
+  // override model_defaults when the company's bracket mix has an opinion.
+  try {
+    await applyBracketLayerDefaults(createDataMut, globalDefaults?.bracketMix ?? null);
+  } catch (bracketErr: unknown) {
+    logger.warn(
+      `applyBracketLayerDefaults failed at creation (non-blocking): ${bracketErr instanceof Error ? bracketErr.message : bracketErr}`,
+      "properties",
+    );
+  }
+
+  // Layer-1: hydrate underwriting fields from model_defaults for any still null.
+  // Precedence: user-supplied or global-assumptions value > Layer-2 bracket blend > model_defaults row.
+  try {
+    const hydrated = await hydratePropertyFinancials(
+      createDataMut as Parameters<typeof hydratePropertyFinancials>[0],
+      { country: createDataMut.country as string | null, businessType: createDataMut.type as string | null },
+    );
+    for (const [key, val] of Object.entries(hydrated)) {
+      if (createDataMut[key] == null) createDataMut[key] = val;
+    }
+  } catch (hydrateErr: unknown) {
+    logger.warn(
+      `hydratePropertyFinancials failed at creation (non-blocking): ${hydrateErr instanceof Error ? hydrateErr.message : hydrateErr}`,
+      "properties",
+    );
+  }
+
+  // Fee cascade: populate mgmt + brand fee columns from management_company_fees
+  // + brand_fees tables. Runs after Layer-1 so structural underwriting fields
+  // are already set; fee columns that are already non-null (user-supplied) win.
+  try {
+    await hydrateFeeColumns(createDataMut);
+  } catch (feeErr: unknown) {
+    logger.warn(
+      `hydrateFeeColumns failed at creation (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
+      "properties",
+    );
+  }
+
   const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
-  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
+  (createData as Record<string, unknown> & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
 
   const property = await storage.createProperty(createData);
 
@@ -472,15 +516,33 @@ export function register(app: Express) {
         updateData.lastAssumptionChangeAt = new Date();
       }
 
+      // If brand_id is changing, cascade fee columns for the new brand.
+      // "fill nulls only" — user-supplied fee values in validation.data are
+      // non-null in updateData and are not overwritten by the cascade.
+      if ("brandId" in validation.data) {
+        try {
+          await hydrateFeeColumns(updateData);
+        } catch (feeErr: unknown) {
+          logger.warn(
+            `hydrateFeeColumns failed on brand change for property ${propertyId} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`,
+            "properties",
+          );
+        }
+      }
+
       let property = await storage.updateProperty(propertyId, updateData);
       if (!property) {
         return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-026" });
       }
 
       // Task #1407 (Milestone B) — drift instrumentation. After every write,
-      // compare typed columns to the JSONB blobs and warn on any divergence.
-      // Silent drift here would defeat the migration plan: if a write path
-      // bypasses the dual-write helper, this is where it surfaces.
+      // compare typed columns to the JSONB blobs and persist any divergence.
+      //
+      // Plan 2026-05-13-002 Unit U1 — drift events are now persisted to
+      // `property_descriptor_drift_log` (in addition to a log warning) so the
+      // U8 cleanup gate can probe a 14-day clean window. Silent drift here
+      // would defeat the migration plan: if a write path bypasses the
+      // dual-write helper, this is where it surfaces.
       try {
         const drift = detectDescriptorDrift(property as Record<string, unknown>);
         if (drift.length > 0) {
@@ -489,6 +551,15 @@ export function register(app: Express) {
               .map(d => `${d.fieldKey}[${d.side}] typed=${JSON.stringify(d.typedValue)} jsonb=${JSON.stringify(d.jsonbValue)}`)
               .join("; ")}`,
             "descriptor-drift",
+          );
+          await storage.recordDescriptorDriftEvents(
+            drift.map(d => ({
+              propertyId,
+              fieldKey: d.fieldKey,
+              side: d.side,
+              typedValue: d.typedValue,
+              jsonbValue: d.jsonbValue,
+            })),
           );
         }
       } catch (err: unknown) {

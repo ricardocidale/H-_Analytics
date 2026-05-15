@@ -62,6 +62,8 @@ export interface PropertyInput {
   refinanceInterestRate?: number | null;
   refinanceTermYears?: number | null;
   refinanceClosingCostRate?: number | null;
+  refiMaxLtvToOriginal?: number | null;
+  refinanceBasis?: string | null;
   exitCapRate?: number | null;
   // Disposition
   dispositionCommission?: number | null;

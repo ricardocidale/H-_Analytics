@@ -103,6 +103,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("capRate", "Exit Cap Rate")}
                 currentValue={draft.exitCapRate ?? DEFAULT_EXIT_CAP_RATE}
                 isPercent
+                className="min-w-0"
               />
               <EditableValue
                 data-testid="editable-exit-cap-rate"
@@ -112,6 +113,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 min={1}
                 max={10}
                 step={0.1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -135,6 +137,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("incomeTax", "Income Tax Rate")}
                 currentValue={draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE}
                 isPercent
+                className="min-w-0"
               />
               <EditableValue
                 value={(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100}
@@ -143,6 +146,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 min={0}
                 max={50}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -178,6 +182,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("inflationRate", "Inflation Rate")}
                 currentValue={draft.inflationRate ?? getFactoryNumber('inflationRate')}
                 isPercent
+                className="min-w-0"
               />
               <EditableValue
                 data-testid="editable-inflation-rate"
@@ -187,6 +192,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 min={0}
                 max={20}
                 step={0.1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -214,6 +220,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("saleCommission", "Sale Commission")}
                 currentValue={draft.dispositionCommission ?? DEFAULT_COMMISSION_RATE}
                 isPercent
+                className="min-w-0"
               />
               <EditableValue
                 data-testid="editable-disposition-commission"
@@ -223,6 +230,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 min={0}
                 max={10}
                 step={0.5}
+                className="shrink-0"
               />
             </div>
             <Slider 

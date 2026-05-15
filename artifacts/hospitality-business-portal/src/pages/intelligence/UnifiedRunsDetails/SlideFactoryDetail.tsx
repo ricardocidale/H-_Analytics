@@ -84,16 +84,17 @@ export function SlideFactoryDetail({ runId }: { runId: number }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10">
-        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
+      <div className="space-y-2 py-4 animate-pulse">
+        <div className="h-4 bg-muted rounded w-1/2" />
+        <div className="h-20 bg-muted rounded" />
       </div>
     );
   }
 
   if (error || !run) {
     return (
-      <p className="text-sm text-destructive py-4">
-        Failed to load run details.
+      <p className="text-sm text-muted-foreground py-4">
+        Couldn't load run details.
       </p>
     );
   }

@@ -1,0 +1,38 @@
+
+● Critical mismatch with the brief. Neither file exists on origin/main:
+
+  ❌ docs/handoffs/phase-c-icp-bracket-mix-peer-derived.md     — missing
+  ❌ docs/plans/2026-05-13-001-feat-icp-bracket-mix-peer-derived-phase-b-plan.md   — missing
+  ❌ icp_peer_companies in lib/db/src/schema/                  — missing (Phase A not in)
+
+  The Replit agent was working on ICP bracket-mix peer-derived earlier this session (I saw 3a8b32d8a Add plan for rebuilding ICP bracket-mix using peer data and 1ddebd941 Update plan to refine AI-driven property analysis... on local main, plus untracked
+  0060_icp_peer_companies.sql / lib/db/src/schema/icp-peer-companies.ts in the working tree). All of that was Replit-agent work that I reset away when you said "clean up local main."
+
+● Bash(echo "=== Reflog: can I still see the Replit-agent commits with ICP/peer? ===" && git reflog --all | grep -iE "icp|peer|bracket" | head -20 && echo && echo "===…)
+  ⎿  === Reflog: can I still see the Replit-agent commits with ICP/peer? ===
+     71153f770 refs/heads/main@{2}: commit: docs(handoff): write Phase C handoff brief for ICP bracket-mix peer-derived
+     71153f770 HEAD@{2}: commit: docs(handoff): write Phase C handoff brief for ICP bracket-mix peer-derived
+     … +43 lines (ctrl+o to expand)
+     
+● Good news: all the referenced Replit-agent work is still in local git, on the replit-agent branch and in the reflog. Specifically:
+
+  ┌──────────────────────────────────────────┬────────────────────────────────┐
+  │                   What                   │             Where              │
+  ├──────────────────────────────────────────┼────────────────────────────────┤
+  │ Phase A (icp_peer_companies schema)      │ commit 2d4daac80               │
+  ├──────────────────────────────────────────┼────────────────────────────────┤
+  │ The plan (docs/plans/2026-05-13-001-...) │ commit 3a8b32d8a               │
+  ├──────────────────────────────────────────┼────────────────────────────────┤
+  │ The Phase C handoff brief                │ commit 71153f770               │
+  ├──────────────────────────────────────────┼────────────────────────────────┤
+  │ Earlier ICP scaffolding                  │ commits 2cd4411d0, others      │
+  ├──────────────────────────────────────────┼────────────────────────────────┤
+  │ Local replit-agent branch                │ still exists with all of these │
+  └──────────────────────────────────────────┴────────────────────────────────┘
+  
+  These were on local main before I reset for cleanup, but never made it to origin. So the work is recoverable, but it's exactly the kind of "Replit-agent recovery" my saved memory says to avoid.
+  
+  Memory says (feedback-no-replit-cleanup): "Recovery of the agent's lost commits is not [in scope]." Your explicit /ce-work instruction supersedes that, but I want to confirm before proceeding because:
+  
+  1. Recovery vs. fresh push. The cleanest path is for you to push the Replit-agent's branch (replit-agent or wherever it lives in your Replit UI) to origin, then I work off origin/<branch> like a normal feature. That way the work is properly attributed and on a
+  remote everyone can see, not just in my local reflog.

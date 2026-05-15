@@ -48,6 +48,7 @@ const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPag
 const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
 const ObservabilityTab = lazy(() => import("@/components/admin/ObservabilityTab"));
 const ComplianceTab = lazy(() => import("@/components/admin/ComplianceTab"));
+const LoginSettingsTab = lazy(() => import("@/components/admin/LoginSettingsTab"));
 
 export type { AdminSaveState };
 
@@ -73,6 +74,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
   compliance:            { title: "Compliance",               subtitle: "Vito compliance audit findings: constants taxonomy, admin_resources parity, and KB coverage gaps" },
+  "login-settings":     { title: "Login Settings",           subtitle: "Control whether the login form is shown to portal visitors" },
   "property-heroes":     { title: "Property Heroes",           subtitle: "View and download hero images for all properties, individually or as a ZIP" },
 
   // AI Research → Specialists (P5). The page header *title* for these
@@ -96,6 +98,8 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
   "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },
   "constants":                   { title: "Constants",                    subtitle: "Immutable model constants used across the application" },
+  "defaults-mgmt-co-fees":       { title: "Management Co Fees",           subtitle: "Tier A management and incentive fee rates applied as defaults to all managed properties" },
+  "defaults-brands":             { title: "Brand Fee Stacks",             subtitle: "Per-flag brand fee rates (royalty, marketing, loyalty, reservation, tech) for each H+ brand flag" },
 };
 
 /**
@@ -175,6 +179,8 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "defaults-property":           "property-underwriting",
   "defaults-market-macro":       "market-macro",
   "constants":                   "model-constants",
+  "defaults-mgmt-co-fees":       "management-co-fees",
+  "defaults-brands":             "brands",
 };
 
 /**
@@ -184,10 +190,11 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
  * so e.g. the Property page never surfaces Management Company defaults.
  */
 const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[]>> = {
-  "defaults-management-company": ["company", "capital-stack-discipline"],
+  "defaults-management-company": ["company", "capital-stack-discipline", "management-co-fees"],
   "defaults-property":           ["property-underwriting"],
   "defaults-market-macro":       ["market-macro"],
   "constants":                   ["model-constants", "dd-template"],
+  "defaults-brands":             ["brands"],
 };
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
@@ -253,6 +260,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "property-heroes":  return <PropertyHeroImagesTab />;
     case "observability":    return <ObservabilityTab />;
     case "compliance":       return <ComplianceTab />;
+    case "login-settings":  return <LoginSettingsTab />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

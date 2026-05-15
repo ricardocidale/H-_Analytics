@@ -23,6 +23,8 @@
 import { useState } from "react";
 import { PropertyStatus } from "@shared/constants";
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { useProperties, useDeleteProperty, useCreateProperty, useGlobalAssumptions, useUpdateProperty, useAllPropertyUrls } from "@/lib/api";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlus, IconAlertTriangle } from "@/components/icons";
@@ -179,24 +181,11 @@ export default function Portfolio() {
   };
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (isError) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-          <IconAlertTriangle className="w-8 h-8 text-destructive" />
-          <p className="text-muted-foreground">Failed to load portfolio data. Please try refreshing the page.</p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Failed to load portfolio data" />;
   }
 
   return (

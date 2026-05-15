@@ -251,11 +251,10 @@ export default function SpecialistsDirectoryPage() {
 
   if (isLoading) {
     return (
-      <div
-        className="flex items-center justify-center py-16"
-        data-testid="page-specialists-loading"
-      >
-        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
+      <div className="space-y-2 animate-pulse" data-testid="page-specialists-loading">
+        <div className="h-10 bg-muted rounded" />
+        <div className="h-10 bg-muted rounded" />
+        <div className="h-10 bg-muted rounded" />
       </div>
     );
   }

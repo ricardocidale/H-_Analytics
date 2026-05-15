@@ -47,18 +47,20 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         </h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
+            <Label className="flex items-center text-foreground label-text min-w-0">
               Fixed Cost Escalation Rate
               <InfoTooltip text="Annual inflation factor applied to all fixed overhead costs (office lease, professional services, tech). This compounds each year, so a 3% rate means costs grow ~34% over 10 years." />
             </Label>
-            <EditableValue
-              value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
-              onChange={(v) => onChange("fixedCostEscalationRate", v)}
-              format="percent"
-              min={0}
-              max={0.1}
-              step={0.005}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
+                onChange={(v) => onChange("fixedCostEscalationRate", v)}
+                format="percent"
+                min={0}
+                max={0.1}
+                step={0.005}
+              />
+            </span>
           </div>
           <Slider
             value={[(formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate) * 100]}

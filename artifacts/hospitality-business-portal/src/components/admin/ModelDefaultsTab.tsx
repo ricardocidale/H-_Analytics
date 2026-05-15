@@ -12,6 +12,8 @@ import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTa
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
 import { CapitalStackDisciplineTab } from "./model-defaults/CapitalStackDisciplineTab";
+import { ManagementCoTab } from "./model-defaults/ManagementCoTab";
+import { BrandsTab } from "./model-defaults/BrandsTab";
 import { useAuth } from "@/lib/auth";
 import {
   useAnalystRefresh,
@@ -256,6 +258,12 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           {showTab("property-underwriting") && (
             <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           )}
+          {showTab("management-co-fees") && (
+            <TabsTrigger value="management-co-fees" data-testid="tab-management-co-fees">Management Co Fees</TabsTrigger>
+          )}
+          {showTab("brands") && (
+            <TabsTrigger value="brands" data-testid="tab-brands">Brands</TabsTrigger>
+          )}
         </TabsList>
 
         {showTab("company") && (
@@ -349,6 +357,17 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           </TabsContent>
         )}
 
+        {showTab("management-co-fees") && (
+          <TabsContent value="management-co-fees">
+            <ManagementCoTab />
+          </TabsContent>
+        )}
+
+        {showTab("brands") && (
+          <TabsContent value="brands">
+            <BrandsTab />
+          </TabsContent>
+        )}
 
       </Tabs>
       <MissingRequiredFieldsPrompt

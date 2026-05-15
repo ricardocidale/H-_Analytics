@@ -84,8 +84,59 @@ Both (or all) files share a header and these sections in this order:
 5. Vocabulary (canonical terms + forbidden alternatives)
 6. Routing — links to docs, skills, ADRs, rules
 7. Recent significant changes (dated, last 3–6 entries, prune old)
+8. **Open TODOs** — per-agent, separate lists (see "TODO Lists" section above)
 
 Agent-specific extras go *after* this shared core, clearly demarcated.
+
+---
+
+## TODO Lists — per-agent, separate, always current
+
+`CLAUDE.md` and `replit.md` each carry their own `## Open TODOs` section.
+They are **separate** because CC and Replit Agent work on different surfaces
+(CC: financial engine, migrations, backend; Replit Agent: frontend, UI).
+
+### Format
+
+```markdown
+## Open TODOs — CC
+
+<!-- Check off when done · Add when identified · Prune completed rows every session -->
+| | Item | Scope |
+|---|---|---|
+| [ ] | Create `properties-refi-ltv-cap-001.ts` runtime guard | feat/seed-calibration-bracket-defaults |
+| [x] | Remove BRACKET_DEFAULT_* TS constants | ~~done 2026-05-13~~ |
+```
+
+- Column 1 — `[ ]` open · `[x]` done (prune these at next session start)
+- Column 2 — single-sentence actionable item; no full sentences, no "we should"
+- Column 3 — branch name, plan ID, or feature name — enough to find the context
+
+### Discipline
+
+- **Session start:** scan the list; mark `[x]` anything you completed last session;
+  delete completed rows before adding new work.
+- **Session end:** add any newly identified items; mark done items `[x]`.
+- **Never leave the list empty** — if there is nothing to do, write one entry:
+  `| [ ] | (nothing pending) | — |` so the section is clearly intentional.
+- **Do not duplicate plan-level detail** — TODOs are cross-session reminders,
+  not implementation specs. One line per item; link to the plan doc if more
+  detail is needed.
+- **Cross-list coordination:** if a CC TODO produces output a Replit TODO
+  depends on (e.g. "CC ships new API route → Replit wires the UI"), add the
+  downstream item to the Replit list in the same commit.
+
+### What goes in each list
+
+| List | Agent | Surface |
+|---|---|---|
+| `CLAUDE.md → Open TODOs — CC` | Shell Claude Code | Financial engine, migrations, DB schema, backend routes, API |
+| `replit.md → Open TODOs — Replit Agent` | Replit Agent | Frontend components, UI wiring, Replit workflow config |
+
+Items that span both surfaces (e.g. a schema change that needs a UI field)
+get one entry in each list — written from that agent's perspective.
+
+---
 
 ## Maintenance cadence
 

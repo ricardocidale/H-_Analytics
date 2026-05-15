@@ -138,6 +138,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Runs every registered minion self-test (Aldo PDF extractor, Carlo Zod validator, Dino pixel-diff, Enzo content-hash) on a cadence and opens a costantino_findings row for any deterministic-helper regression so admins see them on the existing findings surface (Task #1397).",
   },
+  {
+    key: "db-retention-scheduler",
+    label: "DB Retention",
+    cycleIntervalMs: 24 * 60 * 60 * 1000,
+    description:
+      "Daily cleanup: deletes resource_health_checks rows older than 7 days and specialist_research_quality_snapshots rows older than 30 days. Prevents unbounded table growth identified in DB audit 2026-05-14.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -267,6 +274,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   [MINION_SELF_TEST_SCHEDULER_KEY]: async () => {
     const mod = await import("./minion-self-test-scheduler");
     return mod.runMinionSelfTestsCycle();
+  },
+  "db-retention-scheduler": async () => {
+    const mod = await import("./db-retention-scheduler");
+    return mod.runDbRetentionCycle();
   },
 };
 

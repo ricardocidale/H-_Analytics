@@ -163,6 +163,37 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
     refetchStrDefault();
   };
 
+  const { data: refiMaxLtvRow, refetch: refetchRefiMaxLtv } = useQuery({
+    queryKey: ["model-defaults", "funding", "refiMaxLtvToOriginal"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/model-defaults?category=management_company&cardKey=funding", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch refi LTV cap default");
+      const json = await res.json() as { rows: Array<{ id: number; defaultKey: string; value: unknown }> };
+      return json.rows.find(r => r.defaultKey === "mc.funding.refiMaxLtvToOriginal") ?? null;
+    },
+  });
+
+  const [refiMaxLtvDraft, setRefiMaxLtvDraft] = useState("");
+  useEffect(() => {
+    if (refiMaxLtvRow?.value != null)
+      setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
+  }, [refiMaxLtvRow]);
+
+  const saveRefiMaxLtv = async () => {
+    if (!refiMaxLtvRow) return;
+    const parsed = parseFloat(refiMaxLtvDraft);
+    if (!Number.isFinite(parsed) || parsed < 30 || parsed > 150) return;
+    try {
+      await apiRequest("PATCH", `/api/admin/model-defaults/${refiMaxLtvRow.id}`, {
+        value: parsed / 100,
+        reason: "Admin updated refi max LTV cap default",
+      });
+    } catch {
+      // Preserve fire-and-forget behavior.
+    }
+    refetchRefiMaxLtv();
+  };
+
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
   const analystEnabled = typeof onAnalystRefresh === "function";
@@ -290,18 +321,20 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
 
       {/* Revenue Analyst CTA — fires the G2-v1 Revenue Specialist */}
       {onRevenueAnalystRefresh && (
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-sm text-muted-foreground min-w-0">
             The Analyst evaluates your ancillary revenue mix (F&amp;B, Events, Other, Catering, Marketing) against boutique-luxury comp sets.
           </p>
-          <AnalystButton
-            onClick={onRevenueAnalystRefresh}
-            isRunning={revenueAnalystRunning ?? false}
-            disabled={false}
-            tooltip="Have the Analyst review the revenue ancillary mix"
-            size="sm"
-            dataTestId="button-ask-analyst-revenue-mix"
-          />
+          <div className="shrink-0">
+            <AnalystButton
+              onClick={onRevenueAnalystRefresh}
+              isRunning={revenueAnalystRunning ?? false}
+              disabled={false}
+              tooltip="Have the Analyst review the revenue ancillary mix"
+              size="sm"
+              dataTestId="button-ask-analyst-revenue-mix"
+            />
+          </div>
         </div>
       )}
 
@@ -647,6 +680,42 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           testId="field-refiClosingCost"
           researchRange="0.5%–2%"
         />
+        <div className="space-y-2" data-testid="field-refiMaxLtvToOriginal">
+          <Label className="label-text text-foreground flex items-center gap-1.5">
+            Max Loan vs. Purchase Price
+            <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price. 70% means the refi loan cannot exceed 70% of the purchase price, regardless of how much the property has appreciated. Applies to new properties; each property stores its own value once saved." />
+          </Label>
+          <div className="flex gap-2 items-center">
+            <Input
+              type="number"
+              step="1"
+              min="30"
+              max="150"
+              value={refiMaxLtvDraft}
+              onChange={(e) => setRefiMaxLtvDraft(e.target.value)}
+              className="bg-card border-primary/30 text-foreground w-24"
+              data-testid="input-refiMaxLtvToOriginal"
+            />
+            <span className="text-sm text-muted-foreground">% of purchase price</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (refiMaxLtvRow?.value != null)
+                  setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
+              }}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" variant="outline" onClick={saveRefiMaxLtv}>
+              Save
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Recommended: 65%–75%. Lower values reduce equity extraction at refinancing and
+            produce more realistic IRR projections.
+          </p>
+        </div>
       </Section>
 
       <Section grid title="Depreciation & Tax" description="Tax-related defaults for property underwriting.">
@@ -691,12 +760,12 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
             className="rounded-md border border-border bg-muted/30 p-3 space-y-2"
             data-testid="reference-inflationRate"
           >
-            <div className="flex items-center justify-between">
-              <Label className="text-foreground label-text">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-foreground label-text min-w-0">
                 Macro Inflation Rate (read-only)
               </Label>
               <span
-                className="font-mono text-sm text-foreground"
+                className="font-mono text-sm text-foreground shrink-0"
                 data-testid="text-inflationRate-readonly"
               >
                 {typeof draft.inflationRate === "number"

@@ -146,6 +146,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)}
                         guidanceContext={gc("costHousekeeping", "Housekeeping")}
                         currentValue={draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) * 100}
@@ -154,6 +155,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={50}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -177,6 +179,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costFB && onChange("costRateFB", researchValues.costFB.mid / 100)}
                         guidanceContext={gc("costFB", "F&B Cost")}
                         currentValue={draft.costRateFB ?? DEFAULT_COST_RATE_FB} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateFB ?? DEFAULT_COST_RATE_FB) * 100}
@@ -185,6 +188,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={50}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -214,6 +218,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costAdmin && onChange("costRateAdmin", researchValues.costAdmin.mid / 100)}
                         guidanceContext={gc("costAdmin", "Admin & General")}
                         currentValue={draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN) * 100}
@@ -222,6 +227,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={25}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -240,6 +246,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costPropertyOps && onChange("costRatePropertyOps", researchValues.costPropertyOps.mid / 100)}
                         guidanceContext={gc("costPropertyOps", "Property Ops")}
                         currentValue={draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS) * 100}
@@ -248,6 +255,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={25}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -266,6 +274,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costUtilities && onChange("costRateUtilities", researchValues.costUtilities.mid / 100)}
                         guidanceContext={gc("costUtilities", "Utilities")}
                         currentValue={draft.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES) * 100}
@@ -274,6 +283,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={25}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -311,6 +321,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costFFE && onChange("costRateFFE", researchValues.costFFE.mid / 100)}
                         guidanceContext={gc("costFFE", "FF&E Reserve")}
                         currentValue={draft.costRateFFE ?? DEFAULT_COST_RATE_FFE} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateFFE ?? DEFAULT_COST_RATE_FFE) * 100}
@@ -319,6 +330,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={15}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -337,6 +349,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costOther && onChange("costRateOther", researchValues.costOther.mid / 100)}
                         guidanceContext={gc("costOther", "Other Costs")}
                         currentValue={draft.costRateOther ?? DEFAULT_COST_RATE_OTHER} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateOther ?? DEFAULT_COST_RATE_OTHER) * 100}
@@ -345,6 +358,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={15}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -364,6 +378,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         guidanceContext={gc("costMarketing", "Marketing")}
                         guardrailKey="vendor_passthrough_cost.marketing"
                         currentValue={draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING) * 100}
@@ -372,6 +387,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={15}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -391,6 +407,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         guidanceContext={gc("costIT", "IT")}
                         guardrailKey="vendor_passthrough_cost.it"
                         currentValue={draft.costRateIT ?? DEFAULT_COST_RATE_IT} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateIT ?? DEFAULT_COST_RATE_IT) * 100}
@@ -399,6 +416,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={15}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -424,6 +442,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         onApplyValue={() => researchValues.costPropertyTaxes && onChange("costRateTaxes", researchValues.costPropertyTaxes.mid / 100)}
                         guidanceContext={gc("costPropertyTaxes", "Property Taxes")}
                         currentValue={draft.costRateTaxes ?? DEFAULT_COST_RATE_TAXES} isPercent
+                        className="min-w-0"
                       />
                       <EditableValue
                         value={(draft.costRateTaxes ?? DEFAULT_COST_RATE_TAXES) * 100}
@@ -432,6 +451,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         min={0}
                         max={15}
                         step={1}
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
@@ -444,7 +464,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-0.5 min-w-0">
                         <Label className="text-sm label-text text-foreground flex items-center gap-1 flex-wrap">Insurance<InfoTooltip text="USALI Fixed Charges — property-level insurance covering liability, property damage, and business interruption. Based on total property value (Purchase Price + Building Improvements), separate from the management company's corporate insurance." /><ResearchRangeLabel text="1–2% of value" /></Label>
                       </div>
                       <EditableValue
@@ -455,6 +475,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         max={5}
                         step={0.1}
                         data-testid="input-cost-rate-insurance"
+                        className="shrink-0"
                       />
                     </div>
                     <Slider 
