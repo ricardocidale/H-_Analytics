@@ -9,7 +9,8 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconSave } from "@/components/icons";
 import { DEFAULT_SERVICE_MARKUP } from "@shared/constants";
 import { NationalBenchmarkBreakdown } from "./NationalBenchmarkBreakdown";
-import { useNationalBenchmarks } from "@/lib/api/national-benchmarks";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
+import { useNationalBenchmarks, serviceTemplateNameToServiceLine } from "@/lib/api/national-benchmarks";
 import { TEMPLATE_TO_SERVICE_LINES } from "@calc/services/national-anchors";
 import {
   deriveTemplateMarkupsFromNationalBenchmarks,
@@ -78,6 +79,11 @@ export function ServiceTemplateDialog({
       : null;
   const derivedMarkupForTemplate = derivedMarkups?.[form.name] ?? null;
 
+  const serviceLine = serviceTemplateNameToServiceLine(form.name);
+  const nationalVendorCost = serviceLine
+    ? (nationalBenchmarks?.vendorCosts.find((r) => r.serviceLine === serviceLine) ?? null)
+    : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -133,6 +139,18 @@ export function ServiceTemplateDialog({
                 />
                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground text-sm">%</div>
               </div>
+              {nationalVendorCost && (
+                <NationalBenchmarkChip
+                  kind="vendor-cost"
+                  currentValue={parseFloat(form.defaultRate) / 100}
+                  benchmarkValue={nationalVendorCost.value}
+                  dot={nationalVendorCost.dot}
+                  guardrail={nationalVendorCost.guardrail}
+                  source={nationalVendorCost.source}
+                  period={nationalVendorCost.period}
+                  fetchedAt={nationalVendorCost.fetchedAt}
+                />
+              )}
             </div>
           </div>
           {isCentralized && (
