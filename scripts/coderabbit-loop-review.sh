@@ -7,6 +7,8 @@
 #   branch-hygiene         Check for Replit-Agent commits in branch history
 #   write-state <key=val…> Write key=value pairs into .local/coderabbit-loop/run.json
 #   check-changes          Check if there are uncommitted changes to review
+#   run-review <file>      Run cr review --agent with animated progress bar
+#   print-logo             Print the CodeRabbit Loop ASCII banner
 set -euo pipefail
 
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
@@ -18,6 +20,24 @@ if git rev-parse --show-toplevel >/dev/null 2>&1; then
 fi
 
 scratch="$repo_root/.local/coderabbit-loop"
+
+# ─── Banner & progress helpers (shown on every invocation) ───────────────────
+cr_banner() {
+  printf '\n╔═══════════════════════════════════════════════╗\n'
+  printf   '║     CodeRabbit Loop  •  by Ricardo Cidale     ║\n'
+  printf   '╚═══════════════════════════════════════════════╝\n\n'
+}
+
+cr_progress() {
+  local step="$1" total="$2" label="${3:-}"
+  local width=20 filled=0 i=0 bar=""
+  filled=$(( step * width / total ))
+  while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i+1)); done
+  while [ "$i" -lt "$width"  ]; do bar="${bar}░"; i=$((i+1)); done
+  printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
+}
+
+cr_banner
 
 subcommand="${1:-help}"
 shift || true
@@ -89,10 +109,13 @@ PYEOF
 # ─────────────────────────────────────────────────────────────
 gate_check() {
   local failed=0
+  local gate_total=2
 
   echo "--- gate-check ---"
 
   # Gate 1: typecheck (conditional on package manager + typecheck script)
+  cr_progress 1 $gate_total "typecheck"
+
   local pm=""
   if [ -f "$repo_root/pnpm-workspace.yaml" ]; then pm="pnpm"
   elif [ -f "$repo_root/bun.lockb" ]; then pm="bun"
@@ -116,6 +139,8 @@ gate_check() {
   fi
 
   # Gate 2: magic-numbers (conditional on script existence)
+  cr_progress 2 $gate_total "magic-numbers"
+
   local mn_script="$repo_root/scripts/src/check-magic-numbers.ts"
   local mn_runner="$repo_root/scripts/node_modules/.bin/tsx"
   if [ -f "$mn_script" ] && [ -f "$mn_runner" ]; then
@@ -374,6 +399,105 @@ PYEOF
 }
 
 # ─────────────────────────────────────────────────────────────
+# print-logo
+#
+# Prints the CodeRabbit Loop ASCII banner to stderr.
+# Called automatically at the start of run-review.
+# ─────────────────────────────────────────────────────────────
+print_logo() {
+  local G=$'\033[32m' B=$'\033[1m' D=$'\033[2m' R=$'\033[0m'
+  printf >&2 '\n'
+  printf >&2 '  ╭────────────────────────────────────────────╮\n'
+  printf >&2 '  │                                            │\n'
+  printf >&2 "  │   /\\ /\\    ${B}${G}CodeRabbit${R} ${B}Loop${R}                 │\n"
+  printf >&2 "  │  ( •.• )   ${D}iterative working-tree review${R}   │\n"
+  printf >&2 "  │   > ^ <    ${D}powered by CodeRabbit CLI${R}       │\n"
+  printf >&2 "  │            ${D}created by Ricardo Cidale${R}       │\n"
+  printf >&2 '  │                                            │\n'
+  printf >&2 '  ╰────────────────────────────────────────────╯\n'
+  printf >&2 '\n'
+}
+
+# ─────────────────────────────────────────────────────────────
+# run-review <ndjson-output-file>
+#
+# Runs `coderabbit review --type uncommitted --agent`, renders an
+# animated progress bar to stderr, writes raw NDJSON to the output
+# file, and prints a one-line summary to stdout on completion.
+#
+# Progress bar style (updates in-place via \r):
+#   ⠋ CodeRabbit  [████████████░░░░░░░░░░░░] 50%  summarizing
+#
+# Stdout on success: REVIEW_COMPLETE: findings=N ndjson=<path>
+# ─────────────────────────────────────────────────────────────
+run_review() {
+  local ndjson_file="${1:?usage: run-review <ndjson-output-file>}"
+  print_logo
+  export PATH="$HOME/.local/bin:$PATH"
+
+  # Write the progress renderer to a temp file.
+  # A heredoc cannot be used here because piping coderabbit's output to
+  # `python3 -` already claims stdin, making a <<PYEOF heredoc conflict.
+  local renderer
+  renderer="$(mktemp /tmp/cr-progress-XXXXXX.py)"
+  # shellcheck disable=SC2064
+  trap "rm -f '$renderer'" RETURN
+
+  cat > "$renderer" << 'PYEOF'
+import sys, json
+
+PHASES = {
+    "connecting_to_review_service": ("connecting",  10),
+    "setting_up":                   ("setting up",  20),
+    "preparing_sandbox":            ("preparing",   35),
+    "summarizing":                  ("summarizing", 60),
+    "reviewing":                    ("reviewing",   80),
+}
+SPIN  = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]
+W     = 24
+
+def bar(pct):
+    n = int(W * pct / 100)
+    return "█" * n + "░" * (W - n)
+
+path     = sys.argv[1]
+si       = 0
+pct      = 0
+label    = "connecting"
+findings = 0
+
+with open(path, "w") as f:
+    for raw in sys.stdin:
+        line = raw.rstrip("\n")
+        if not line:
+            continue
+        f.write(line + "\n")
+        f.flush()
+        try:
+            ev = json.loads(line)
+        except Exception:
+            continue
+        t = ev.get("type", "")
+        if t == "status":
+            s = ev.get("status", "")
+            if s in PHASES:
+                label, pct = PHASES[s]
+            si = (si + 1) % len(SPIN)
+            sys.stderr.write(f"\r  {SPIN[si]} CodeRabbit  [{bar(pct)}] {pct:3d}%  {label}   ")
+            sys.stderr.flush()
+        elif t == "finding":
+            findings += 1
+        elif t == "complete":
+            sys.stderr.write(f"\r  ✓ CodeRabbit  [{bar(100)}] 100%  done — {findings} finding(s)   \n")
+            sys.stderr.flush()
+            print(f"REVIEW_COMPLETE: findings={findings} ndjson={path}")
+            sys.stdout.flush()
+PYEOF
+
+  coderabbit review --type uncommitted --agent 2>&1 | python3 "$renderer" "$ndjson_file"
+}
+
+# ─────────────────────────────────────────────────────────────
 # Dispatch
 # ─────────────────────────────────────────────────────────────
 case "$subcommand" in
@@ -382,11 +506,13 @@ case "$subcommand" in
   branch-hygiene)            branch_hygiene "$@" ;;
   check-changes)             check_changes ;;
   write-state)               write_state "$@" ;;
+  run-review)                run_review "$@" ;;
+  print-logo)                print_logo ;;
   section9-check)            section9_check "$@" ;;
   section9-persist-precheck) section9_persist_precheck "$@" ;;
   section9-post-check)       section9_post_check "$@" ;;
   *)
-    echo "usage: $0 {parse-ndjson|gate-check|branch-hygiene|check-changes|write-state|section9-check|section9-persist-precheck|section9-post-check}" >&2
+    echo "usage: $0 {parse-ndjson|gate-check|branch-hygiene|check-changes|write-state|run-review|print-logo|section9-check|section9-persist-precheck|section9-post-check}" >&2
     exit 2
     ;;
 esac

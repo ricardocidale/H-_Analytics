@@ -44,6 +44,7 @@ const SEED_CARTAGENA_EXIT_CAP_RATE = 0.09;
 // Casa Medellín: El Poblado boutique hotel — Medellín urban luxury hospitality cap
 const SEED_CASA_MEDELLIN_EXIT_CAP_RATE = 0.095;
 // ADR targets: hacienda retreat premium, Caribbean historic luxury, El Poblado luxury boutique
+const SEED_JANO_GRANDE_ROOM_COUNT = 8;     // calibrated to $150K/room parity; IRR fix 2026-05-14
 const SEED_JANO_GRANDE_START_ADR = 310;    // luxury hacienda retreat, Antioquia coffee country
 const SEED_CARTAGENA_START_ADR = 300;      // historic Cartagena, Caribbean luxury walled-city
 const SEED_CASA_MEDELLIN_START_ADR = 300;  // El Poblado luxury boutique, Medellín prime
@@ -237,12 +238,12 @@ export const SEED_INITIAL_PROPERTIES = [
     buildingImprovements: 400000,
     preOpeningCosts: 150000,
     operatingReserve: 300000,
-    roomCount: 20,
+    roomCount: SEED_JANO_GRANDE_ROOM_COUNT,
     startAdr: SEED_JANO_GRANDE_START_ADR,
     adrGrowthRate: SEED_ADR_GROWTH_RATE_ELEVATED,
-    startOccupancy: 0.40,
+    startOccupancy: 0.30,
     maxOccupancy: 0.72,
-    occupancyRampMonths: 9,
+    occupancyRampMonths: 12,
     stabilizationMonths: 36,
     occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP,
     // Engine note: acquisitionLTV is only applied when type = "Financed".

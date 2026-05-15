@@ -2,10 +2,10 @@
 
 <!-- Replit is the SOLE WRITER of this file. CC reads it but never edits it. -->
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
-<!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
+<!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T22:00:00Z
-Status: handoff-pending
+Updated: 2026-05-15T00:00:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,14 +13,21 @@ main
 
 ## Last Commit on Branch
 
-docs(plans): rewrite 2026-05-13-005 with no-NULL enforcement rule
+fix(auth): enforce login lock on /api/auth/me for non-super-admins
 
 ## What Replit Did This Session
 
-- U3 — Wired `refiMaxLtvToOriginal` slider in `CapitalStructureSection.tsx`
-- Diagnosed root cause of IRR inflation: `SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00`
-  stored at property level on all seeded properties
-- Wrote and refined Plan 2026-05-13-005 (see Handoff to CC below)
+- Ran dashboard UI/UX audit using Figma MCP → FigJam diagram created
+- Found 4 KPI hero mockup variants (Swiss, Animated, Glass, Bento) in mockup sandbox
+- Placed 4 KPI variant iframes on canvas for side-by-side comparison
+- Created Compare.tsx mockup page showing all 4 variants together
+- Renamed "Dashboard" → "Portfolio Overview" in desktop sidebar nav
+- Renamed "Dashboard" → "Portfolio" in mobile bottom nav
+- Fixed bug 1: /api/system/login-config was missing from PUBLIC_API_PATHS (401 on public endpoint)
+- Fixed bug 2 (critical): /api/auth/me had no awareness of the portal lock; authenticated
+  sessions for non-super-admin users were bypassing the "Access Restricted" screen entirely.
+  Fix: /api/auth/me now returns 401 for any non-super-admin role when loginScreenEnabled=false.
+  super_admin is exempt so the admin can always re-enable the toggle.
 
 ## Files Replit Owns Right Now
 
@@ -28,33 +35,7 @@ None — session complete.
 
 ## Handoff to CC
 
-**Plan for CC to execute:**
-`docs/plans/2026-05-13-005-refi-max-ltv-cap-calibration-and-admin-ui-plan.md`
-
-**Summary:** Four independent phases — execute in any order:
-
-- **P1** — `artifacts/api-server/src/seeds/property-data.ts`
-  Change `SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00` → `0.70`. One line.
-
-- **P2** — New migration + runtime guard (migration-guards topology)
-  Update ALL properties: set `refi_max_ltv_to_original = 0.70` where NULL or > 0.70.
-  No `will_refinance` filter — no-NULL rule applies to every property row.
-  Guard file: `properties-refi-ltv-recalibration-001.ts`
-
-- **P3** — `artifacts/hospitality-business-portal/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`
-  Add "Max Loan vs. Purchase Price" field to Refinance Terms section.
-  Follow the STR Platform Fee pattern (separate fetch + local state + own Save button).
-  Query key: `mc.funding.refiMaxLtvToOriginal` in `model_defaults`.
-
-- **P4** — `artifacts/hospitality-business-portal/src/components/property-edit/CapitalStructureSection.tsx`
-  Display fix only: badge shows `70%` not `0.70×`, tooltip rewording, slider max → 150.
-  Do not change how value is stored or sent.
-
-**Key context:**
-- Engine cap logic is correct — do not touch `lib/engine/src/`
-- `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70` in `lib/shared/src/constants-funding.ts` is correct
-- `model_defaults` row `mc.funding.refiMaxLtvToOriginal` is already `0.70` — only property rows need fixing
-- Creation path already correct — `hydratePropertyFinancials` writes value at insert time
+None.
 
 ## Pending Replit Work
 

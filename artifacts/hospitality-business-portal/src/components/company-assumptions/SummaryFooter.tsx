@@ -19,7 +19,8 @@ type FooterTab =
   | "funding"
   | "revenue"
   | "compensation"
-  | "overhead";
+  | "overhead"
+  | "mgmt-co-assumptions";
 
 interface SummaryFooterProps extends CompanyAssumptionsSectionProps {
   activeTab: FooterTab;

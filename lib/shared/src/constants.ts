@@ -287,7 +287,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_AI_AGENT_NAME = "Rebecca";
 export const DEFAULT_MAX_STALENESS_HOURS = 24;
 export const USE_STABLE_SCENARIO_LOAD = true;
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
@@ -302,7 +301,6 @@ export const DEFAULT_REINVESTMENT_RATE = 0.05;
 
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
-export const DEFAULT_DAY_COUNT_CONVENTION: DayCountConvention = '30/360';
 
 // ── Escalation Method ───────────────────────────────────────────────────
 export type EscalationMethod = 'annual' | 'monthly';

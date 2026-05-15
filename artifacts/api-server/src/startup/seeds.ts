@@ -7,12 +7,12 @@
  *
  * All paths use `../` because this file lives in src/startup/ not src/.
  */
-import { inArray } from "drizzle-orm";
+import { inArray, sql as drizzleSql } from "drizzle-orm";
 import { seedAdminUser } from "../auth";
 import { storage } from "../storage";
 import { log as serverLog } from "../logger";
 import { db } from "../db";
-import { modelDefaults } from "@workspace/db";
+import { modelDefaults, managementCompanyFees, brandFees, businessBrands } from "@workspace/db";
 
 /** Mirror of the exported `log` from index.ts — logs to the "express" source. */
 const log = (message: string) => serverLog(message, "express");
@@ -108,6 +108,9 @@ const REQUIRED_MODEL_DEFAULT_KEYS = [
   "mc.funding.ltv",
   "mc.funding.refiLtv",
   "mc.funding.refiMaxLtvToOriginal",
+  "mc.funding.refiInterestRate",
+  "mc.funding.refiTermYears",
+  "mc.funding.refiClosingCostRate",
   "mc.tax_exit.exitCapRate",
   "mc.property_defaults.maxOccupancy",
 ] as const;
@@ -130,6 +133,62 @@ async function assertRequiredModelDefaults(): Promise<void> {
   serverLog(
     `[seed:model-defaults-check] FATAL — required model_defaults keys missing: ${missing.join(", ")}. ` +
     `Re-seed by deleting all model_defaults rows and restarting, or manually insert the missing rows.`,
+    "startup",
+    "error",
+  );
+  process.exit(1);
+}
+
+// Fee types required in management_company_fees for the engine cascade to work.
+const REQUIRED_MGMT_CO_FEE_TYPES = ["base_mgmt", "incentive"] as const;
+
+async function assertRequiredMgmtCoFees(): Promise<void> {
+  const anyRow = await db.select({ id: managementCompanyFees.id }).from(managementCompanyFees).limit(1);
+  if (anyRow.length === 0) return; // table empty — seed hasn't run yet, proceed
+
+  const rows = await db
+    .select({ feeType: managementCompanyFees.feeType })
+    .from(managementCompanyFees)
+    .where(inArray(managementCompanyFees.feeType, REQUIRED_MGMT_CO_FEE_TYPES as unknown as string[]));
+
+  const present = new Set(rows.map(r => r.feeType));
+  const missing = REQUIRED_MGMT_CO_FEE_TYPES.filter(k => !present.has(k));
+  if (missing.length === 0) return;
+
+  serverLog(
+    `[seed:mgmt-co-fees-check] FATAL — required management_company_fees rows missing: ${missing.join(", ")}. ` +
+    `Re-seed by deleting all management_company_fees rows and restarting, or manually insert the missing rows.`,
+    "startup",
+    "error",
+  );
+  process.exit(1);
+}
+
+async function assertBrandFeesSlugIntegrity(): Promise<void> {
+  const anyBrandFee = await db.select({ id: brandFees.id }).from(brandFees).limit(1);
+  if (anyBrandFee.length === 0) return; // table empty — seed hasn't run yet, proceed
+
+  // Every active business_brands slug must resolve to at least one brand_fees row.
+  const activeBrands = await db
+    .select({ slug: businessBrands.slug })
+    .from(businessBrands)
+    .where(drizzleSql`${businessBrands.isActive} = true`);
+
+  const orphaned: string[] = [];
+  for (const brand of activeBrands) {
+    const feeRows = await db
+      .select({ id: brandFees.id })
+      .from(brandFees)
+      .where(drizzleSql`${brandFees.brandSlug} = ${brand.slug}`)
+      .limit(1);
+    if (feeRows.length === 0) orphaned.push(brand.slug);
+  }
+
+  if (orphaned.length === 0) return;
+
+  serverLog(
+    `[seed:brand-fees-integrity] FATAL — active business_brands slugs have no brand_fees rows: ${orphaned.join(", ")}. ` +
+    `Seed brand_fees rows for each orphaned brand or set is_active=false on brands without fee schedules.`,
     "startup",
     "error",
   );
@@ -290,6 +349,10 @@ async function runSeeds() {
   // a non-empty table — it means admin accidentally deleted a required row or
   // the seed failed. On a fresh (empty) table the seeds just ran and inserted them.
   await assertRequiredModelDefaults();
+  // Guard: verify Tier-A management_company_fees rows exist (base_mgmt + incentive).
+  await assertRequiredMgmtCoFees();
+  // Guard: every active brand slug has at least one brand_fees row.
+  await assertBrandFeesSlugIntegrity();
 
   // Auto-heal / drift detector. Runs after the idempotent seed/migration
   // steps so any newly-added column has a chance to be created normally;

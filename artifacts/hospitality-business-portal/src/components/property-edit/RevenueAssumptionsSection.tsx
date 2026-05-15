@@ -334,7 +334,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <ResearchContextFieldLabel
-                  label={<>Catering Boost (deprecated) <InfoTooltip text="This field is no longer used in revenue calculations. F&B share now directly represents the target F&B percentage of total revenue, with catering uplift absorbed into that share. Kept for backward compatibility." /></>}
+                  label={<>Catering Uplift <InfoTooltip text="Legacy field — no longer used in revenue calculations. F&B share now directly captures the full food and beverage revenue target, with catering included. This value is preserved for properties set up under the prior model." /></>}
                   badgeProps={{ entry: researchValues.catering }}
                   onApplyValue={() => researchValues.catering && onChange("cateringBoostPercent", researchValues.catering.mid / 100)}
                   guidanceContext={gc("catering", "Catering Boost")}

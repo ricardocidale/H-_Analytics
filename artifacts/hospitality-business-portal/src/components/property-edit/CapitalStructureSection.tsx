@@ -507,6 +507,41 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               {draft.willRefinance === "Yes" && (
                 <div className="border-t border-white/10 pt-4">
                   <h4 className="font-display mb-4 text-foreground">Refinance Terms</h4>
+
+                  <div className="space-y-3 mb-6">
+                    <Label className="label-text text-foreground flex items-center gap-1.5">
+                      Loan Sizing Basis
+                      <InfoTooltip text="How the property value is estimated when sizing the refinance loan. Purchase Price (default) is the most conservative option and reflects the original cost of the asset. Purchase Price + Improvements adds the renovation budget. Appreciated Asset uses income capitalization (NOI ÷ exit cap rate) to estimate current market value — this can produce a larger loan but depends on forward NOI projections." />
+                    </Label>
+                    <RadioGroup
+                      value={draft.refinanceBasis ?? 'purchase_price'}
+                      onValueChange={(v) => onChange("refinanceBasis", v)}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem value="purchase_price" id="refi-basis-pp" className="border-white/40 text-white mt-0.5" />
+                        <div>
+                          <Label htmlFor="refi-basis-pp" className="font-normal cursor-pointer text-foreground">Purchase Price</Label>
+                          <p className="text-xs text-muted-foreground">Loan sized against the original purchase price only. Most conservative.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem value="purchase_price_plus_improvements" id="refi-basis-ppi" className="border-white/40 text-white mt-0.5" />
+                        <div>
+                          <Label htmlFor="refi-basis-ppi" className="font-normal cursor-pointer text-foreground">Purchase Price + Improvement Budget</Label>
+                          <p className="text-xs text-muted-foreground">Loan sized against total original cost basis (purchase + renovations).</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem value="appreciated_asset" id="refi-basis-aa" className="border-white/40 text-white mt-0.5" />
+                        <div>
+                          <Label htmlFor="refi-basis-aa" className="font-normal cursor-pointer text-foreground">Fully Appreciated Asset</Label>
+                          <p className="text-xs text-muted-foreground">Loan sized against estimated market value (NOI ÷ exit cap rate). Larger potential loan; depends on projected stabilized income.</p>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   <div className="mb-4">
                     <MarketRateBenchmark
                       compact
@@ -634,11 +669,12 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                         step={0.5}
                       />
                     </div>
+                    {(draft.refinanceBasis ?? 'purchase_price') === 'appreciated_asset' && (
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">
                           Max Loan vs. Purchase Price
-                          <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price, preventing equity stripping regardless of appraised value at refinancing. 70% means the loan cannot exceed 70% of what the property originally cost to purchase." />
+                          <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price, preventing equity stripping when using the Appreciated Asset basis. 70% means the loan cannot exceed 70% of the original purchase price." />
                         </Label>
                         <span className="text-sm font-mono text-foreground shrink-0">
                           {Math.round((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100)}%
@@ -655,6 +691,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                         Max refi loan: ${draft.purchasePrice ? ((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * draft.purchasePrice).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
                       </p>
                     </div>
+                    )}
                   </div>
                 </div>
               )}

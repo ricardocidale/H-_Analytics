@@ -414,7 +414,6 @@
     "artifacts/api-server/src/routes/scenarios.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/company/company-engine.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1550,6 +1549,7 @@
     "artifacts/api-server/src/routes/admin/specialists/config.ts",
     "artifacts/api-server/src/routes/admin/specialists/identity.ts",
     "artifacts/api-server/src/routes/admin/specialists/runtime.ts",
+    "artifacts/api-server/src/routes/admin/system-auth.ts",
     "artifacts/api-server/src/routes/admin/test-batteries.ts",
     "artifacts/api-server/src/routes/admin/user-defaults.ts",
     "artifacts/api-server/src/routes/ai.ts",
@@ -1604,6 +1604,7 @@
     "artifacts/api-server/src/providers/auth/replit-oidc-impl.ts",
     "artifacts/api-server/src/routes/admin/analyst-tables.ts",
     "artifacts/api-server/src/routes/admin/bulk-draft-runs.ts",
+    "artifacts/api-server/src/routes/auth.ts",
     "artifacts/api-server/src/routes/export-generate.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/routes/scenario-helpers.ts"

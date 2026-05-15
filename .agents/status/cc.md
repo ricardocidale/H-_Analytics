@@ -4,44 +4,47 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-14T01:15:00Z
+Updated: 2026-05-14T23:55:00Z
 Status: idle
 
 ## Active Branch
 
-main
+main (712541d25 — Replit checkpoint captured CC changes)
 
 ## Last Commit on Branch
 
-`05c953830` — "feat(seed-calibration): Plan 2026-05-13-001 U1 — demo property exit-cap overrides + bracket slug fix"
+712541d25  Fix issue preventing users from disabling the login screen (Replit checkpoint)
 
 ## What CC Did This Session
 
-- Plan 2026-05-13-005 all four phases (prior session): P1–P4 shipped
-- Plan 2026-05-13-001 U1 (this session):
-  - `icp-brackets-004.ts` (05c953830): renames 3 mismatched bracket slugs to match
-    bracket-catalog.ts IDs (branded-full-service-hotel→soft-brand-boutique,
-    performance-str-cluster→performance-managed-str,
-    agritourism-experiential-lodge→agritourism-experiential); backfills
-    default_exit_cap_rate + default_refi_max_ltv_to_original on all 4 brackets
-  - `properties-demo-seed-overrides-001.ts` (05c953830): calibrated exit_cap_rate
-    on 6 INITIAL properties (US tertiary 9.75%, Jano 12.0%, Cartagena 10.5%),
-    Duplex exit_cap 7.5% + max_occupancy 0.30
+- Diagnosed elevated IRR (53%) on Jano Grande Ranch (IDs 70–72, 76)
+  - Root cause: 20 rooms at $250 ADR vs $1.2M purchase price = $60K/room
+  - Peer properties (Loch, Belleayre) are at $150–175K/room
+  - Created `script/debug-irr-refi.ts` to run per-year cash flow decomposition
+- Fixed Jano Grande Ranch revenue assumptions:
+  - roomCount 20→8 (calibrated to $150K/room parity)
+  - startOccupancy 0.40→0.30 (rural/remote ramp profile)
+  - occupancyRampMonths 9→12 (same)
+  - Updated `sync-property-assumptions-001.ts` + `seeds/property-data.ts`
+  - DB patched directly without server restart
+- Post-fix IRR: Jano 25.8%, Loch 28.8%, Belleayre 25.9%, Duplex 12.2% ✅
+- Fixed `/api/system/login-config` missing from PUBLIC_API_PATHS in `index.ts`
+  (route existed from MOTD feature but was blocked by auth middleware)
+
+## What's Pending
+
+- Open PRs to review/merge: #145, #146, #147, #148, #150
+
+- Plan 006 Phase 2 (DEFAULT_* constants → DB) — long-term incremental
+
+- U1 (from Plan 2026-05-13-001): re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration
+
+- `refiMaxLtvToOriginal` is dead code for demo properties (all use `purchase_price` basis).
+  Not urgent — documented in memory file project-irr-refi.md.
 
 ## Files CC Owns Right Now
 
-None — all committed to main.
-
-## Handoff to Replit
-
-Nothing pending. Next CC items from CLAUDE.md open TODOs:
-- U8: verification — portfolio IRR in 25–30% band + docs
-- Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
-
-## Pending CC Work (do NOT touch — CC will handle)
-
-1. U8: verification — IRR 25–30% band + docs
-2. Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` (incremental)
+None — all committed.
 
 ## Do Not Touch
 

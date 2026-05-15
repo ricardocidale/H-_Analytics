@@ -20,8 +20,6 @@
  */
 import {
   PROJECTION_MONTHS,
-  DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_PARTNER_COMP,
   DEFAULT_STAFF_SALARY,
   STAFFING_TIERS,
@@ -190,9 +188,6 @@ export function generateCompanyProForma(
     variableCostFactors[y] = dPow(1 + companyInflation, y);
   }
 
-  // ── Pre-computed property base fee rates ──
-  // INVARIANT: properties array order must not change between rate mapping and usage
-  const propBaseFeeRates = properties.map(p => p.baseManagementFeeRate ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE);
   const propIds = properties.map((p, i) => String(p.id ?? i));
 
   for (let m = 0; m < months; m++) {
