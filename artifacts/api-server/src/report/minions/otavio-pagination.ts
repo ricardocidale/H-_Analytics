@@ -61,6 +61,11 @@ export interface PaginatedReport {
  * TableSections split into page-sized chunks. All other section kinds (kpi,
  * chart, image) pass through unchanged — they are single-page by nature.
  *
+ * Assumption sections receive special treatment per Valentina's pagination
+ * contract (rule c): they are first split into semantic groups (one page per
+ * named group such as "Partner Compensation", "Staffing", etc.), then each
+ * group is further row-count-split if its row total exceeds the page cap.
+ *
  * Chart sections that immediately follow a table are intentionally kept in
  * sequence: the last table chunk will naturally be followed by its chart.
  */
@@ -89,14 +94,73 @@ export function runMinionOtavioPaginate(
         ? LANDSCAPE_TABLE_ROW_CAP
         : PORTRAIT_TABLE_ROW_CAP;
 
-    const chunks = splitTableSection(section, rowCap);
-    result.push(...chunks);
+    if (isAssumptions) {
+      // Rule (c): split into semantic groups first (one page per named group),
+      // then apply row-count splitting within each group.
+      const groupSections = splitAssumptionSectionByGroups(section);
+      for (const grp of groupSections) {
+        const chunks = splitTableSection(grp, rowCap);
+        result.push(...chunks);
+      }
+    } else {
+      const chunks = splitTableSection(section, rowCap);
+      result.push(...chunks);
+    }
   }
 
   return { flattenedSections: result };
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────
+
+/**
+ * Split an assumption TableSection into one sub-section per named semantic
+ * group (e.g. "Partner Compensation", "Staffing", "Fixed Overhead").
+ *
+ * Groups are delineated by `type === "header"` rows. Each header row starts
+ * a new group whose title becomes `"${parentTitle} — ${headerLabel}"`.
+ * The header row itself is included as the first row of its group so the
+ * section label still appears at the top of the page.
+ *
+ * If no header rows are found (flat section), the original section is
+ * returned as-is.
+ *
+ * Called by runMinionOtavioPaginate for all assumption sections before
+ * row-count splitting, per Valentina's pagination contract (rule c).
+ */
+function splitAssumptionSectionByGroups(section: TableSection): TableSection[] {
+  const rows = section.rows;
+  if (rows.length === 0) return [section];
+
+  type Group = { label: string; rows: TableRow[] };
+  const groups: Group[] = [];
+  let currentLabel = "";
+  let currentRows: TableRow[] = [];
+
+  for (const row of rows) {
+    if (row.type === "header") {
+      if (currentRows.length > 0) {
+        groups.push({ label: currentLabel, rows: currentRows });
+      }
+      currentLabel = (row.category || "").trim();
+      currentRows = [row];
+    } else {
+      currentRows.push(row);
+    }
+  }
+  if (currentRows.length > 0) {
+    groups.push({ label: currentLabel, rows: currentRows });
+  }
+
+  if (groups.length <= 1) return [section];
+
+  return groups.map((g) => ({
+    kind: "table" as const,
+    title: g.label ? `${section.title} — ${g.label}` : section.title,
+    years: section.years,
+    rows: g.rows,
+  }));
+}
 
 function getRowWeight(row: TableRow): number {
   if (row.type === "header") return HEADER_ROW_WEIGHT;

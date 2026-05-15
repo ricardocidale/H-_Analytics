@@ -63,6 +63,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 |---|---|---|
 | Lucca | Content Drafter | Slide factory + any surface needing cited copy |
 | Maya | Visual Inspector | All slide team inspectors (Pass 2) |
+| Valentina | Financial Report PDF Export Orchestrator | Report export pipeline + Rebecca chat ("export my report as PDF"). Supervises Otavio. Enforces four-rule pagination contract (fresh page per statement, full-page charts, assumption group isolation, light headers). See `report/agents/valentina.ts` and `.agents/skills/pdf-export-agent/SKILL.md`. |
 
 ### Minions (deterministic helpers)
 
