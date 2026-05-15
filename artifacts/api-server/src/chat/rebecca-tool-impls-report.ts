@@ -22,6 +22,13 @@ const FORMAT_MIME: Record<string, string> = {
   zip: "application/zip",
 };
 
+const FORMAT_PATHS: Record<string, string> = {
+  pdf: "/api/exports/premium/pdf",
+  excel: "/api/exports/premium/excel",
+  csv: "/api/exports/premium/csv",
+  zip: "/api/exports/premium/zip",
+};
+
 export function toolGenerateFinancialReportExportLink(
   args: Record<string, unknown>,
 ): { result: unknown } {
@@ -37,14 +44,7 @@ export function toolGenerateFinancialReportExportLink(
 
   const scope = propertyId !== null ? `property ${propertyId}` : "company-level";
 
-  const exportPath =
-    format === "pdf"
-      ? `/api/exports/premium/pdf`
-      : format === "excel"
-        ? `/api/exports/premium/excel`
-        : format === "zip"
-          ? `/api/exports/premium/zip`
-          : `/api/exports/premium/csv`;
+  const exportPath = FORMAT_PATHS[format] ?? FORMAT_PATHS["pdf"]!;
 
   const paginationSummary = [
     "Each financial statement starts on a fresh page",
