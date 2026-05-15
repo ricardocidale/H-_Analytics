@@ -161,6 +161,10 @@ export const slideFactoryRuns = pgTable(
     // substituted PPTX; soffice headless converts it to deckR2Key (PDF).
     pptxR2Key: text("pptx_r2_key"),
 
+    // Factory v2 (R10) — soffice-converted PDF of the substituted PPTX.
+    // Stored alongside pptxR2Key so both artifacts are retrievable by run ID.
+    pdfR2Key: text("pdf_r2_key"),
+
     // Factory v2 (R8) — wish-list log. Each entry records narrative data
     // Lucca had to best-shot via LLM because the app does not natively track it.
     // The wish-list slide builder reads this post-completion to render slide 7.
