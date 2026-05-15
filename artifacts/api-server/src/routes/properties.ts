@@ -331,7 +331,7 @@ export function register(app: Express) {
       const cats = await storage.getFeeCategoriesByProperty(property.id);
       res.json({
         ...property,
-        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive })),
+        feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive, serviceMarkup: c.serviceMarkup ?? null })),
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property", error, "PROP-002");
@@ -770,6 +770,7 @@ export function register(app: Express) {
     id: z.number().int().optional(),
     name: z.string().min(1),
     rate: z.number().min(0).max(1),
+    serviceMarkup: z.number().min(0).max(1).nullable().optional(),
     isActive: z.boolean(),
     sortOrder: z.number().int(),
   }));
@@ -793,6 +794,7 @@ export function register(app: Express) {
             return storage.updateFeeCategory(cat.id, {
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             }, propertyId);
@@ -801,6 +803,7 @@ export function register(app: Express) {
               propertyId,
               name: cat.name,
               rate: cat.rate,
+              serviceMarkup: cat.serviceMarkup ?? null,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
             });

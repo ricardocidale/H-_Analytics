@@ -188,6 +188,28 @@ export function generateCompanyProForma(
   const propBaseFeeRates = properties.map(p => p.baseManagementFeeRate ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE);
   const propIds = properties.map((p, i) => String(p.id ?? i));
 
+  // ── Per-property, per-category markup override map ──
+  // Built once from PropertyInput.feeCategories. When a property has a
+  // serviceMarkup override on a fee category, it takes precedence over the
+  // company service template markup for that property's portion of the fee.
+  // Map: propId → catName → markup
+  const propCatMarkup = new Map<string, Map<string, number>>();
+  for (let i = 0; i < properties.length; i++) {
+    const propId = propIds[i];
+    const cats = properties[i].feeCategories;
+    if (!cats) continue;
+    const catMap = new Map<string, number>();
+    for (const cat of cats) {
+      if (cat.serviceMarkup != null) {
+        catMap.set(cat.name, cat.serviceMarkup);
+      }
+    }
+    if (catMap.size > 0) {
+      propCatMarkup.set(propId, catMap);
+    }
+  }
+  const hasPropMarkupOverrides = propCatMarkup.size > 0;
+
   for (let m = 0; m < months; m++) {
     const year = Math.floor(m / MONTHS_PER_YEAR);
     const hasStartedOps = m >= opsGateIdx;
@@ -296,9 +318,41 @@ export function generateCompanyProForma(
     let totalVendorCost = 0;
     let grossProfit = totalRevenue;
     if (hasServiceTemplates) {
+      // ── Fee-weighted per-category markup overrides ───────────────────────
+      // When properties have property-level serviceMarkup overrides, compute
+      // the fee-weighted average markup per category across all properties.
+      // This reflects the true blended vendor cost-of-service for the company.
+      let categoryMarkupOverrides: Record<string, number> | undefined;
+      if (hasPropMarkupOverrides) {
+        const overrides: Record<string, number> = {};
+        for (const [catName, totalFee] of Object.entries(serviceFeeBreakdown.byCategory)) {
+          if (totalFee <= 0) continue;
+          const perPropFees = serviceFeeBreakdown.byCategoryByPropertyId[catName];
+          if (!perPropFees) continue;
+          let weightedMarkupSum = 0;
+          let weightedFeeSum = 0;
+          for (const [propId, propFee] of Object.entries(perPropFees)) {
+            const markup = propCatMarkup.get(propId)?.get(catName);
+            if (markup != null) {
+              weightedMarkupSum += markup * propFee;
+              weightedFeeSum += propFee;
+            }
+          }
+          // Only override if at least some portion of the fee has a property-level override
+          if (weightedFeeSum > 0) {
+            // Blend: property-level weighted override covers weightedFeeSum;
+            // remaining (totalFee - weightedFeeSum) falls back to template markup.
+            overrides[catName] = weightedMarkupSum / weightedFeeSum;
+          }
+        }
+        if (Object.keys(overrides).length > 0) {
+          categoryMarkupOverrides = overrides;
+        }
+      }
       costOfCentralizedServices = computeCostOfServices(
         serviceFeeBreakdown.byCategory,
         serviceTemplates!,
+        categoryMarkupOverrides,
       );
       totalVendorCost = costOfCentralizedServices.totalVendorCost;
       grossProfit = totalRevenue - totalVendorCost;

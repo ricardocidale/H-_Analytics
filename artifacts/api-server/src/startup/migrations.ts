@@ -215,6 +215,15 @@ export async function runSchemaMigrations() {
     await runSelfTestLogs001();
     await markMigrationApplied("self_test_logs_001");
   }
+
+  // Task #1677 — per-property markup override on property_fee_categories.
+  // Belt-and-suspenders companion to 0064_property_fee_markup.sql.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("property_fee_markup_001"))) {
+    const { runPropertyFeeMarkup001 } = await import("../migrations/property-fee-markup-001");
+    await runPropertyFeeMarkup001();
+    await markMigrationApplied("property_fee_markup_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

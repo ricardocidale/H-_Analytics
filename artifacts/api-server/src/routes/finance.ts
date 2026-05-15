@@ -112,6 +112,7 @@ const propertyInputSchema = z.object({
     name: z.string(),
     rate: z.number(),
     isActive: z.boolean(),
+    serviceMarkup: z.number().nullable().optional(),
   })).optional(),
   arDays: z.number().nullable().optional(),
   apDays: z.number().nullable().optional(),

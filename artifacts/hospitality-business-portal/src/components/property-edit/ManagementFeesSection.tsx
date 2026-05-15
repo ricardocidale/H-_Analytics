@@ -88,6 +88,8 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 ? (nationalBenchmarks?.markupFactors.find(r => r.serviceLine === serviceLine) ?? null)
                 : null;
 
+              const effectiveMarkup = cat.serviceMarkup ?? templateMarkup;
+
               return (
               <div key={cat.id} className="space-y-2" data-testid={`fee-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="flex justify-between items-center">
@@ -128,19 +130,35 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   step={0.1}
                   disabled={!cat.isActive}
                 />
-                {isCentralized && markupRow && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span>Cost-Plus Markup: <span className="font-mono">{((templateMarkup ?? 0) * 100).toFixed(0)}%</span></span>
-                    <NationalBenchmarkChip
-                      kind="markup"
-                      currentValue={templateMarkup}
-                      benchmarkValue={markupRow.value}
-                      dot={markupRow.dot}
-                      guardrail={markupRow.guardrail}
-                      source={markupRow.source}
-                      period={markupRow.period}
-                      fetchedAt={markupRow.fetchedAt}
+                {isCentralized && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="shrink-0">Cost-Plus Markup:</span>
+                    <EditableValue
+                      value={(effectiveMarkup ?? 0) * 100}
+                      onChange={(val) => onFeeCategoryChange(idx, "serviceMarkup", val === (templateMarkup ?? 0) * 100 ? null : val / 100)}
+                      format="percent"
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="text-[10px]"
                     />
+                    {cat.serviceMarkup != null && templateMarkup != null && (
+                      <span className="text-[9px] text-muted-foreground/60 italic shrink-0">
+                        (template: {(templateMarkup * 100).toFixed(0)}%)
+                      </span>
+                    )}
+                    {markupRow && (
+                      <NationalBenchmarkChip
+                        kind="markup"
+                        currentValue={effectiveMarkup}
+                        benchmarkValue={markupRow.value}
+                        dot={markupRow.dot}
+                        guardrail={markupRow.guardrail}
+                        source={markupRow.source}
+                        period={markupRow.period}
+                        fetchedAt={markupRow.fetchedAt}
+                      />
+                    )}
                   </div>
                 )}
               </div>
