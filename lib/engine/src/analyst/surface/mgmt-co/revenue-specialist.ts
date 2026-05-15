@@ -4,7 +4,7 @@
  * contract. Same shape as funding-specialist.ts; see that file's header
  * for the full action-mapping rationale.
  */
-import type { RevenueBenchmarks } from "@norfolk/shared/constants-revenue-benchmarks";
+import type { RevenueBenchmarks } from "@norfolk/shared/model-constants-registry";
 import {
   evaluateRevenue,
   type RevenueInputs,

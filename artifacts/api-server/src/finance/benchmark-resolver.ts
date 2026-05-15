@@ -17,11 +17,13 @@ import { ModelCanonicalsStorage } from "../storage/model-canonicals";
 import { ModelConstantsStorage } from "../storage/model-constants";
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { getFactoryNumber, type RegisteredConstantKey } from "@shared/model-constants-registry";
-import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
-import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
-import type { PropertyDefaultsBenchmarks } from "@shared/constants-property-defaults-benchmarks";
-import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
+import type {
+  CompensationBenchmarks,
+  RevenueBenchmarks,
+  OverheadBenchmarks,
+  PropertyDefaultsBenchmarks,
+  CompanyBenchmarks,
+} from "@shared/model-constants-registry";
 import type { StressThresholds } from "@engine/helpers/stress-scenarios";
 
 const canonicalsStorage = new ModelCanonicalsStorage();

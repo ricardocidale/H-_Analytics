@@ -16,7 +16,7 @@
  *   - CompanySpecialistOutputSchema — runner's parse gate (Zod strict)
  */
 
-import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
+import type { CompanyBenchmarks } from "@shared/model-constants-registry";
 import type { CompanyComparableRow } from "./mgmt-co-company-orchestrator-adapter";
 import {
   COMPANY_DIMENSION_KEYS,
