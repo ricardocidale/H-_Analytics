@@ -13,6 +13,7 @@ import type { LoanParams, GlobalLoanParams } from "@engine/debt/loanCalculations
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { withNationalBenchmarks, withPropertyCostAnchors } from "../finance/apply-national-benchmarks";
+import { withFinancialHydration } from "../defaults";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
@@ -469,7 +470,9 @@ export function registerFinanceRoutes(router: Router): void {
       //  food_beverage→costRateFB). Only null/undefined slots are filled —
       // explicit numeric values from the client are preserved as-is.
       // Falls back to hardcoded national anchors when the DB table is empty.
-      const propertiesWithCostAnchors = await withPropertyCostAnchors(properties);
+      const propertiesWithCostAnchors = await withFinancialHydration(
+        await withPropertyCostAnchors(properties),
+      );
 
       // Resolve the bracket mix: explicit request-body override (used by the
       // ICP page to preview the impact of a proposed mix on partner take-home
@@ -590,9 +593,11 @@ export function registerFinanceRoutes(router: Router): void {
 
       // Task #1484: overlay national cost-rate anchors onto the three nullable
       // property cost rates before the engine runs.
-      const [propertyWithCostAnchors] = await withPropertyCostAnchors([
-        applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
-      ]);
+      const [propertyWithCostAnchors] = await withFinancialHydration(
+        await withPropertyCostAnchors([
+          applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
+        ]),
+      );
 
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
@@ -688,7 +693,12 @@ export function registerFinanceRoutes(router: Router): void {
       }
 
       const globalAssumptions = await withModelConstants(rawGlobal);
-      const stamped = applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>) as unknown as PropertyInput;
+      const [stampedBase] = await withFinancialHydration(
+        await withPropertyCostAnchors([
+          applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
+        ])
+      );
+      const stamped = stampedBase as unknown as PropertyInput;
 
       // Reuse the cached engine output for this property.
       const compute = await recomputeSinglePropertyAndStamp({
@@ -808,8 +818,9 @@ export function registerFinanceRoutes(router: Router): void {
       }
 
       // Task #1484: apply cost anchors for company-wide recompute.
-      const propertiesWithCostAnchors = await withPropertyCostAnchors(properties);
-
+      const propertiesWithCostAnchors = await withFinancialHydration(
+        await withPropertyCostAnchors(properties),
+      );
 
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.

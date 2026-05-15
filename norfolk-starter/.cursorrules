@@ -1,0 +1,86 @@
+# Norfolk Starter — Cursor Project Rules
+
+> This file is the single source of truth for Cursor AI agents working in this repo.
+
+## Project Overview
+
+**Norfolk Starter** is the boilerplate for all Norfolk AI web applications.
+Clone this repo to start a new project with the full Norfolk stack pre-configured.
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router) + React 19 + TypeScript 5
+- **Styling:** Tailwind CSS v4 + shadcn/ui (new-york) + Radix primitives
+- **Database:** Prisma ORM 6 → Neon PostgreSQL (prod) / Docker Postgres (local)
+- **Auth:** Clerk v7 (@clerk/nextjs)
+- **Charts:** Recharts
+- **Forms:** react-hook-form + zod
+- **Icons:** Lucide (primary)
+- **Finance:** decimal.js, date-fns
+- **Bundler:** Turbopack (next dev --turbopack)
+- **Node:** >=20.x
+- **Testing:** Vitest
+
+## Coding Standards
+
+### File Organization
+- Keep files under ~500 lines; split by concern when growing
+- Route Handlers in `app/api/` — orchestration only, no inline business logic
+- Domain logic in `lib/` subfolders
+- shadcn components in `components/ui/` — add with `npx shadcn@latest add <name>`
+
+### TypeScript & Prisma
+- Strict typing always
+- Prisma generates types to `lib/generated/prisma` (gitignored)
+- `@prisma/client` aliased to `./lib/generated/prisma` in tsconfig.json
+- Run `npm run db:generate` after schema changes
+- Always import the Prisma client from the aliased path, never from `@prisma/client` directly:
+  - ✅ `import { PrismaClient } from "./lib/generated/prisma";`
+  - ❌ `import { PrismaClient } from "@prisma/client";`
+
+### Styling
+- Tailwind CSS v4 — imports via `app/globals.css`
+- `cn()` from `lib/utils.ts` for conditional classes
+- Dark mode by default
+- Brand: Navy #1E2D45, Teal #0097A7, Cyan #00BCD4, Gold #FFC107
+- Geist font family (sans + mono)
+
+### API Conventions
+- JSON envelope: `{ ok: true, data }` / `{ ok: false, error: { message, code?, details? } }`
+- Use `jsonOk` / `jsonErr` from `lib/http/api-response.ts`
+
+## Rules
+
+1. **NEVER** modify `middleware.ts` without explicit permission
+2. **NEVER** change `DATABASE_URL` or run migrations without permission
+3. **NEVER** modify `app/layout.tsx` ClerkProvider wrapper
+4. **NEVER** hardcode secrets — only via environment variables
+5. **ALWAYS** use `next/image` with `unoptimized` for SVG files
+6. **ASK** before installing new packages
+7. **ASK** before changing auth, database, or deployment config
+8. **COMMIT** only when explicitly asked
+
+## Key Paths
+
+| Purpose | Path |
+|---------|------|
+| Database schema | `prisma/schema.prisma` |
+| Prisma client singleton | `lib/db.ts` |
+| API helpers | `lib/http/api-response.ts` |
+| Utility (cn) | `lib/utils.ts` |
+| Theme / CSS | `app/globals.css` |
+| shadcn config | `components.json` |
+| Root layout + Clerk | `app/layout.tsx` |
+| Auth middleware | `middleware.ts` |
+| Docker dev DB | `docker-compose.yml` |
+| Env template | `.env.example` |
+
+## Getting Started
+
+```bash
+cp .env.example .env     # Add your keys
+docker compose up -d      # Start local Postgres
+npm install               # Install deps + generate Prisma client
+npx prisma migrate dev    # Run migrations
+npm run dev               # Start dev server (Turbopack)
+```
