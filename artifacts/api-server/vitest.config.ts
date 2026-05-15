@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/tests/**/*.test.ts', 'src/report/**/*.test.ts'],
+    include: ['src/tests/**/*.test.ts', 'src/report/**/*.test.ts', 'src/finance/**/*.test.ts'],
     alias: {
       '@shared': path.resolve(__dirname, '../../lib/shared/src'),
       '@norfolk/shared': path.resolve(__dirname, '../../lib/shared/src'),
