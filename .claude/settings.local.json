@@ -36,7 +36,9 @@
       "Bash(bash *)",
       "Bash(git rebase *)",
       "Bash(git reset *)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Skill(compound-engineering:ce-session-inventory)",
+      "Bash(xargs -0 python3 scripts/extract-metadata.py --cwd-filter workspace)"
     ]
   },
   "enabledMcpjsonServers": [
