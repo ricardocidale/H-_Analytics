@@ -368,6 +368,19 @@ export function ServiceTemplateCard({
                   )}
                 </div>
                 {isEditingMarkup ? (
+                  <div className="flex flex-col gap-1">
+                    {markupRow && (
+                      <NationalBenchmarkChip
+                        kind="markup"
+                        currentValue={inlineMarkupValue !== "" ? Number(inlineMarkupValue) : null}
+                        benchmarkValue={markupRow.value}
+                        dot={markupRow.dot}
+                        guardrail={markupRow.guardrail}
+                        source={markupRow.source}
+                        period={markupRow.period}
+                        fetchedAt={markupRow.fetchedAt}
+                      />
+                    )}
                   <div className="flex items-center gap-1.5">
                     <div className="relative flex-1">
                       <Input
@@ -410,6 +423,7 @@ export function ServiceTemplateCard({
                     >
                       <X className="w-3.5 h-3.5" />
                     </Button>
+                  </div>
                   </div>
                 ) : (
                   <Button
