@@ -48,17 +48,17 @@ export { SEED_PROPERTY_DEFAULTS, SEED_SYNC_PROPERTIES } from "./property-data";
 const SEED_MARKETING_RATE = 0.03;
 
 export const SEED_COMPANY_IDENTITY = {
-  companyName: "The Norfolk AI Group",
-  companyPhone: "+1 (757) 555-0142",
-  companyEmail: "info@norfolk.ai",
-  companyWebsite: "https://norfolk.ai",
+  companyName: "L+B Hospitality Group",
+  companyPhone: "+1 (435) 555-0174",
+  companyEmail: "info@lbhospitality.com",
+  companyWebsite: "https://lbhospitality.com",
   companyEin: "92-1847356",
   companyFoundingYear: 2024,
-  companyStreetAddress: "150 West Main Street, Suite 400",
-  companyCity: "Norfolk",
-  companyStateProvince: "VA",
+  companyStreetAddress: "2485 North Valley Drive, Suite 10",
+  companyCity: "Eden",
+  companyStateProvince: "UT",
   companyCountry: "United States",
-  companyZipPostalCode: "23510",
+  companyZipPostalCode: "84310",
 } as const;
 
 export const DEFAULT_FEE_CATEGORIES = DEFAULT_SERVICE_FEE_CATEGORIES.map(c => ({
