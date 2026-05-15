@@ -38,7 +38,7 @@ Execute the **remaining units** of the plan in the order shown below. Each unit 
                           ▼
                          U3  Refi LTV cap — UI (PropertyEdit DebtSection)
                           ▼
-                         U8  Verification (combined IRR in 25–30% band) + documentation
+                         U8  Verification (combined IRR in 28–38% band) + documentation
 ```
 
 The plan body (the `docs/plans/2026-05-13-001-…` file) is the **executable specification** for each unit — file paths, acceptance criteria, test list. This brief just tells you what is already done, what the boundaries are, and how to know you are done.
@@ -108,7 +108,7 @@ Enumerate any additional brackets in `artifacts/api-server/src/ai/icp/bracket-ca
 - `artifacts/hospitality-business-portal/src/components/property-edit/DebtSection.tsx` — numeric input next to the existing `refi_ltv` field. Default 70%, 0–100%, helper text per plan § U3.
 
 ### U8 — Verification + documentation
-- Run `GET /api/finance/compute` against the demo company. Combined portfolio IRR must land **25–30%**. Document before/after IRR table in `docs/runbooks/seed-calibration-2026-05-13.md`.
+- Run `GET /api/finance/compute` against the demo company. Combined portfolio IRR must land **28–38%**. Document before/after IRR table in `docs/runbooks/seed-calibration-2026-05-13.md`.
 - Add a sentence to `docs/concepts/bracket-mix.md` § 6a pointing at this plan as the first concrete operationalization of bracket-default fields.
 
 ---

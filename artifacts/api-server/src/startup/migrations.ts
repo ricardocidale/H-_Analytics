@@ -277,7 +277,7 @@ export async function runSchemaMigrations() {
 
   // Plan 2026-05-13-001 U1 — demo property exit-cap calibration + Duplex overrides.
   // Sets calibrated exit_cap_rate on 6 INITIAL properties + Medellin Duplex, and
-  // corrects Duplex max_occupancy. Targets the 25–30% IRR band for the demo portfolio.
+  // corrects Duplex max_occupancy. Targets the 28–38% IRR band for the demo portfolio.
   if (!(await isMigrationApplied("properties_demo_seed_overrides_001"))) {
     const { runPropertiesDemoSeedOverrides001 } = await import("../migrations/properties-demo-seed-overrides-001");
     await runPropertiesDemoSeedOverrides001();

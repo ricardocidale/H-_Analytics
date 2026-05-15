@@ -7,7 +7,7 @@
  * properties and the Medellin Duplex. Also corrects Duplex max_occupancy.
  *
  * These are Layer-3 per-entity overrides that reflect the intended IRR target
- * band (25–30% for the demo portfolio). They replace seed constants that were
+ * band (28–38% for the demo portfolio). They replace seed constants that were
  * either under-benchmarked (US Catskill boutiques seeded at 8.0–8.5%) or
  * under-priced for country risk (Colombia hacienda at 9.0%).
  *

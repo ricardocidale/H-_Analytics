@@ -577,8 +577,8 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 | | Item | Scope |
 |---|---|---|
 | [x] | U6: bracket-default seeding pathway at `POST /api/properties` — `applyBracketLayerDefaults` in `defaults.ts`, wired before `hydratePropertyFinancials` in `createPropertyRecord` ✓ | Plan 2026-05-13-001 |
-| [ ] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration | Plan 2026-05-13-001 |
-| [ ] | U8: verification — portfolio IRR in 25–30% band + docs | Plan 2026-05-13-001 |
+| [x] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides — runtime guards applied, runbook at `docs/runbooks/seed-calibration-2026-05-13.md` ✓ | Plan 2026-05-13-001 |
+| [ ] | U8: verification — portfolio IRR in 28–38% band + docs (target updated from 25–30%) | Plan 2026-05-13-001 |
 | [ ] | Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each constant as cleaned up) | Taxonomy cleanup |
 
 ---

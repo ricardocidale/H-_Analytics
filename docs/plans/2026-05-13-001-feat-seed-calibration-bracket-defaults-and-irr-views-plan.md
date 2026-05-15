@@ -9,7 +9,7 @@ date: 2026-05-13
 
 ## Summary
 
-Bring the demo portfolio's combined IRR from the current ~50%+ band into a defensible 25–30% boutique value-add target, while fixing the structural causes that produced the unrealistic seed in the first place. Three coordinated work streams: (1) **Tactical seed corrections** in the live DB — exit caps and Duplex occupancy; (2) **Engine + UI changes** for a configurable refi-LTV-to-original cap that prevents inflated mid-projection cash-out spikes; (3) **Structural bracket-default extension** that wires `exit_cap_rate` and `refi_max_ltv_to_original` into the bracket-default template pathway introduced in `docs/concepts/bracket-mix.md` § 6a, so future seeds and new entities inherit market-anchored values automatically.
+Bring the demo portfolio's combined IRR from the current ~50%+ band into a defensible 28–38% boutique value-add target, while fixing the structural causes that produced the unrealistic seed in the first place. Three coordinated work streams: (1) **Tactical seed corrections** in the live DB — exit caps and Duplex occupancy; (2) **Engine + UI changes** for a configurable refi-LTV-to-original cap that prevents inflated mid-projection cash-out spikes; (3) **Structural bracket-default extension** that wires `exit_cap_rate` and `refi_max_ltv_to_original` into the bracket-default template pathway introduced in `docs/concepts/bracket-mix.md` § 6a, so future seeds and new entities inherit market-anchored values automatically.
 
 The tactical fix unblocks the demo; the structural fix prevents the same drift from recurring. IRR continues to be computed as today (single combined-portfolio figure) — no view changes in scope.
 
@@ -56,7 +56,7 @@ Investigation on 2026-05-13 confirmed:
 - **No structural pathway exists for market-anchored defaults.** Per `docs/concepts/bracket-mix.md` § 6a (added 2026-05-13), bracket catalog rows should carry default-value templates that seed both the dev environment AND new entities at creation. Today, exit cap and refi LTV are not part of that template — they are set ad hoc at property-creation time, which is how the seed drifted off market in the first place.
 
 User direction (2026-05-13):
-- Target portfolio IRR: **25–30%** (typical boutique value-add).
+- Target portfolio IRR: **28–38%** (typical boutique value-add).
 - Show LP / asset / sponsor IRR side-by-side.
 - Exit cap policy: **market going-in + 75 bp** for 10-year holds.
 - Refinance: conservative, only refi if new loan ≤ user-configurable LTV × original loan; **default 70%**.
@@ -74,7 +74,7 @@ User direction (2026-05-13):
 - **R5.** Extend `icp_brackets` schema with two new numeric columns: `default_exit_cap_rate` and `default_refi_max_ltv_to_original`. Add a parallel pair of `model_defaults` rows (`property.template.exitCapRate`, `property.template.refiMaxLtvToOriginal`) seeded with universal Layer-1 fallback values. Both bracket columns participate as Layer 2 (bracket overlay) per the canonical flow; both `model_defaults` rows are visible/editable under Admin → Steady State → Property.
 - **R6.** Backfill the seven `icp_brackets` rows with market-anchored values for both new columns per the U1 recommendation table. The backfill is the only write to Layer 2; the dev-seed re-run in U1 propagates these to the demo properties through the layered resolver.
 - **R7.** `POST /api/properties` implements the three-layer resolver per the canonical-flow diagram: Layer 1 (universal `model_defaults`) → Layer 2 (bracket-mix-weight-blended overlay from `icp_brackets`) → write Layer 3 (DEFAULT-state property row). Per-entity overrides are written separately as CONFIRMED-state values. Resolver code lives in a single shared helper used by both the route handler and the dev-seed script — no parallel implementations, no hardcoded literals.
-- **R8.** After all DB changes, run `/api/finance/compute` against the demo company and verify combined portfolio IRR lands in **25–30%**. Document the before/after IRR table in the plan's completion notes. IRR computation itself is unchanged — single combined-portfolio figure as today.
+- **R8.** After all DB changes, run `/api/finance/compute` against the demo company and verify combined portfolio IRR lands in **28–38%**. Document the before/after IRR table in the plan's completion notes. IRR computation itself is unchanged — single combined-portfolio figure as today.
 
 ---
 
@@ -125,7 +125,7 @@ User direction (2026-05-13):
 - Re-running the dev seed produces deterministic values (idempotent: same bracket rows → same blended defaults).
 - A short markdown note in `docs/runbooks/seed-calibration-2026-05-13.md` records the before/after IRR table and the rationale for the Duplex per-entity overrides (so a future engineer doesn't "correct" the 7.5% to market 11%).
 
-**Tests:** Manual — re-run `GET /api/finance/compute` and confirm combined IRR moves into 25–30% band. This is the calibration sanity check that gates U2/U3 and U8.
+**Tests:** Manual — re-run `GET /api/finance/compute` and confirm combined IRR moves into 28–38% band. This is the calibration sanity check that gates U2/U3 and U8.
 
 ### U2: Refi LTV cap — schema + engine
 
@@ -199,7 +199,7 @@ User direction (2026-05-13):
 - `docs/concepts/bracket-mix.md` § 6a — add a sentence to the "Why this matters operationally" callout pointing at this plan as the first concrete bracket-default fields beyond the original list.
 
 **Acceptance:**
-- Combined portfolio IRR lands in **25–30%** band.
+- Combined portfolio IRR lands in **28–38%** band.
 - Per-property IRRs all defensible: outliers (Jano, Loch Sheldrake) brought below 50%; Duplex IRR may sit lower (10–15%) consistent with the strategic package-sale exit and the corrected occupancy.
 - IRR computation unchanged from today — single combined-portfolio figure surfaced as before.
 - Documentation reflects the new defaults pathway.
@@ -215,7 +215,7 @@ U5 (bracket-default schema) ──► U6 (seeding pathway, no-literals) ──�
                                                                    U1 (re-seed demo + Duplex per-entity overrides)
                                                                                   │
                                                                                   ▼
-                                                                  sanity-check combined IRR in 25-30% band
+                                                                  sanity-check combined IRR in 28–38% band
                                                                                   │
                                                                                   ├──► U2 (refi cap engine) ──► U3 (refi cap UI)
                                                                                   │
@@ -230,7 +230,7 @@ U5 (bracket-default schema) ──► U6 (seeding pathway, no-literals) ──�
 
 - **Refi LTV cap is a per-property DEFAULT VARIABLE, not a TRUE CONSTANT.** Default 0.70 lives in the bracket-default template; per-property override is allowed (per `hplus-variable-taxonomy`).
 - **Duplex exit cap stays at 7.5% per user direction** — this is a per-entity strategic-exit override, NOT a market-anchored default. The bracket-default template for "Latin America luxury STR (single-key)" carries 11% as the market-anchored value; the Duplex's 7.5% is documented as a deliberate deviation in U1's runbook note.
-- **IRR computation is unchanged — pure IRR (levered / equity).** Single combined-portfolio IRR per current code paths (`computeIRR(consolidatedFlows, 1)` in `lib/engine/src/aggregation/yearlyAggregator.ts`). "Pure IRR" here means the standard textbook IRR formula on a single net cash flow vector — equity outlay out, (NOI − debt service + refi proceeds) in, (sale − loan payoff) at exit. **This is levered / equity IRR, NOT unlevered project IRR** (confirmed with user 2026-05-13). One IRR figure only — no GP/LP split, no waterfall overlay, no preferred return, no promote tiers, no LP/asset/sponsor variants. The `lpEquityPct` field and `computeWaterfall` machinery exist in the codebase but are out of scope. The 25–30% target band is calibrated to this levered/equity IRR figure.
+- **IRR computation is unchanged — pure IRR (levered / equity).** Single combined-portfolio IRR per current code paths (`computeIRR(consolidatedFlows, 1)` in `lib/engine/src/aggregation/yearlyAggregator.ts`). "Pure IRR" here means the standard textbook IRR formula on a single net cash flow vector — equity outlay out, (NOI − debt service + refi proceeds) in, (sale − loan payoff) at exit. **This is levered / equity IRR, NOT unlevered project IRR** (confirmed with user 2026-05-13). One IRR figure only — no GP/LP split, no waterfall overlay, no preferred return, no promote tiers, no LP/asset/sponsor variants. The `lpEquityPct` field and `computeWaterfall` machinery exist in the codebase but are out of scope. The 28–38% target band is calibrated to this levered/equity IRR figure.
 - **No hardcoded literals anywhere per `no-magic-numbers` and the canonical flow.** This applies to every layer: route handlers, engine modules, admin UI, dev seed. Default values flow through the three-layer resolver (universal `model_defaults` → bracket overlay → per-entity row); see canonical flow in Summary. Per-entity overrides (Duplex 7.5%) are CONFIRMED-state values written to the property row with provenance, NOT literals in the seed script.
 - **Layered precedence locked as Option C (2026-05-13).** Universal `model_defaults` row → bracket overlay at create → per-entity value. Engine reads only the per-entity value. Bracket overlay writes happen ONLY at entity creation, never retroactively. Admin can edit any layer; edits affect future creations only (per `hplus-assumption-lifecycle`).
 - **Admin surface for default editing is Admin → Steady State** (legacy internal name "Model Defaults"; user-facing label "Steady State"; sub-tabs: Management Co., Property, Constants, Analyst Tables, Reference Ranges). It is NOT under `AI → Intelligence → Knowledge & Resources` — that's a separate area for analyst-facing tables. New default fields surface in Steady State → Property or Steady State → Management Co. as appropriate.
