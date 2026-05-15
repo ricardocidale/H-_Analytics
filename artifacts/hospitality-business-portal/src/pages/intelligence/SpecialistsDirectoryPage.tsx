@@ -18,6 +18,7 @@ import { useMemo, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -249,16 +250,7 @@ export default function SpecialistsDirectoryPage() {
     [],
   );
 
-  if (isLoading) {
-    return (
-      <div
-        className="flex items-center justify-center py-16"
-        data-testid="page-specialists-loading"
-      >
-        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
-      </div>
-    );
-  }
+  if (isLoading) return <PageLoadingState data-testid="page-specialists-loading" />;
 
   return (
     <div className="space-y-6" data-testid="page-specialists-directory">
