@@ -38,7 +38,12 @@
       "Bash(git reset *)",
       "Bash(gh pr *)",
       "Skill(compound-engineering:ce-session-inventory)",
-      "Bash(xargs -0 python3 scripts/extract-metadata.py --cwd-filter workspace)"
+      "Bash(xargs -0 python3 scripts/extract-metadata.py --cwd-filter workspace)",
+      "Bash(gh api *)",
+      "Bash(git merge-tree *)",
+      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --no-cache)",
+      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --help)",
+      "Bash(CHECK_CACHE_DISABLED=1 scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts)"
     ]
   },
   "enabledMcpjsonServers": [
