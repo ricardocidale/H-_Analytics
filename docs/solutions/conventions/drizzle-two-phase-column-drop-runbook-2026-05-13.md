@@ -123,6 +123,9 @@ Phase 1's `ADD COLUMN` for the *new* columns must be wrapped in `IF NOT EXISTS` 
 - [ ] PR 1 has been deployed to production (not just merged). Wait for the deploy-success signal.
 - [ ] Column removed from `lib/db/src/schema/<table>.ts`.
 - [ ] `pnpm --filter @workspace/db run generate` produces a clean `DROP COLUMN` migration.
+  **Non-interactive environments (Replit, CI):** if `generate` hangs waiting for TUI input, write
+  the migration SQL manually instead — see
+  [`docs/solutions/workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md`](../workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md).
 - [ ] Migration mirrored into `artifacts/api-server/migrations/` with a non-colliding slot number per [`docs/runbooks/schema-migrations.md`](../../runbooks/schema-migrations.md).
 - [ ] Runtime guard for the table updated to stop adding the column on boot.
 - [ ] `pnpm --filter @workspace/scripts run check:migration-guards` — PASS.
@@ -133,3 +136,5 @@ Phase 1's `ADD COLUMN` for the *new* columns must be wrapped in `IF NOT EXISTS` 
 - [`docs/runbooks/schema-migrations.md`](../../runbooks/schema-migrations.md) — the canonical three-folder migration runbook this convention sits inside.
 - [`docs/solutions/database-issues/drizzle-migration-state-drift-missing-tables-2026-05-07.md`](../database-issues/drizzle-migration-state-drift-missing-tables-2026-05-07.md) — the state-drift class that motivates the runtime-guard layer.
 - [`docs/plans/2026-05-11-001-feat-factory-v2-pptx-substitution-plan.md`](../../plans/2026-05-11-001-feat-factory-v2-pptx-substitution-plan.md) U3 — the originating use case (slide1PropertyId deprecation).
+- [`docs/solutions/workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md`](../workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md)
+  — when `generate` hangs on interactive TUI in Replit/CI: write the migration SQL manually.

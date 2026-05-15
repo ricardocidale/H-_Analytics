@@ -216,3 +216,6 @@ All three must PASS before declaring the reseed unit done (per `CLAUDE.md` § 5 
 - `docs/plans/2026-05-05-007-master-priority-plan.md` § L2-U7 — the origin task that triggered this discovery.
 - `docs/runbooks/schema-migrations.md` — canonical schema/migration/seed runbook (covers the three-folder topology, runtime-guard pattern, dev-DB seed flow, and drift recovery).
 - `CLAUDE.md` § "Migration system architecture" — describes the two-layer migration system but does not call out the slot-collision risk between `lib/db/migrations/` and `artifacts/api-server/migrations/`.
+- `docs/solutions/workflow-issues/drizzle-kit-generate-tui-hang-non-interactive-2026-05-15.md`
+  — why `pnpm --filter @workspace/db run generate` hangs in Replit/CI (interactive TUI reads
+  from `/dev/tty`, not stdin); manual SQL + journal update is the fix.
