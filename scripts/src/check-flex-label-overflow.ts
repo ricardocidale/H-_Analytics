@@ -95,9 +95,7 @@ const BASELINE_PATH = path.resolve(__dirname, "_flex-label-overflow-baseline.jso
 
 /** Source trees to scan (relative to WORKSPACE_ROOT). */
 const SCAN_DIRS = [
-  "artifacts/hospitality-business-portal/src/components/property-edit",
-  "artifacts/hospitality-business-portal/src/components/company",
-  "artifacts/hospitality-business-portal/src/components/company-assumptions",
+  "artifacts/hospitality-business-portal/src",
 ];
 
 /** Directories to skip during the tree walk. */
