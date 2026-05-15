@@ -1,7 +1,7 @@
-import Swiss from "./Swiss";
-import Animated from "./Animated";
-import Glass from "./Glass";
-import Bento from "./Bento";
+import { Swiss } from "./Swiss";
+import { Animated } from "./Animated";
+import { Glass } from "./Glass";
+import { Bento } from "./Bento";
 
 const variants = [
   { label: "Swiss", sub: "Minimal / Editorial", Component: Swiss },
