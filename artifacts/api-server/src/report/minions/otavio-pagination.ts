@@ -18,15 +18,15 @@ import { ASSUMPTIONS_TITLE_PREFIX } from "../assumption-sections";
 
 // ─── Page-capacity constants ───────────────────────────────────────────────
 // Landscape: usable content height ≈ 193mm ÷ 7mm per weighted row unit × 0.78 fill → 21
-const LANDSCAPE_TABLE_ROW_CAP = 21;
+export const LANDSCAPE_TABLE_ROW_CAP = 21;
 
 // Portrait: narrower col width limits dense packing → 16
-const PORTRAIT_TABLE_ROW_CAP = 16;
+export const PORTRAIT_TABLE_ROW_CAP = 16;
 
 // Assumptions sections are single-column (one FY value). More rows fit because
 // no multi-year numeric columns → wider label space, shorter per-row height.
-const LANDSCAPE_ASSUMPTIONS_ROW_CAP = 23;
-const PORTRAIT_ASSUMPTIONS_ROW_CAP = 18;
+export const LANDSCAPE_ASSUMPTIONS_ROW_CAP = 23;
+export const PORTRAIT_ASSUMPTIONS_ROW_CAP = 18;
 
 // Orphan guard: minimum consecutive data rows that must follow a section header
 // on the same page. Prevents a header landing alone at the bottom of a page.
@@ -35,13 +35,13 @@ const MIN_ROWS_AFTER_HEADER = 2;
 // ─── Row weight model ──────────────────────────────────────────────────────
 // Section header rows are styled with a background colour, bold text, and a
 // top border — visually ~25% taller than a plain data row.
-const HEADER_ROW_WEIGHT = 1.25;
+export const HEADER_ROW_WEIGHT = 1.25;
 
 // Total/subtotal rows have a bold top border → ~15% taller than a data row.
-const TOTAL_ROW_WEIGHT = 1.15;
+export const TOTAL_ROW_WEIGHT = 1.15;
 
 // Baseline data row weight.
-const DATA_ROW_WEIGHT = 1.0;
+export const DATA_ROW_WEIGHT = 1.0;
 
 // ─── Public types ─────────────────────────────────────────────────────────
 
@@ -180,10 +180,18 @@ function splitAssumptionSectionByGroups(section: TableSection): TableSection[] {
   }));
 }
 
-function getRowWeight(row: TableRow): number {
+export function getRowWeight(row: TableRow): number {
   if (row.type === "header") return HEADER_ROW_WEIGHT;
   if (row.type === "total" || row.type === "subtotal") return TOTAL_ROW_WEIGHT;
   return DATA_ROW_WEIGHT;
+}
+
+/**
+ * Compute the total weighted row count for a TableSection.
+ * Used by the compiler's runtime overflow guard to detect calibration drift.
+ */
+export function getSectionWeightedCount(section: TableSection): number {
+  return section.rows.reduce((sum, r) => sum + getRowWeight(r), 0);
 }
 
 /**
