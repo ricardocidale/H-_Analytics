@@ -373,3 +373,24 @@ export const DEFAULT_ERP_HOSPITALITY_PCT_DISPLAY = 12;
 /** Fractional padding applied to each side of a range band in the indicator chart. */
 export const RANGE_INDICATOR_CHART_PADDING = 0.2;
 
+// ── Executive-summary narrative thresholds ───────────────────────────────────
+// DB_CANDIDATE: market-driven thresholds the executive-summary fallback
+// templates use to flip narrative tone (aggressive vs. conservative
+// occupancy, diversified vs. concentrated revenue mix, strong vs. thin
+// debt coverage). Currently TS constants; eventual home is `model_constants`
+// so admins can tune narrative voice without a deploy.
+//
+// Used by `artifacts/api-server/src/ai/executive-summary/templates.ts`.
+
+/** Above this stabilized occupancy, narrative calls assumptions "aggressive". */
+export const NARRATIVE_HIGH_OCCUPANCY_THRESHOLD = 0.80;
+
+/** Above this F&B revenue share, narrative emphasizes the 50/50 rooms-to-F&B story. */
+export const NARRATIVE_HIGH_FB_SHARE_THRESHOLD = 0.15;
+
+/** Above this F&B share, the mitigants section credits "diversified revenue streams". */
+export const NARRATIVE_DIVERSIFIED_FB_SHARE_THRESHOLD = 0.10;
+
+/** Above this DSCR, the mitigants section credits "debt cushion". */
+export const NARRATIVE_STRONG_DSCR_THRESHOLD = 1.25;
+

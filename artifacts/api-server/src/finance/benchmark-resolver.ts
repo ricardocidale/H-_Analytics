@@ -132,6 +132,7 @@ export async function resolveStressThresholds(): Promise<StressThresholds> {
     stressOccupancyShock:        r("benchmarkStressOccupancyShock"),
     stressAdrShock:              r("benchmarkStressAdrShock"),
     stressRateShockDecimal:      decimalRate,
+    // Convert decimal rate to basis points: 1 decimal = 10,000 bps (e.g. 0.02 = 200 bps)
     stressRateShockBps:          Math.round(decimalRate * 10_000),
     stressCostShock:             r("benchmarkStressCostShock"),
     stressCombinedOccupancyShock: r("benchmarkStressCombinedOccupancyShock"),
