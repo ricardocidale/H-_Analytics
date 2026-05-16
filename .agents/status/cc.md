@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T21:45:00Z
+Updated: 2026-05-16T23:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,43 +13,38 @@ main
 
 ## Last Commit on Branch
 
-11f3cd1c6  chore(merge): resolve conflicts after PR #158 merge + fix readonly tab arrays
+a7b29ff0a  docs(solutions): compound T3-1 Matteo router, auth-before-write, engine null fallbacks
 
-## What CC Did This Session (2026-05-16 session 8)
+## What CC Did This Session (2026-05-16 session 9)
 
-T3-1 Matteo model router (COMPLETE — merged PR #158):
-- U1: Seed DeepSeek V4/Flash, Mistral Large/Small model rows; new llm_slot rows
-  (pdf-ocr-extraction, structured-extraction, bulk-text-synthesis, costantino-orchestration);
-  feature-flag parameter rows (all default 0/off)
-- U2: DeepSeek + Mistral SDK client factories in ai/clients.ts (lazy singletons,
-  env-var base URL override, Mistral OCR HTTP wrapper with model from admin_resources)
-- U3: dispatch.ts DeepSeek + Mistral provider branches + uniform logApiCost wrap
-- U4: chat-llm.ts streaming branches for DeepSeek + Mistral
-- U5: Remove hardcoded VISION_MODEL constant; route through resolveLlmFor + generateText
-- U6: GET /api/admin/llm-cost-summary endpoint + Rebecca download_llm_cost_summary tool;
-  computeLlmCostSummary() shared export; parity map updated
-- U7: LLM Workflows page — DeepSeek/Mistral vendor dropdowns, new slot groups,
-  per-slot 30-day cost badges (COST_WINDOW_DAYS constant)
-- U8: callLlmForText in executive-summary refactored to use dispatch.generateText;
-  matteo-enable-bulk-text-synthesis flag routes to bulk-text-synthesis slot when nonzero
-- CodeRabbit fixes: console.info→logger.info, getMistralOcrConfig() model from admin_resources,
-  RESEARCH_LLM_VENDORS updated, dispatchService doc corrected, package.json ordering,
-  portfolioId runtime validation, auth-before-write security fix (both route + Rebecca tool)
-- Branch hygiene: stripped 4 Replit commits, recommitted auth fix as CC, force-pushed clean
-- Merge conflict resolution: took PR state for migrations.ts, portfolios.ts,
-  rebecca-tool-impls-portfolio.ts, parity-map; fixed Replit's `as const` readonly errors
-  in PipelineConfigTab.tsx + ResourcesAdminPage.tsx
+Resumed from prior session (T3-1 already merged as PR #158). This session:
+
+**ce-compound documentation** (COMPLETE):
+- New: `architecture-patterns/matteo-multi-vendor-llm-slot-routing-2026-05-16.md`
+  — 4-layer admin-editable LLM slot routing via admin_resources; resolveLlmFor + generateText
+  dispatch; feature flags; no model names in TS (CLAUDE.md §1)
+- New: `security-issues/auth-before-write-portfolio-assignment-2026-05-16.md`
+  — IDOR fix in PUT /api/properties/:id/portfolio; ownership check before updateProperty
+  mutation; applies to both HTTP route + Rebecca tool implementations
+- New: `best-practices/coderabbit-false-positive-engine-null-fallbacks-2026-05-16.md`
+  — three-layer resolver guarantees non-null; ?? 0 fallbacks are Category 2 taxonomy violations;
+  reply template for CodeRabbit false positives on engine fields
+- Updated: `workflow-issues/cc-replit-branch-hygiene-2026-05-10.md`
+  — added reset+force-with-lease sub-pattern for all-worthless-Replit-commits case
+
+**Replit handoff push:**
+- Pushed 4 Replit commits (tab standardization, sidebar restructure, flex-label-overflow fixes,
+  handoff doc) from local main to origin/main per Replit's handoff request
 
 ## What's Pending
 
-Nothing from CC for this session. Replit owns the remaining UI tasks.
+Nothing from CC for this session.
 
 ## Handoff to Replit
 
-All T3-1 backend work is on main. Feature flags (matteo-enable-* parameters) are seeded
-with value=0 (off by default) — flip to 1 via admin_resources to enable routing.
+All clean on main. No CC-specific work outstanding.
 
-Remaining Replit UI tasks from prior sessions (still outstanding):
+Outstanding Replit UI tasks (still on Replit's plate, unchanged from prior handoff):
 - T2-4 UI: "Verify deck" button in Slide Factory Tab 6
   POST /api/slide-factory-runs/:id/verify → GET /api/slide-factory-runs/:id/verification
   Severity: ok=emerald, advisory=sky, warning=amber, block=red
@@ -57,6 +52,10 @@ Remaining Replit UI tasks from prior sessions (still outstanding):
   POST /api/properties/:id/rewrite-description { text: string }
 - T2-2 UI: Portfolio selector on property list
   GET /api/portfolios, PUT /api/properties/:id/portfolio { portfolioId: N | null }
+
+Pre-existing test failures (not introduced this session, not CC-owned):
+- check:lint → no-shadow in api-server/src/chat/rebecca-tool-impls-slide-factory.ts
+- test:api-server → marco, builder-substitution-map, pptx-substitution, dispatch, slide-6-embed-flow
 
 ## Files CC Owns Right Now
 
