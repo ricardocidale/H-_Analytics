@@ -76,11 +76,11 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-2: Property soft-delete UI toggle
-**Status:** ⚠️ Partial — storage layer complete (`archivedAt`/`archivedBy`), UI toggle missing
+**Status:** ✅ Done (2026-05-16, Replit) — `AdminPropertiesTab.tsx` added; "Archived" entry in Portfolio admin sidebar group; Restore button calls `POST /api/admin/properties/:id/restore`; `AdminSidebar.tsx` wired.
 **Done when:**
 - User can "hide" a property from their view via a UI action (button or menu item)
 - Hidden property disappears from the user's property list
-- Admin can see all archived properties and restore them
+- Admin can see all archived properties and restore them ✅
 - Property DB row, all photos, and all renders are preserved on hide
 
 **Effort:** 2–4 hours (thin UI + route wiring; storage already exists)
@@ -89,7 +89,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-3: Admin default scenario per user
-**Status:** ✅ CC scope done (2026-05-16, commit 8bc3824fc) — Replit UI pending
+**Status:** ✅ Done (2026-05-16) — CC: schema + migration + route; Replit: "Default Scenario" dropdown in EditUserDialog, `assignedScenarioId` in User type, `assignScenarioMutation` in UsersTab
 **Context:** Currently every user gets an auto-created `kind="default"` scenario at first login. Admin cannot pre-configure which properties a user sees. Required for: investor users who should see only their property on sign-in; management company owner who sees full portfolio.
 **Done when:**
 - `users` table has `assignedScenarioId` (FK to scenarios, nullable)
