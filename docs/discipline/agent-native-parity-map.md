@@ -127,6 +127,8 @@ feature ships or a new Rebecca tool is added.
 | Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` | `download_factory_v2_deck` (format='pdf') | ✅ |
 | Download rendered deck PPTX (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download/pptx` | `download_factory_v2_deck` (format='pptx') | ✅ |
 | Download both PDF and PPTX (Tab 6) | See above | `download_factory_v2_deck` (format='both') | ✅ |
+| Visually verify deck quality before delivery (Bianca) | `POST /api/slide-factory-runs/:id/verify` | `verify_factory_deck` | ✅ |
+| Read last verification result for a run | `GET /api/slide-factory-runs/:id/verification` | `verify_factory_deck` (re-run to refresh) | ✅ |
 
 **Auto-fire pattern note:** `accept-brief` and `assign-properties` are
 fire-and-forget transitions — they immediately advance status and return

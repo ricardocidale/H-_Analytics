@@ -74,6 +74,14 @@ export interface LuccaSlotDraft {
   source: "lucca" | "admin" | "admin-override";
 }
 
+// JSONB shape for one finding from Bianca's visual quality verification
+export interface VerificationFinding {
+  slideNumber: number;      // 1-based
+  severity: "ok" | "advisory" | "warning" | "block";
+  category: "text_cutoff" | "placeholder" | "readability" | "layout" | "consistency" | "data_quality";
+  description: string;
+}
+
 // JSONB shape for one slide's agent result (Tab 5)
 export interface SlideAgentResult {
   status: "pending" | "running" | "approved" | "rejected";
@@ -179,6 +187,14 @@ export const slideFactoryRuns = pgTable(
     // unchanged slides on Marco retrigger from `error` status.
     slotContentHashes: jsonb("slot_content_hashes")
       .$type<Record<string, string>>(),
+
+    // Bianca — Visual Quality Verification (T2-4)
+    // Populated after deck completion by POST /api/slide-factory-runs/:id/verify.
+    // Status lifecycle: null (not yet run) → "running" → "passed" | "failed" | "error"
+    verificationStatus: text("verification_status")
+      .$type<"running" | "passed" | "failed" | "error">(),
+    verificationLog: jsonb("verification_log")
+      .$type<VerificationFinding[]>(),
 
     // Timestamps
     startedAt: timestamp("started_at", { withTimezone: true }),

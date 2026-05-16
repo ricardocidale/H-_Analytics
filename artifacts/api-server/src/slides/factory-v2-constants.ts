@@ -104,6 +104,25 @@ export const PPTX_CONTENT_TYPE =
 /** admin_resources llm_slot slug for the Lorenzo / Lucca vision pipeline. */
 export const FACTORY_V2_LORENZO_VISION_LLM_SLOT = "factory-v2-lorenzo-vision";
 
+/** admin_resources llm_slot slug for Bianca (visual quality verification). */
+export const BIANCA_VERIFICATION_LLM_SLOT = "bianca-verification";
+
+// ──────────────────────────────────────────────────────────
+// BIANCA — VISUAL QUALITY VERIFICATION
+// ──────────────────────────────────────────────────────────
+
+/** Max output tokens for Bianca's per-batch slide rubric response. */
+export const BIANCA_VERIFICATION_MAX_TOKENS = 2048;
+
+/** LibreOffice PNG conversion timeout for verification renders (ms). */
+export const BIANCA_PNG_CONVERT_TIMEOUT_MS = 60 * 1000;
+
+/** Grace period (ms) between SIGTERM and SIGKILL during LibreOffice cancellation. */
+export const BIANCA_SIGKILL_GRACE_MS = 5 * 1000;
+
+/** Max characters kept from runId when building the tmp working-dir path. */
+export const BIANCA_TMP_DIR_NAME_MAX_LEN = 64;
+
 // ──────────────────────────────────────────────────────────
 // FACTORY V2 — PPTX TEMPLATE SOURCE ROW (U7)
 // ──────────────────────────────────────────────────────────

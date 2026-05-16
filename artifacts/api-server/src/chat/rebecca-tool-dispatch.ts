@@ -62,6 +62,7 @@ import {
   toolDeleteSlideFactoryRun,
   toolTriggerLorenzoIngestion,
   toolTriggerLuccaDraft,
+  toolVerifyFactoryDeck,
 } from "./rebecca-tool-impls-slide-factory";
 import {
   toolTriggerIrisHealthCheck,
@@ -288,6 +289,8 @@ export async function dispatchRebeccaTool(
         return await toolRevokeShare(args, ctx);
       case "delete_slide_factory_run":
         return await toolDeleteSlideFactoryRun(args, ctx);
+      case "verify_factory_deck":
+        return await toolVerifyFactoryDeck(args, ctx);
       case "list_prospective_properties":
         return await toolListProspectiveProperties(ctx);
       case "save_prospective_property":

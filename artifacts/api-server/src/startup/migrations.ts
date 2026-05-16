@@ -405,6 +405,21 @@ export async function runSchemaMigrations() {
     await runPortfolios001();
     await markMigrationApplied("portfolios_001");
   }
+
+  // T2-4 — Bianca visual quality verification columns.
+  // Adds verification_status and verification_log to slide_factory_runs.
+  if (!(await isMigrationApplied("slide_factory_verification_001"))) {
+    const { runSlideFactoryVerification001 } = await import("../migrations/slide-factory-verification-001");
+    await runSlideFactoryVerification001();
+    await markMigrationApplied("slide_factory_verification_001");
+  }
+
+  // admin-resources-014 — Bianca verification LLM slot.
+  if (!(await isMigrationApplied("admin_resources_014"))) {
+    const { runAdminResources014 } = await import("../migrations/admin-resources-014");
+    await runAdminResources014();
+    await markMigrationApplied("admin_resources_014");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
