@@ -4,36 +4,41 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-15T23:35:00Z
+Updated: 2026-05-16T06:10:00Z
 Status: idle
 
 ## Active Branch
 
-main (5cf7fd810 — PR #147 merged)
+main (d3dde140f — slide-factory PPTX batching fix committed)
 
 ## Last Commit on Branch
 
-5cf7fd810  feat: plan-002 U3 — accessor-mediated descriptor reads in exports + research (#147)
+d3dde140f  fix(slide-factory): batch table_cell ops per shape + rebuild-pptx route + overflow bypass
 
 ## What CC Did This Session
 
-- Resolved 25 merge conflicts on feat/replit-plan-002-u3-non-engine-readers (PR #147)
-  after PRs #145, #146, #150 all landed on main while #147 was waiting on CI
-- Fixed post-merge typecheck errors: duplicate SEED_JANO_GRANDE_ROOM_COUNT,
-  duplicate mockup component entry, duplicate JSX className props in
-  CompensationSection/FixedOverheadSection/VariableCostsSection
-- Merged PR #147 (5cf7fd810) — all 5 backlog PRs now on main
+T0-3 (slide factory pptxR2Key=null fix):
+- Fixed builder-substitution-entries.ts: corrected code→template slide number mapping
+  (Sofia=2, Bianca=4, Chiara=5, Dario=1, Elisa=3, Felix=6) and DEFAULT_SHAPE_NAMES
+  from python-pptx inspection of the v7 template
+- Added `rebuild-pptx` route (POST /api/lb-slides/factory/runs/:id/rebuild-pptx):
+  reassembles PPTX from luccaDraft for complete runs with null pptxR2Key
+- Fixed pptx-substitution.ts: batched all table_cell entries per shape into one
+  setTableData call (applyTableCellsBatched) — resolves sliceRows corruption
+- Added skipOverflowCheck + requiredSlideNumbers options to substituteSlots
+- Made soffice unavailability graceful (PPTX-only upload fallback)
+- Fixed deckR2Key aliasing so GET /download works (ADV-003)
+- Run 10 verified: Table 4 → 4 rows × 3 cols, all 6 slides, all text substitutions correct
+- Committed migration 0069 (pptxR2Key + pdfR2Key columns)
+- /ce-compound: documented the setTableData batching bug at
+  docs/solutions/logic-errors/pptx-automizer-table-cell-batching-1x1-corruption-2026-05-16.md
+  + added 4th constraint to pptx-substitution-library-decision-2026-05-11.md
 
 ## What's Pending
 
+- T1-1 through T1-5 (master plan 2026-05-16) — blocked behind T0-3, now unblocked
 - Plan 006 Phase 2 (DEFAULT_* constants → DB) — long-term incremental
-
-- U1 (from Plan 2026-05-13-001): re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration
-
-- `refiMaxLtvToOriginal` is dead code for demo properties (all use `purchase_price` basis).
-  Not urgent — documented in memory file project-irr-refi.md.
-
-- Deferred CodeRabbit findings from PR #147 (advisory, not yet addressed):
+- Deferred CodeRabbit findings from PR #147 (advisory):
   - `brandId` FK `onDelete: "restrict"` needs migration (lib/db/src/schema/properties.ts)
   - `analyst-admin-runners-mgmt.ts` double-cast
   - `bracket-assignment-minion.ts` EMPTY_PORTFOLIO_DEFAULT_MIX

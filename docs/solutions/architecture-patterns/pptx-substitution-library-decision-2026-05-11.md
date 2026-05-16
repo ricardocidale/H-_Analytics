@@ -1,7 +1,7 @@
 ---
 title: "Factory v2 PPTX substitution: pptx-automizer is the chosen library"
 date: 2026-05-11
-last_updated: 2026-05-11
+last_updated: 2026-05-16
 category: architecture-patterns
 module: slides
 problem_type: decision_record
@@ -72,6 +72,7 @@ Three things the spike surfaced that U4 must handle:
 1. **`cleanup: true` is unsafe on our canonical PPTX.** Triggers a content-tracker walk in `pptx-automizer` that hits a relation-map bug (`Cannot read properties of undefined (reading 'filename')` in `content-tracker.ts:283`). The output is still valid without cleanup — leave `cleanup: false` in production until upstream fixes the bug or we prove the v7 reconstruction package PPTX has cleaner relations.
 2. **Use `modify.setText`, not `modify.replaceText`, for slot writes.** The intra-shape find/replace path (`replaceText`) trips a different content-tracker code path on this template. `setText` (full-shape overwrite) is what we want anyway — Lucca emits final slot text and Marco/Builders overwrite shapes wholesale; we never need to find/replace *within* an existing string.
 3. **Image-swap surface is fragile.** `ModifyImageHelper.setRelationTarget(...)` plus `loadMedia(...)` fails with a relation-tracking error on the canonical Belleayre PPTX's picture shapes. The v7 reconstruction package's per-shape bbox manifest (deferred to U4 per the plan's "Deferred to Implementation" section) should give us cleaner relations to target. If the v7 PPTX's picture shapes are still problematic, slide-6's image-embed path (R6 — `format-generators/*` PNG embedded in a PPTX picture shape) becomes the fallback worth proving early.
+4. **`setTableData` is a destructive full-replace — never call it once per cell.** Internally, `setTableData` calls `sliceRows(n)` and `sliceCols(m)` which physically trim the table XML to exactly `data.body.length` rows and `data.body[0].values.length` cols. Calling it once per `table_cell` entry (each with a 1-row body) causes `sliceRows(1)` to destroy all other rows on the first call, leaving a `1 rows x 1 cols` table with only the first cell intact and no error thrown. Fix: collect all `table_cell` entries for a given shape, then call `setTableData` exactly once with the full `(maxRow+1) x (maxCol+1)` body matrix. See `docs/solutions/logic-errors/pptx-automizer-table-cell-batching-1x1-corruption-2026-05-16.md` for the full root cause analysis and code fix.
 
 ## Bundle / externals impact
 
