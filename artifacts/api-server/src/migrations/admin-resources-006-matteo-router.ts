@@ -223,6 +223,40 @@ const LLM_SLOT_ROWS: SeedRow[] = [
   },
 ];
 
+// ── Matteo routing feature flags (kind='parameter') ───────────────────────
+// Each flag is a numeric boolean: 0 = off (default), 1 = on.
+// Admins flip the value via the admin_resources update endpoint without a deploy.
+// Call sites read via getParameterValue(slug, 0) — zero is the safe default.
+const PARAMETER_ROWS: SeedRow[] = [
+  {
+    kind: "parameter",
+    slug: "matteo-enable-bulk-text-synthesis",
+    displayName: "Matteo: Enable Bulk Text Synthesis",
+    description:
+      "Feature flag — routes eligible text-synthesis calls through the bulk-text-synthesis slot (DeepSeek V4 Flash). " +
+      "0 = off (original model), 1 = on. Flip after 7-day quality monitoring window.",
+    config: { value: 0, notes: "T3-1 Matteo routing flag. Safe default: 0 (off)." },
+  },
+  {
+    kind: "parameter",
+    slug: "matteo-enable-structured-extraction",
+    displayName: "Matteo: Enable Structured Extraction",
+    description:
+      "Feature flag — routes eligible structured-extraction calls through the structured-extraction slot (Gemini 2.5 Flash). " +
+      "0 = off (original model), 1 = on.",
+    config: { value: 0, notes: "T3-1 Matteo routing flag. Safe default: 0 (off)." },
+  },
+  {
+    kind: "parameter",
+    slug: "matteo-enable-pdf-ocr-extraction",
+    displayName: "Matteo: Enable PDF OCR Extraction",
+    description:
+      "Feature flag — routes PDF text-extraction calls through the pdf-ocr-extraction slot (Mistral OCR 3). " +
+      "0 = off (original Document AI path), 1 = on.",
+    config: { value: 0, notes: "T3-1 Matteo routing flag. Safe default: 0 (off)." },
+  },
+];
+
 async function batchInsert(rows: SeedRow[]): Promise<number> {
   if (rows.length === 0) return 0;
   const values = sql.join(
@@ -255,6 +289,11 @@ export async function runAdminResources006MatteoRouter(): Promise<void> {
   const slotsSeeded = await batchInsert(LLM_SLOT_ROWS);
   logger.info(
     `${TAG} llm_slot rows: ${slotsSeeded} seeded (${LLM_SLOT_ROWS.length - slotsSeeded} already existed)`,
+  );
+
+  const paramsSeeded = await batchInsert(PARAMETER_ROWS);
+  logger.info(
+    `${TAG} parameter rows: ${paramsSeeded} seeded (${PARAMETER_ROWS.length - paramsSeeded} already existed)`,
   );
 
   logger.info(

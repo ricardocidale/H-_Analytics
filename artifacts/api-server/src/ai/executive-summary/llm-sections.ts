@@ -6,8 +6,9 @@
  */
 
 import type { Property } from "@workspace/db";
-import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../clients";
 import { resolveLlmFor } from "../llm-config-resolver";
+import { generateText } from "../dispatch";
+import { getParameterValue } from "../parameter-resolver";
 import { logger } from "../../logger";
 import { AI_EXEC_SUMMARY_FULL_MAX_TOKENS, AI_EXEC_SUMMARY_SECTION_MAX_TOKENS } from "../../constants";
 import { pct, dollars, getRegulatoryHighlights } from "./finance-helpers";
@@ -29,33 +30,17 @@ async function callLlmForText(
   userPrompt: string,
   maxTokens: number,
 ): Promise<string> {
-  const { vendor, modelId } = await resolveLlmFor(slot);
-  if (vendor === "anthropic") {
-    const client = getAnthropicClient();
-    const response = await client.messages.create({
-      model: modelId,
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    return block && block.type === "text" ? block.text : "";
-  } else if (vendor === "openai") {
-    const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: modelId,
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    return response.choices[0]?.message?.content ?? "";
-  } else {
-    const client = getGeminiClient();
-    const response = await client.models.generateContent({
-      model: modelId,
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      config: { maxOutputTokens: maxTokens },
-    });
-    return response.text ?? "";
-  }
+  const flagEnabled = (await getParameterValue("matteo-enable-bulk-text-synthesis", 0)) !== 0;
+  const resolvedSlot = flagEnabled ? "bulk-text-synthesis" : slot;
+  const { vendor, modelId } = await resolveLlmFor(resolvedSlot);
+  const { text } = await generateText({
+    llm: { vendor, model: modelId },
+    prompt: userPrompt,
+    maxTokens,
+    operation: resolvedSlot,
+    route: "executive-summary",
+  });
+  return text;
 }
 
 export async function generateLLMPropertySections(
