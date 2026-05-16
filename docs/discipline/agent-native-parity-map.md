@@ -278,3 +278,9 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | Generate / regenerate executive summary | Property → Executive Summary → Analyst button | `generate_executive_summary` | ✅ |
 | Rewrite property description (as-purchased) | Property → Edit → Description → Improve with AI | `rewrite_property_description` | ✅ |
 | Rewrite property description (as-improved) | Property → Edit → Description Improved | `rewrite_property_description` | ✅ (UI button pending — Replit-safe) |
+
+## LLM Cost Monitoring Actions (T3-1)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| View LLM cost summary by slot/model | Admin → LLM Workflows → Cost tab | `download_llm_cost_summary` | ✅ |

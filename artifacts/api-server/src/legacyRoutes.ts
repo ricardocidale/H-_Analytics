@@ -55,6 +55,7 @@ import * as portfolioRoutes from "./routes/portfolios";
 import * as slideFactoryVerificationRoutes from "./routes/slide-factory-verification";
 import { propertySlidesRouter } from "./routes/property-slides";
 import * as brandAssetsRoutes from "./routes/brand-assets";
+import * as adminLlmCostRoutes from "./routes/admin-llm-cost";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -89,6 +90,7 @@ export async function registerRoutes(
   premiumExportRoutes.register(app);
   exportGenerateRoutes.register(app);
   adminIntegrationRoutes.register(app);
+  adminLlmCostRoutes.register(app);
   geospatialRoutes.register(app);
   notificationRoutes.register(app);
   documentRoutes.register(app);

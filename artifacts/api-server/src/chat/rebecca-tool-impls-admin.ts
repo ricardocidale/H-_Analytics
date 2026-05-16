@@ -856,3 +856,25 @@ export async function toolUpdateBracketMix(
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// download_llm_cost_summary — Matteo model router (T3-1 U6)
+// ---------------------------------------------------------------------------
+
+export async function toolDownloadLlmCostSummary(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const DEFAULT_WINDOW_DAYS = 30;
+  const rawDays = typeof args.windowDays === "number" ? args.windowDays : DEFAULT_WINDOW_DAYS;
+  if (!Number.isFinite(rawDays) || rawDays <= 0) {
+    return { result: { error: "windowDays must be a positive number" } };
+  }
+
+  const { computeLlmCostSummary } = await import("../routes/admin-llm-cost");
+  const windowDays = Math.floor(rawDays);
+  return { result: await computeLlmCostSummary(windowDays) };
+}
