@@ -30,7 +30,7 @@ import {
   calculateLoanParams,
   getAcquisitionYear,
 } from "../debt/loanCalculations";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, MONTHS_PER_YEAR } from "@norfolk/shared/constants";
+import { MONTHS_PER_YEAR } from "@norfolk/shared/constants";
 
 /** Superset of all yearly fields needed by IS, CF, BS, and export consumers. */
 export interface YearlyPropertyFinancials {
@@ -308,8 +308,8 @@ export function aggregateUnifiedByYear(
 ): UnifiedYearlyResult {
   const loan = calculateLoanParams(property, global);
   const acquisitionYear = getAcquisitionYear(loan);
-  const exitCapRate = property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
+  const exitCapRate = property.exitCapRate;
+  const commissionRate = property.dispositionCommission;
 
   const yearlyIS: YearlyPropertyFinancials[] = [];
   const yearlyCF: YearlyCashFlowResult[] = [];

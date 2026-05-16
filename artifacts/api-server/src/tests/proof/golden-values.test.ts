@@ -61,6 +61,9 @@ const BASE_COSTS = {
   revShareEvents: 0.0,
   revShareFB: 0.0,
   revShareOther: 0.0,
+  landValuePercent: 0.25,
+  exitCapRate: 0.085,
+  dispositionCommission: 0.05,
 };
 
 // ── Shared helper ─────────────────────────────────────────────────────────────

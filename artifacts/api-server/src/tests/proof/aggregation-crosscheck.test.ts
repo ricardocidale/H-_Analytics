@@ -42,6 +42,9 @@ describe('T_C: Monthly-to-Yearly Aggregation Cross-Check (T007)', () => {
     revShareEvents: 0.1,
     revShareFB: 0.2,
     revShareOther: 0.05,
+    landValuePercent: 0.25,
+    exitCapRate: 0.085,
+    dispositionCommission: 0.05,
   };
 
   it('correctly sums 12 monthly values into yearly totals for a 5-year projection', () => {

@@ -13,7 +13,6 @@ import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
-  DEFAULT_LAND_VALUE_PERCENT,
   BUSINESS_MODEL_DEFAULTS,
 } from '@norfolk/shared/constants';
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
@@ -159,7 +158,7 @@ export function resolvePropertyAssumptions(
   const opsStart = startOfMonth(parseLocalDate(property.operationsStartDate));
   const acquisitionDate = property.acquisitionDate ? startOfMonth(parseLocalDate(property.acquisitionDate)) : opsStart;
 
-  const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = property.landValuePercent;
   const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
 
   // Audit #319 R4: factory baseline now flows through the model-constants registry.
