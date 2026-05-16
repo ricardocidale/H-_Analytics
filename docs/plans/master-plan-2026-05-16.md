@@ -30,9 +30,9 @@ Every CC or Replit session should open this file first. Before writing a line of
 | Rebecca (AI assistant) | ✅ 104 tools, near-full parity | NO | 2 minor deferred gaps; 1 N/A |
 | Agent infrastructure (Costantino, Pietro, Iris, Vito) | ✅ All working | NO | 27 DB-driven LLM slots |
 | Railway deployment | ✅ Complete | YES | Zero hard Replit dependencies |
-| Admin default scenario per user | ❌ Missing | NO | Needs `users.assignedScenarioId` + hydration |
+| Admin default scenario per user | ✅ Done (2026-05-16) | NO | `users.assignedScenarioId`; EditUserDialog dropdown; hydration at login |
 | Management company / investor view separation | ✅ Done (2026-05-16) | NO | perspectiveRole on scenarios; compute strips mgmt co P&L for investor |
-| Portfolio grouping (sub-groups) | ❌ Missing | NO | Flat property list; aggregation at query level only |
+| Portfolio grouping (sub-groups) | ✅ Done (2026-05-16) | NO | portfolios table + assign UI; unassigned properties section on Portfolio page |
 | Model router (Matteo) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
 | Dreaming on research | ❌ Not started | NO | Phase 2 — research memory accumulation |
 | Email existence leak in sharing | ⚠️ Security bug | NO | Returns 201 instead of 404 on unknown email |
@@ -152,7 +152,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-2: Portfolio grouping
-**Status:** ✅ Phase complete (2026-05-16) — schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. UI portfolio selector remains (Replit-safe handoff).
+**Status:** ✅ Complete (2026-05-16) — CC: schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. Replit: "Unassigned Properties" section on Portfolio.tsx with per-row dropdown + "Assign to portfolio" button; calls PUT /api/properties/:id/portfolio, invalidates properties query.
 **Context:** Multiple users need to be able to see different groupings of properties (e.g., "Southeast Portfolio," "Colombia Properties"). Currently all properties in a company are a flat list.
 **Done when:**
 - `portfolios` table: `(id, userId, companyId, name, description, createdAt)`
@@ -168,7 +168,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-3: Analyst button — content generation discipline
-**Status:** ⚠️ Partial (2026-05-16) — audit complete; `generate_executive_summary` + `rewrite_property_description` Rebecca tools shipped; UI button for descriptionImproved pending (Replit-safe)
+**Status:** ✅ Complete (2026-05-16) — CC: audit, `generate_executive_summary` + `rewrite_property_description` Rebecca tools. Replit: `ImprovedDescriptionField.tsx` extracted from `BasicInfoSection.tsx` (view/edit toggle, "Improve with AI" preview dialog, Clear + Done; `data-testid="input-description-improved"`).
 **Context:** The vision is that users regenerate content rather than type it. Every text field with variable content should have an Analyst button that populates it from research or AI inference.
 **Done when:**
 - Audit of all property and scenario text fields: list which have Analyst buttons and which don't
@@ -192,7 +192,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 - Rebecca `verify_factory_deck` tool for agent-native parity
 - LLM slot `bianca-verification` seeded via admin-resources-014 (defaults to Claude Haiku)
 
-**Note:** UI integration (Tab 6 verify button) is a Replit-safe handoff task.
+**Note:** UI integration shipped by Replit — "Verify deck quality" button in DownloadTab.tsx, collapsible findings panel with severity dots, auto-expands prior results on load. `SlideFactoryTypes.ts` updated with `VerificationFinding` interface and 5 new run fields.
 
 ---
 
