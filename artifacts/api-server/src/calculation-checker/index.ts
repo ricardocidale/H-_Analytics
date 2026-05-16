@@ -7,7 +7,6 @@ import {
   CHECKER_BALANCE_SHEET_TOLERANCE,
   CHECKER_MIN_DSCR,
   MONTHS_PER_YEAR,
-  DEFAULT_OCCUPANCY_RAMP_MONTHS,
 } from "@shared/constants";
 import { dPow } from "@calc/shared/decimal";
 import type {
@@ -216,7 +215,7 @@ export function runIndependentVerification(
     }
 
     if (property.type === "Financed" && loanAmount > 0) {
-      const rampMonths = property.occupancyRampMonths ?? DEFAULT_OCCUPANCY_RAMP_MONTHS;
+      const rampMonths = property.occupancyRampMonths;
       const startOcc = property.startOccupancy ?? 0;
       const maxOcc = property.maxOccupancy ?? 1;
       const growthStep = property.occupancyGrowthStep ?? 0;

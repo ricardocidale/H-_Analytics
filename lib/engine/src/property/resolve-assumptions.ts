@@ -14,7 +14,6 @@ import {
   DEFAULT_TERM_YEARS,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_OCCUPANCY_RAMP_MONTHS,
   BUSINESS_MODEL_DEFAULTS,
 } from '@norfolk/shared/constants';
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
@@ -303,7 +302,7 @@ export function resolvePropertyAssumptions(
   const baseMgmtFeeRate = property.baseManagementFeeRate ?? modelDefaults.baseMgmtFeeRate;
   const activeFeeCategories = property.feeCategories?.filter(c => c.isActive);
   const hasActiveFeeCategories = activeFeeCategories != null && activeFeeCategories.length > 0;
-  const rampMonths = Math.max(1, property.occupancyRampMonths ?? DEFAULT_OCCUPANCY_RAMP_MONTHS);
+  const rampMonths = Math.max(1, property.occupancyRampMonths);
   const availableRooms = property.roomCount * daysPerMonth;
   const totalPropertyValueDiv12 = totalPropertyValue / MONTHS_PER_YEAR;
   const isFinanced = property.type === "Financed";
