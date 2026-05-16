@@ -93,8 +93,14 @@ export const SLOT_GROUPS: {
   {
     id: "data-extraction",
     label: "Data Extraction",
-    description: "URL scraping and grounded web research",
-    slots: ["url-extraction", "grounded-web-research"],
+    description: "URL scraping, grounded web research, PDF OCR, and bulk synthesis",
+    slots: [
+      "url-extraction",
+      "grounded-web-research",
+      "pdf-ocr-extraction",
+      "structured-extraction",
+      "bulk-text-synthesis",
+    ],
   },
   {
     id: "image-gen",
@@ -105,8 +111,8 @@ export const SLOT_GROUPS: {
   {
     id: "system",
     label: "System Operations",
-    description: "Analyst table refresh and constants regeneration",
-    slots: ["analyst-table-refresh", "regen-constants"],
+    description: "Analyst table refresh, constants regeneration, and Costantino orchestration",
+    slots: ["analyst-table-refresh", "regen-constants", "costantino-orchestration"],
   },
 ];
 

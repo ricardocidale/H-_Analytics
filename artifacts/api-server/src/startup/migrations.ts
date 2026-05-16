@@ -428,6 +428,16 @@ export async function runSchemaMigrations() {
     await runScenarioPerspectiveRole001();
     await markMigrationApplied("scenario_perspective_role_001");
   }
+
+  // T3-1 — Matteo model router seed.
+  // Adds DeepSeek/Mistral model rows, Mistral OCR API row, new llm_slot rows
+  // (pdf-ocr-extraction, structured-extraction, bulk-text-synthesis), and
+  // fixes the missing costantino-orchestration slot that caused resolver throws.
+  if (!(await isMigrationApplied("admin_resources_006_matteo_router"))) {
+    const { runAdminResources006MatteoRouter } = await import("../migrations/admin-resources-006-matteo-router");
+    await runAdminResources006MatteoRouter();
+    await markMigrationApplied("admin_resources_006_matteo_router");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

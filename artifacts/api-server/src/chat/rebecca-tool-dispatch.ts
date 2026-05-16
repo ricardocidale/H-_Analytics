@@ -114,6 +114,7 @@ import {
   toolGetMgmtCoMarkupFactors,
   toolGetBracketMix,
   toolUpdateBracketMix,
+  toolDownloadLlmCostSummary,
 } from "./rebecca-tool-impls-admin";
 import {
   toolListPortfolios,
@@ -325,6 +326,8 @@ export async function dispatchRebeccaTool(
         return await toolGetBracketMix(ctx);
       case "update_bracket_mix":
         return await toolUpdateBracketMix(args, ctx);
+      case "download_llm_cost_summary":
+        return await toolDownloadLlmCostSummary(args, ctx);
       case "generate_financial_report_export_link":
         return toolGenerateFinancialReportExportLink(args);
       case "generate_executive_summary":

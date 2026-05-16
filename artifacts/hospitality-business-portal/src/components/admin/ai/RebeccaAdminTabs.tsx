@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { IconSettings, IconAlertCircle, IconShield, IconTrendingUp, IconSparkles } from "@/components/icons";
 import { motion } from "framer-motion";
 import RebeccaConfigTab from "./RebeccaConfigTab";
@@ -14,6 +14,14 @@ interface RebeccaAdminTabsProps {
   initialTab?: string;
 }
 
+const REBECCA_TABS = [
+  { value: "personas",      label: "AI Agents",     icon: IconSparkles },
+  { value: "configuration", label: "Configuration", icon: IconSettings },
+  { value: "guardrails",    label: "Guardrails",    icon: IconShield },
+  { value: "feedback",      label: "Feedback",      icon: IconAlertCircle },
+  { value: "analytics",     label: "Analytics",     icon: IconTrendingUp },
+];
+
 export default function RebeccaAdminTabs({ configProps, initialTab }: RebeccaAdminTabsProps) {
   const [activeTab, setActiveTab] = useState(initialTab || "configuration");
 
@@ -26,51 +34,19 @@ export default function RebeccaAdminTabs({ configProps, initialTab }: RebeccaAdm
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
+      className="space-y-4"
+      data-testid="rebecca-admin-tabs"
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-muted/40 border border-border/40" data-testid="rebecca-admin-tabs">
-          <TabsTrigger value="personas" className="gap-1.5 text-xs" data-testid="tab-personas">
-            <IconSparkles className="w-3.5 h-3.5" />
-            AI Agents
-          </TabsTrigger>
-          <TabsTrigger value="configuration" className="gap-1.5 text-xs" data-testid="tab-configuration">
-            <IconSettings className="w-3.5 h-3.5" />
-            Configuration
-          </TabsTrigger>
-          <TabsTrigger value="guardrails" className="gap-1.5 text-xs" data-testid="tab-guardrails">
-            <IconShield className="w-3.5 h-3.5" />
-            Guardrails
-          </TabsTrigger>
-          <TabsTrigger value="feedback" className="gap-1.5 text-xs" data-testid="tab-feedback">
-            <IconAlertCircle className="w-3.5 h-3.5" />
-            Feedback
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-1.5 text-xs" data-testid="tab-analytics">
-            <IconTrendingUp className="w-3.5 h-3.5" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="personas" className="mt-0">
-          <AgentPersonasTab />
-        </TabsContent>
-
-        <TabsContent value="configuration" className="mt-0">
-          <RebeccaConfigTab {...configProps} />
-        </TabsContent>
-
-        <TabsContent value="guardrails" className="mt-0">
-          <GuardrailEditor />
-        </TabsContent>
-
-        <TabsContent value="feedback" className="mt-0">
-          <RebeccaFeedbackTab />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="mt-0">
-          <RebeccaAnalyticsTab />
-        </TabsContent>
-      </Tabs>
+      <CurrentThemeTab
+        tabs={REBECCA_TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+      {activeTab === "personas"      && <AgentPersonasTab />}
+      {activeTab === "configuration" && <RebeccaConfigTab {...configProps} />}
+      {activeTab === "guardrails"    && <GuardrailEditor />}
+      {activeTab === "feedback"      && <RebeccaFeedbackTab />}
+      {activeTab === "analytics"     && <RebeccaAnalyticsTab />}
     </motion.div>
   );
 }

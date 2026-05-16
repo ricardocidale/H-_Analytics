@@ -1,5 +1,5 @@
 {
-  "_comment": "LLM pricing tables. Updated 2026-03. Verify quarterly against provider pricing pages.",
+  "_comment": "LLM pricing tables. Updated 2026-05. Verify quarterly against provider pricing pages.",
   "tokenPricing": {
     "claude-opus-4-6":             { "input": 15.00,  "output": 75.00 },
     "claude-sonnet-4-6":           { "input": 3.00,   "output": 15.00 },
@@ -12,14 +12,19 @@
     "gemini-2.5-pro":              { "input": 1.25,   "output": 10.00 },
     "gemini-2.5-flash-image":      { "input": 0.15,   "output": 0.60 },
     "sonar":                       { "input": 1.00,   "output": 1.00 },
-    "sonar-pro":                   { "input": 3.00,   "output": 15.00 }
+    "sonar-pro":                   { "input": 3.00,   "output": 15.00 },
+    "deepseek-v4-flash":           { "input": 0.27,   "output": 1.10 },
+    "deepseek-v4":                 { "input": 0.55,   "output": 2.19 },
+    "mistral-large-latest":        { "input": 2.00,   "output": 6.00 },
+    "mistral-small-latest":        { "input": 0.20,   "output": 0.60 }
   },
   "unitPricing": {
-    "replicate-image":  0.01,
-    "gpt-image-1":      0.04,
-    "resend-email":     0.001,
-    "document-ai-page": 0.01,
-    "google-maps":      0.005
+    "replicate-image":    0.01,
+    "gpt-image-1":        0.04,
+    "resend-email":       0.001,
+    "document-ai-page":   0.01,
+    "google-maps":        0.005,
+    "mistral-ocr-page":   0.002
   },
   "serviceDefaults": {
     "anthropic":   { "input": 3.00,  "output": 15.00 },
@@ -27,6 +32,8 @@
     "gemini":      { "input": 0.15,  "output": 0.60 },
     "perplexity":  { "input": 1.00,  "output": 1.00 },
     "exa":         { "input": 0.00,  "output": 0.00 },
-    "tavily":      { "input": 0.00,  "output": 0.00 }
+    "tavily":      { "input": 0.00,  "output": 0.00 },
+    "deepseek":    { "input": 0.27,  "output": 1.10 },
+    "mistral":     { "input": 0.20,  "output": 0.60 }
   }
 }

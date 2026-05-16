@@ -73,6 +73,7 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
     otherDirtyCount,
     batchSavePending,
     handleSlotSave,
+    costBySlot,
   } = useSlotAssignments(category);
 
   // Close the navigation gap: if the admin clicks another Intelligence
@@ -138,6 +139,7 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
           originalSlugs={originalSlugs}
           modelsByVendor={modelsByVendor}
           registry={registry}
+          costBySlot={costBySlot}
           category={category}
         />
       )}

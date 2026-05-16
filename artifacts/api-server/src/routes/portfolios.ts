@@ -98,7 +98,16 @@ export function register(app: Express) {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PORT-016" });
 
-      const { portfolioId } = req.body as { portfolioId: number | null };
+      const rawPortfolioId = (req.body as { portfolioId?: unknown })?.portfolioId;
+      if (rawPortfolioId !== null && rawPortfolioId !== undefined && typeof rawPortfolioId !== "number") {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "portfolioId must be a number or null", code: "PORT-020" });
+      }
+      const portfolioId = rawPortfolioId as number | null | undefined;
+
+      // Ownership check before write — prevent unauthorized mutation
+      const existing = await storage.getProperty(propertyId);
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018" });
+      if (existing.userId !== user.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PORT-019" });
 
       // Validate target portfolio belongs to user (if assigning)
       if (portfolioId !== null && portfolioId !== undefined) {
@@ -107,12 +116,7 @@ export function register(app: Express) {
       }
 
       const updated = await storage.updateProperty(propertyId, { portfolioId: portfolioId ?? null });
-      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018" });
-
-      // Ownership check — updateProperty doesn't filter by userId
-      if (updated.userId !== user.id) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PORT-019" });
-      }
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018b" });
 
       res.status(HTTP_200_OK).json(updated);
     } catch (error: unknown) {

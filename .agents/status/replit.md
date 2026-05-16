@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T15:35:00Z
+Updated: 2026-05-16T17:33:00Z
 Status: idle
 
 ## Active Branch
@@ -13,35 +13,32 @@ main
 
 ## Last Commit on Branch
 
-feat(ui): T2-3 ImprovedDescriptionField + T2-4 verify deck + T2-2 unassigned properties
+feat(admin): Brand & Appearance restructure — 8 IUs complete
 
 ## What Replit Did This Session
 
-T2-3 (ImprovedDescriptionField component):
-- ImprovedDescriptionField.tsx (new): follows AsPurchasedDescriptionField pattern,
-  bound to `descriptionImproved` only (no dual-write), data-testid="input-description-improved",
-  view/edit toggle + AI rewrite dialog
-- BasicInfoSection.tsx: added import, replaced inline <Textarea> block with
-  <ImprovedDescriptionField draft={draft} onChange={onChange} />
+Brand & Appearance admin restructure (Plan 2026-05-16-brand-appearance-restructure.md, all 8 IUs):
 
-T2-4 (Verify deck quality in DownloadTab):
-- SlideFactoryTypes.ts: added VerificationFinding interface + pdfR2Key,
-  wishListLog, slotContentHashes, verificationStatus, verificationLog fields to
-  SlideFactoryRun
-- DownloadTab.tsx: added isVerifying state + handleVerify (POST .../verify),
-  verify button shown when hasPptx, findings collapsible panel with severity
-  dots (emerald/sky/amber/red) and category labels, auto-opens on page load
-  when existing results are present
+IU-1: AnalystCubeIcon.tsx — `playing` prop added; `suppressMotion = prefersReducedMotion || !playing` replaces bare `prefersReducedMotion` checks throughout; `decorative`/`ariaLabel` a11y props added.
 
-T2-2 (Unassigned properties section in Portfolio page):
-- Portfolio.tsx: added useQuery (GET /api/portfolios), useMutation
-  (PUT /api/properties/:id/portfolio), useQueryClient; added
-  "Unassigned Properties" section with portfolio Select dropdown and
-  per-property "Assign to portfolio" button; filtered from existing
-  useProperties() data on portfolioId == null
+IU-2: HplusLogoAnimated.tsx (new) — framer-motion float+pulse wrapper around @/assets/logo.png; `playing` prop, `decorative`/`ariaLabel` a11y props; gracefully reduces to static when `!playing` or `prefers-reduced-motion`.
 
-Typecheck: all 4 packages pass clean. Flex-label-overflow: 184/184 baseline. Magic-numbers: pass.
-Pre-existing lint errors in api-server (variable-shadowing in slide-factory routes, CC-owned) — not introduced by Replit.
+IU-3: AnimationsTab.tsx (new) — card grid of animation previews (H+ Logo, Cube); each card has independent Play/Pause state, initialises paused; uses IconPlay/IconPause.
+
+IU-4: BrandAssetsPage.tsx (new) — three sub-tabs (Logos, Brand Assets, Animations) using CurrentThemeTab pattern; lazy-loads BrandAssetsTab + AnimationsTab.
+
+IU-5: ThemesSection.tsx (new) — thin wrapper rendering ThemesTab; registered as lazy-import in Admin.tsx.
+
+IU-6: AdminSidebar.tsx — AdminSection union: replaced `"brand"` with `"brand-themes" | "brand-assets-page"` as canonicals; `"brand"` moved to legacy aliases. SECTION_REDIRECTS: `"brand"→"brand-assets-page"`, `"logos"→"brand-assets-page"`, `"themes"→"brand-themes"`. buildNavGroups Brand group: two items (Themes/IconSwatchBook + Brand Assets/IconImage) replacing old single Brand Settings entry.
+
+IU-7: Admin.tsx — lazy imports swapped (BrandTab removed, ThemesSection + BrandAssetsPage added); sectionMeta entries added for brand-themes and brand-assets-page; switch cases updated.
+
+IU-8: BrandTab.tsx — deleted (no remaining references).
+
+graphics/index.ts — barrel-exports HplusLogoAnimated and AnalystCubeIcon.
+
+Validation: typecheck ✅ (4/4 packages), spinner-contrast ✅, portal lint ✅.
+Pre-existing lint failure in api-server/src/chat/rebecca-tool-impls-slide-factory.ts (CC-owned no-shadow errors) — not introduced by Replit.
 
 ## Files Replit Owns Right Now
 

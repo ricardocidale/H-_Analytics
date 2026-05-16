@@ -60,6 +60,11 @@ interface CurrentThemeTabItem {
    * Pass a tailwind text-color token (e.g. "text-amber-500", "text-red-500").
    */
   statusDot?: string;
+  /**
+   * Optional numeric badge rendered next to the label (e.g. item counts).
+   * Shown as a small rounded pill. Hidden when undefined.
+   */
+  count?: number;
 }
 
 interface CurrentThemeTabProps {
@@ -96,6 +101,11 @@ function CurrentThemeTab({ tabs, activeTab, onTabChange, rightContent }: Current
                   )} />
                 )}
                 <span className="text-xs sm:text-sm">{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[9px] font-semibold tabular-nums bg-foreground/10 text-foreground/60 px-1 leading-none shrink-0">
+                    {tab.count}
+                  </span>
+                )}
                 {tab.statusDot && (
                   <span
                     className={cn("inline-block w-1.5 h-1.5 rounded-full bg-current", tab.statusDot)}

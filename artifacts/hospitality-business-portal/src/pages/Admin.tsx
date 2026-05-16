@@ -34,7 +34,8 @@ const ModelDefaultsTab = lazy(() => import("@/components/admin/ModelDefaultsTab"
 const ScenariosTab = lazy(() => import("@/components/admin/ScenariosTab"));
 const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox"));
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
-const BrandTab = lazy(() => import("@/components/admin/BrandTab"));
+const ThemesSection   = lazy(() => import("@/components/admin/ThemesSection"));
+const BrandAssetsPage = lazy(() => import("@/components/admin/BrandAssetsPage"));
 const PropertyHeroImagesTab = lazy(() => import("@/components/admin/PropertyHeroImagesTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
@@ -58,7 +59,9 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   users:                 { title: "Users",                   subtitle: "Manage user accounts and assignments" },
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
   scenarios:             { title: "Scenarios",                subtitle: "Manage all scenarios, ownership, and access grants" },
-  brand:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
+  "brand-themes":        { title: "Themes",       subtitle: "Color palettes, typography, and visual appearance" },
+  "brand-assets-page":  { title: "Brand Assets", subtitle: "Logos, brand assets, and animation previews" },
+  brand:                 { title: "Brand Assets", subtitle: "Logos, brand assets, and animation previews" },
   "ai-agents":           { title: "Rebecca Configuration",   subtitle: "System prompt, personality, and configuration for your AI assistant" },
   "engine-dashboard":    { title: "Research Dashboard",       subtitle: "Coverage, freshness, costs, and system health" },
   "data-sources":        { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
@@ -89,8 +92,8 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   // Legacy URL aliases — page header reuses the canonical section's title.
   // Kept only for plausibly-bookmarked deep links per
   // docs/audits/admin-section-audit-2026-04-20.md §MT.1.
-  logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
-  themes:                { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
+  logos:                 { title: "Brand Assets", subtitle: "Logos, brand assets, and animation previews" },
+  themes:                { title: "Themes",       subtitle: "Color palettes, typography, and visual appearance" },
   llms:                  { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models" },
   sources:               { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models" },
   "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
@@ -192,7 +195,7 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
  * so e.g. the Property page never surfaces Management Company defaults.
  */
 const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[]>> = {
-  "defaults-management-company": ["company", "capital-stack-discipline", "management-co-fees"],
+  "defaults-management-company": ["company", "capital-stack-discipline", "management-co-fees", "brands"],
   "defaults-property":           ["property-underwriting"],
   "defaults-market-macro":       ["market-macro"],
   "constants":                   ["model-constants", "dd-template"],
@@ -231,7 +234,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "users":            return <UsersTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
-    case "brand":            return <BrandTab />;
+    case "brand-themes":     return <ThemesSection />;
+    case "brand-assets-page": return <BrandAssetsPage />;
     case "ai-agents":        return (
       <ErrorBoundary fallback={
         <div className="mt-6 p-8 flex flex-col items-center gap-4 text-center rounded-xl border border-accent-pop/20 bg-accent-pop/10">
