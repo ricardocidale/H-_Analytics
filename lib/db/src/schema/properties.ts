@@ -7,7 +7,6 @@ import { users } from "./auth";
 import type { PriceEvent as PriceEventEntry } from "../price-history";
 import {
   PropertyStatus,
-  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_COST_RATE_ROOMS,
   DEFAULT_COST_RATE_FB,
   DEFAULT_COST_RATE_ADMIN,
@@ -22,9 +21,6 @@ import {
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
-  DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
-  DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_AR_DAYS,
@@ -81,7 +77,7 @@ export const properties = pgTable("properties", {
   
   purchasePrice: real("purchase_price").notNull(),
   buildingImprovements: real("building_improvements").notNull(),
-  landValuePercent: real("land_value_percent").notNull().default(DEFAULT_LAND_VALUE_PERCENT),
+  landValuePercent: real("land_value_percent").notNull().default(0.25),
   preOpeningCosts: real("pre_opening_costs").notNull(),
   operatingReserve: real("operating_reserve").notNull(),
   
@@ -139,12 +135,12 @@ export const properties = pgTable("properties", {
   cateringBoostPercent: real("catering_boost_percent").notNull().default(DEFAULT_CATERING_BOOST_PCT),
   
   // Exit Cap Rate (for property valuation)
-  exitCapRate: real("exit_cap_rate").notNull().default(DEFAULT_EXIT_CAP_RATE),
+  exitCapRate: real("exit_cap_rate").notNull().default(0.085),
   
   // Income Tax Rate (for calculating after-tax free cash flow)
   // NOTE: This is the corporate INCOME tax rate, NOT the property/real-estate tax rate.
   // Property taxes are computed via costRateTaxes (assessed on property value).
-  taxRate: real("tax_rate").notNull().default(DEFAULT_PROPERTY_INCOME_TAX_RATE),
+  taxRate: real("tax_rate").notNull().default(0.25),
 
   // Per-property inflation rate (nullable — NULL means use global default)
   inflationRate: real("inflation_rate"),
@@ -153,7 +149,7 @@ export const properties = pgTable("properties", {
   countryRiskPremium: real("country_risk_premium"),
 
   // Disposition (per-property sale commission)
-  dispositionCommission: real("disposition_commission").notNull().default(DEFAULT_COMMISSION_RATE),
+  dispositionCommission: real("disposition_commission").notNull().default(0.05),
 
   // Refinance years after acquisition (when refinancing should occur)
   refinanceYearsAfterAcquisition: integer("refinance_years_after_acquisition"),
