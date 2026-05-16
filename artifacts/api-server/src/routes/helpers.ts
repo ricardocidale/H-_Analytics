@@ -131,6 +131,7 @@ export const createUserSchema = z.object({
 export const createScenarioSchema = z.object({
   name: z.string().min(1).max(60),
   description: z.string().max(1000).nullable().optional(),
+  perspectiveRole: z.enum(["operator", "investor"]).optional(),
 });
 
 export { MAX_SCENARIOS_PER_USER, VARCHAR_SHORT_MAX } from "../constants";

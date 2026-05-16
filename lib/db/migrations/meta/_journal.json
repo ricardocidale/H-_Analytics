@@ -456,6 +456,13 @@
       "when": 1779753600000,
       "tag": "0066_slide_factory_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1779840000000,
+      "tag": "0067_scenario_perspective_role",
+      "breakpoints": true
     }
   ]
 }

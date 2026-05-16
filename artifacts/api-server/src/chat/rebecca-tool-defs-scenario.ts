@@ -39,14 +39,24 @@ export function getScenarioTools(): ToolParam[] {
     },
     {
       name: "update_scenario",
-      description: "Partially update a scenario's fields (name, description, or tags).",
+      description:
+        "Partially update a scenario's fields (name, description, tags, or perspectiveRole). " +
+        "Use perspectiveRole='investor' to switch the scenario to investor perspective — this hides " +
+        "management company P&L from the finance output. Use 'operator' to restore full visibility.",
       parameters: {
         type: "object",
         properties: {
           id: { type: "number", description: "Scenario ID" },
           fields: {
             type: "object",
-            description: "Partial scenario fields to update (name, description, tags)",
+            description: "Partial scenario fields to update. Allowed keys: name, description, tags, perspectiveRole ('operator' | 'investor').",
+            properties: {
+              perspectiveRole: {
+                type: "string",
+                enum: ["operator", "investor"],
+                description: "Perspective role: 'operator' shows full management company financials; 'investor' shows only property-level cash flows.",
+              },
+            },
           },
         },
         required: ["id", "fields"],

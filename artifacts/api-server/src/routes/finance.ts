@@ -22,6 +22,7 @@ import { storage } from "../storage";
 import { parseRouteId } from "./helpers";
 import {
   HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
   HTTP_422_UNPROCESSABLE_ENTITY,
   HTTP_429_TOO_MANY_REQUESTS,
   HTTP_500_INTERNAL_SERVER_ERROR,
@@ -180,6 +181,9 @@ const computeRequestSchema = z.object({
   // letting the ICP page preview revenue impact of a proposed mix without
   // saving it. Only honored by /api/finance/company.
   bracketMix: z.array(bracketMixEntrySchema).optional(),
+  // Investor perspective: when 'investor', strip management company financials
+  // (companyMonthly, companyYearly) from the response. Defaults to 'operator'.
+  perspectiveRole: z.enum(["operator", "investor"]).optional().default("operator"),
 });
 
 const singlePropertyComputeSchema = z.object({
@@ -422,7 +426,7 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allProperties, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride } = validation.data;
+      const { properties: allProperties, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride, perspectiveRole } = validation.data;
       // Overlay admin-governed Model Constants (e.g. daysPerMonth) on top of
       // whatever the client sent. Server is authoritative — admin overrides
       // always win, even against a stale client payload.
@@ -558,7 +562,12 @@ export function registerFinanceRoutes(router: Router): void {
         result.projectionYears,
       );
 
-      return sendSuperjson(res, { ...result, returnsSummary });
+      // Investor perspective: strip management company financials so that
+      // users assigned an investor-perspective scenario cannot see mgmt co P&L.
+      const payload = perspectiveRole === "investor"
+        ? (() => { const { companyMonthly: _cm, companyYearly: _cy, ...publicResult } = result; return { ...publicResult, returnsSummary }; })()
+        : { ...result, returnsSummary };
+      return sendSuperjson(res, payload);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Server computation failed";
       logger.error(`Compute error: ${message}`, "finance");
@@ -769,7 +778,13 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allCompanyProps, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride } = validation.data;
+      const { properties: allCompanyProps, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride, perspectiveRole: companyPerspectiveRole } = validation.data;
+
+      // Investor perspective cannot access management company financials.
+      if (companyPerspectiveRole === "investor") {
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Management company financials are not available in investor perspective", code: "FIN-011" });
+      }
+
       // Overlay admin-governed Model Constants before engine call.
       const globalAssumptions = await withModelConstants(rawGlobal);
       // Defense-in-depth: exclude inactive properties even if client already filtered

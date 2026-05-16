@@ -420,6 +420,14 @@ export async function runSchemaMigrations() {
     await runAdminResources014();
     await markMigrationApplied("admin_resources_014");
   }
+
+  // T2-1 — Investor perspective role column on scenarios.
+  // Adds perspective_role text NOT NULL DEFAULT 'operator' to scenarios.
+  if (!(await isMigrationApplied("scenario_perspective_role_001"))) {
+    const { runScenarioPerspectiveRole001 } = await import("../migrations/scenario-perspective-role-001");
+    await runScenarioPerspectiveRole001();
+    await markMigrationApplied("scenario_perspective_role_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

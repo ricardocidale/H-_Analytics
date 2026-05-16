@@ -295,6 +295,11 @@
       "status": "guarded",
       "guard": "slide-factory-verification-001.ts",
       "reason": "T2-4 \u2014 adds nullable verification_status (text) and verification_log (jsonb) columns to slide_factory_runs for Bianca visual quality verification results. Both columns are idempotent (ADD COLUMN IF NOT EXISTS)."
+    },
+    "0074_scenario_perspective_role": {
+      "status": "guarded",
+      "guard": "scenario-perspective-role-001.ts",
+      "reason": "T2-1 \u2014 adds perspective_role text NOT NULL DEFAULT 'operator' column to scenarios. Existing rows receive 'operator' via the DEFAULT clause. Idempotent (ADD COLUMN IF NOT EXISTS)."
     }
   }
 }
