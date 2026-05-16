@@ -237,11 +237,11 @@ export function EnableToggle({ label, description, enabled, onChange }: {
 }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 min-w-0">
         <Label className="text-sm font-medium">{label}</Label>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch checked={enabled} onCheckedChange={onChange} />
+      <Switch checked={enabled} onCheckedChange={onChange} className="shrink-0" />
     </div>
   );
 }
