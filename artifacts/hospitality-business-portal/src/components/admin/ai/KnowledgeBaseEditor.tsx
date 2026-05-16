@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import {
   IconPlus,
   IconTrash,
@@ -256,15 +256,11 @@ export default function KnowledgeBaseEditor() {
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
-        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="bg-muted/40 border border-border/40">
-            {CATEGORIES.map(c => (
-              <TabsTrigger key={c} value={c} className="text-xs" data-testid={`tab-kb-${c}`}>
-                {CATEGORY_LABELS[c]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <CurrentThemeTab
+          tabs={CATEGORIES.map(c => ({ value: c, label: CATEGORY_LABELS[c] }))}
+          activeTab={activeCategory}
+          onTabChange={setActiveCategory}
+        />
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
           <SelectTrigger className="w-[110px] h-9 text-xs bg-card border-border" data-testid="select-kb-status">
             <SelectValue />

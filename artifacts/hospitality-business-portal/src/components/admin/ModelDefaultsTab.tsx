@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { invalidateAllFinancialQueries } from "@/lib/api";
 import type { AdminSaveState } from "@/components/admin/save-state";
@@ -236,38 +236,32 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
       ? initialTab
       : (visibleTabs && visibleTabs[0]) ?? "company";
 
+  const [activeTab, setActiveTab] = useState(resolvedInitialTab);
+  useEffect(() => {
+    setActiveTab(resolvedInitialTab);
+  }, [resolvedInitialTab]);
+
+  const ALL_MODEL_DEFAULTS_TABS: CurrentThemeTabItem[] = [
+    { value: "company",                  label: "Company" },
+    { value: "capital-stack-discipline", label: "Capital Stack Discipline" },
+    { value: "market-macro",             label: "Market & Macro" },
+    { value: "model-constants",          label: "Model Constants" },
+    { value: "dd-template",              label: "Due Diligence Template" },
+    { value: "property-underwriting",    label: "Property Underwriting" },
+    { value: "management-co-fees",       label: "Management Co Fees" },
+    { value: "brands",                   label: "Brands" },
+  ];
+
   return (
     <div data-testid="admin-app-defaults">
-      <Tabs defaultValue={resolvedInitialTab} key={resolvedInitialTab} className="space-y-4">
-        <TabsList className="bg-muted/50 border border-border/60">
-          {showTab("company") && (
-            <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
-          )}
-          {showTab("capital-stack-discipline") && (
-            <TabsTrigger value="capital-stack-discipline" data-testid="tab-capital-stack-discipline">Capital Stack Discipline</TabsTrigger>
-          )}
-          {showTab("market-macro") && (
-            <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
-          )}
-          {showTab("model-constants") && (
-            <TabsTrigger value="model-constants" data-testid="tab-model-constants">Model Constants</TabsTrigger>
-          )}
-          {showTab("dd-template") && (
-            <TabsTrigger value="dd-template" data-testid="tab-dd-template">Due Diligence Template</TabsTrigger>
-          )}
-          {showTab("property-underwriting") && (
-            <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
-          )}
-          {showTab("management-co-fees") && (
-            <TabsTrigger value="management-co-fees" data-testid="tab-management-co-fees">Management Co Fees</TabsTrigger>
-          )}
-          {showTab("brands") && (
-            <TabsTrigger value="brands" data-testid="tab-brands">Brands</TabsTrigger>
-          )}
-        </TabsList>
+      <div className="space-y-4">
+        <CurrentThemeTab
+          tabs={ALL_MODEL_DEFAULTS_TABS.filter(t => showTab(t.value))}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-        {showTab("company") && (
-          <TabsContent value="company">
+        {activeTab === "company" && (
             <CompanyTab
               draft={draft}
               onChange={handleChange}
@@ -287,11 +281,9 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
                 }
               }}
             />
-          </TabsContent>
         )}
 
-        {showTab("capital-stack-discipline") && (
-          <TabsContent value="capital-stack-discipline">
+        {activeTab === "capital-stack-discipline" && (
             <CapitalStackDisciplineTab
               draft={draft}
               onChange={handleChange}
@@ -312,11 +304,9 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onSave={saveCapitalStackDiscipline}
               onReset={resetCapitalStackDiscipline}
             />
-          </TabsContent>
         )}
 
-        {showTab("market-macro") && (
-          <TabsContent value="market-macro">
+        {activeTab === "market-macro" && (
             <MarketMacroTab
               draft={draft}
               onChange={handleChange}
@@ -325,23 +315,17 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
             />
-          </TabsContent>
         )}
 
-        {showTab("model-constants") && (
-          <TabsContent value="model-constants">
+        {activeTab === "model-constants" && (
             <ModelConstantsTab />
-          </TabsContent>
         )}
 
-        {showTab("dd-template") && (
-          <TabsContent value="dd-template">
+        {activeTab === "dd-template" && (
             <DdTemplateTab />
-          </TabsContent>
         )}
 
-        {showTab("property-underwriting") && (
-          <TabsContent value="property-underwriting">
+        {activeTab === "property-underwriting" && (
             <PropertyUnderwritingTab
               draft={draft}
               onChange={handleChange}
@@ -354,22 +338,17 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               revenueAnalystCooldownMs={revenueRefresh.cooldownRemainingMs}
               revenueVerdict={revenueRefresh.lastVerdict}
             />
-          </TabsContent>
         )}
 
-        {showTab("management-co-fees") && (
-          <TabsContent value="management-co-fees">
+        {activeTab === "management-co-fees" && (
             <ManagementCoTab />
-          </TabsContent>
         )}
 
-        {showTab("brands") && (
-          <TabsContent value="brands">
+        {activeTab === "brands" && (
             <BrandsTab />
-          </TabsContent>
         )}
 
-      </Tabs>
+      </div>
       <MissingRequiredFieldsPrompt
         open={missingFieldsPrompt.open}
         onOpenChange={(open) => setMissingFieldsPrompt((p) => ({ ...p, open }))}

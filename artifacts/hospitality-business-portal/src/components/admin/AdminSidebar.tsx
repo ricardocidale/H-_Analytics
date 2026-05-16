@@ -226,16 +226,6 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "brand",
-      label: "Brand & Appearance",
-      icon: IconPalette,
-      description: "Logos, themes, and icon customization",
-      sections: [
-        { value: "brand-themes",      label: "Themes",       icon: IconSwatchBook },
-        { value: "brand-assets-page", label: "Brand Assets", icon: IconImage },
-      ],
-    },
-    {
       id: "testing",
       label: "Testing & Verification",
       icon: IconShieldCheck,
@@ -250,10 +240,12 @@ function buildNavGroups(): NavGroup[] {
       id: "configuration",
       label: "Configuration",
       icon: IconSettingsGear,
-      description: "Notifications and UI preferences",
+      description: "Notifications, appearance, and UI preferences",
       sections: [
         { value: "notifications",      label: "Notifications",      icon: IconPhone },
         { value: "sidebar-visibility", label: "Sidebar Visibility", icon: IconPanelLeft },
+        { value: "brand-themes",       label: "Themes",             icon: IconSwatchBook },
+        { value: "brand-assets-page",  label: "Brand Assets",       icon: IconImage },
       ],
     },
     {

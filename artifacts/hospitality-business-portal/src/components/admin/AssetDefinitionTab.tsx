@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { Plus, X } from "@/components/icons/themed-icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGlobalAssumptions, useUpdateAdminConfig } from "@/lib/api";
@@ -239,6 +239,7 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
     return () => onSaveStateChange?.(null);
   }, [dirty, isPending, onSaveStateChange]);
 
+  const [activeAssetTab, setActiveAssetTab] = useState("amenities");
   if (gaLoading && !ga) return null;
 
   const addCustomAmenity = () => {
@@ -303,17 +304,17 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
             />
           </div>
 
-          <Tabs defaultValue="amenities" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 h-9">
-              <TabsTrigger value="amenities" className="text-xs" data-testid="tab-amenities">
-                Amenities
-              </TabsTrigger>
-              <TabsTrigger value="descriptive" className="text-xs" data-testid="tab-descriptive">
-                Descriptive
-              </TabsTrigger>
-            </TabsList>
+          <div className="w-full">
+            <CurrentThemeTab
+              tabs={[
+                { value: "amenities",   label: "Amenities" },
+                { value: "descriptive", label: "Descriptive" },
+              ]}
+              activeTab={activeAssetTab}
+              onTabChange={setActiveAssetTab}
+            />
 
-            <TabsContent value="amenities" className="mt-3">
+            {activeAssetTab === "amenities" && (
               <AmenitiesTab
                 config={config}
                 updateConfig={updateConfig}
@@ -325,12 +326,12 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
                 hideField={hideField}
                 restoreField={restoreField}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="descriptive" className="mt-3">
+            {activeAssetTab === "descriptive" && (
               <DescriptiveTab desc={desc} updateDesc={updateDesc} />
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         </CardContent>
         <ToolbarRow
           end={

@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { IconActivity, IconGlobe, IconResearch, IconBrain } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
@@ -124,29 +123,24 @@ export default function DataSourcesTab() {
     );
   }
 
+  const categoryTabs = useMemo<CurrentThemeTabItem[]>(() =>
+    CATEGORY_TABS.map((tab) => ({
+      value: tab.value,
+      label: tab.label,
+      icon: ICON_MAP[tab.iconName],
+      count: categoryCounts[tab.value] ?? 0,
+    })),
+    [categoryCounts]
+  );
+
   return (
     <div data-testid="data-sources-tab">
-      <div className="flex items-center gap-1 border-b border-border mb-6">
-        {CATEGORY_TABS.map((tab) => {
-          const Icon = ICON_MAP[tab.iconName];
-          return (
-            <button
-              key={tab.value}
-              onClick={() => setActiveCategory(tab.value)}
-              data-testid={`datasource-tab-${tab.value}`}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
-                activeCategory === tab.value
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-              )}
-            >
-              {Icon && <Icon className="w-3.5 h-3.5" />}
-              {tab.label}
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{categoryCounts[tab.value] ?? 0}</Badge>
-            </button>
-          );
-        })}
+      <div className="mb-6">
+        <CurrentThemeTab
+          tabs={categoryTabs}
+          activeTab={activeCategory}
+          onTabChange={(v) => setActiveCategory(v as SourceCategory)}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

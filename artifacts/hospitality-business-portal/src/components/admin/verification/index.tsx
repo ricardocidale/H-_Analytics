@@ -1,7 +1,7 @@
 import { useState, useCallback, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2, Scale } from "@/components/icons/themed-icons";
 import { IconCheckCircle2, IconXCircle, IconAlertTriangle, IconPlayCircle, IconSparkles, IconFileDown, IconDownload, IconGauge } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
@@ -441,39 +441,22 @@ export default function VerificationTab() {
         )}
 
         {!isRunning && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-            <TabsList>
-              <TabsTrigger value="results" data-testid="tab-verification-results">
-                <IconCheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                Detailed Results
-              </TabsTrigger>
-              <TabsTrigger value="identities" data-testid="tab-verification-identities">
-                <Scale className="w-3.5 h-3.5 mr-1.5" />
-                Identities
-              </TabsTrigger>
-              <TabsTrigger value="history" data-testid="tab-verification-history">
-                <IconDownload className="w-3.5 h-3.5 mr-1.5" />
-                Audit History
-              </TabsTrigger>
-              <TabsTrigger value="ai" data-testid="tab-verification-ai">
-                <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
-                AI Narrative
-              </TabsTrigger>
-              <TabsTrigger value="pipeline" data-testid="tab-verification-pipeline">
-                <IconGauge className="w-3.5 h-3.5 mr-1.5" />
-                Pipeline Health
-              </TabsTrigger>
-              <TabsTrigger value="calc-audit" data-testid="tab-verification-calc-audit">
-                <IconFileDown className="w-3.5 h-3.5 mr-1.5" />
-                Calc Audit
-              </TabsTrigger>
-              <TabsTrigger value="testing" data-testid="tab-verification-testing">
-                <IconCheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                Testing
-              </TabsTrigger>
-            </TabsList>
+          <div>
+            <CurrentThemeTab
+              tabs={[
+                { value: "results",    label: "Detailed Results", icon: IconCheckCircle2 },
+                { value: "identities", label: "Identities",       icon: Scale },
+                { value: "history",    label: "Audit History",    icon: IconDownload },
+                { value: "ai",         label: "AI Narrative",     icon: IconSparkles },
+                { value: "pipeline",   label: "Pipeline Health",  icon: IconGauge },
+                { value: "calc-audit", label: "Calc Audit",       icon: IconFileDown },
+                { value: "testing",    label: "Testing",           icon: IconCheckCircle2 },
+              ]}
+              activeTab={activeTab}
+              onTabChange={(v) => setActiveTab(v as typeof activeTab)}
+            />
 
-            <TabsContent value="results" className="min-h-[300px]">
+            {activeTab === "results" && (<>
               {verificationResults ? (
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 rounded-xl bg-muted border border-border">
@@ -535,47 +518,47 @@ export default function VerificationTab() {
                   <p className="text-sm font-medium">Select suites above and click "Run Selected" to start verification.</p>
                 </div>
               )}
-            </TabsContent>
+            </>)}
 
-            <TabsContent value="identities" className="min-h-[300px]">
+            {activeTab === "identities" && (
               <IdentityDashboard
                 properties={(properties ?? null) as never}
                 globalAssumptions={(globalAssumptions ?? null) as never}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="history" className="min-h-[300px]">
+            {activeTab === "history" && (<>
               {verificationHistory && (
                 <VerificationHistory history={verificationHistory} />
               )}
-            </TabsContent>
+            </>)}
 
-            <TabsContent value="ai" className="min-h-[300px]">
+            {activeTab === "ai" && (
               <AIReviewPanel
                 review={aiReview}
                 loading={aiReviewLoading}
                 onRun={runAiVerification}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="pipeline" className="min-h-[300px]">
+            {activeTab === "pipeline" && (
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <HealthCheckDashboard />
               </Suspense>
-            </TabsContent>
+            )}
 
-            <TabsContent value="calc-audit" className="min-h-[300px]">
+            {activeTab === "calc-audit" && (
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <CalcAuditViewer />
               </Suspense>
-            </TabsContent>
+            )}
 
-            <TabsContent value="testing" className="min-h-[300px]">
+            {activeTab === "testing" && (
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <TestingDashboard />
               </Suspense>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

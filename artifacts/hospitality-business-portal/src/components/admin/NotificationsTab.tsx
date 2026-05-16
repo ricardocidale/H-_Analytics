@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Bell, MessageSquare, Mail, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
@@ -213,23 +213,19 @@ export default function NotificationsTab() {
 
   return (
     <div className="space-y-6" data-testid="notifications-tab">
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="channels" data-testid="tab-channels">
-            <MessageSquare className="w-4 h-4 mr-1" /> Channels
-          </TabsTrigger>
-          <TabsTrigger value="rules" data-testid="tab-rules">
-            <AlertTriangle className="w-4 h-4 mr-1" /> Alert Rules
-          </TabsTrigger>
-          <TabsTrigger value="vector-latency" data-testid="tab-vector-latency">
-            <AlertTriangle className="w-4 h-4 mr-1" /> Vector Latency
-          </TabsTrigger>
-          <TabsTrigger value="logs" data-testid="tab-logs">
-            <Bell className="w-4 h-4 mr-1" /> Delivery Log
-          </TabsTrigger>
-        </TabsList>
+      <div>
+        <CurrentThemeTab
+          tabs={[
+            { value: "channels",       label: "Channels",       icon: MessageSquare },
+            { value: "rules",          label: "Alert Rules",    icon: AlertTriangle },
+            { value: "vector-latency", label: "Vector Latency", icon: AlertTriangle },
+            { value: "logs",           label: "Delivery Log",   icon: Bell },
+          ]}
+          activeTab={tab}
+          onTabChange={setTab}
+        />
 
-        <TabsContent value="channels" className="space-y-4 mt-4">
+        {tab === "channels" && (<>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -329,9 +325,9 @@ export default function NotificationsTab() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </>)}
 
-        <TabsContent value="rules" className="space-y-4 mt-4">
+        {tab === "rules" && (<>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold font-display">Alert Rules</h3>
@@ -404,9 +400,9 @@ export default function NotificationsTab() {
               ))}
             </div>
           )}
-        </TabsContent>
+        </>)}
 
-        <TabsContent value="vector-latency" className="space-y-4 mt-4">
+        {tab === "vector-latency" && (<>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -544,9 +540,9 @@ export default function NotificationsTab() {
           </Card>
 
           <VectorLatencyAlertsPanel />
-        </TabsContent>
+        </>)}
 
-        <TabsContent value="logs" className="mt-4">
+        {tab === "logs" && (
           <Card>
             <CardHeader>
               <CardTitle>Delivery Log</CardTitle>
@@ -589,9 +585,9 @@ export default function NotificationsTab() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-      </Tabs>
+      </div>
 
       <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
         <DialogContent>

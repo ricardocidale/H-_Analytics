@@ -368,7 +368,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
-      {isAdmin && (
+      {isAdmin && !onAdminRoute && !onIntelligenceRoute && (
         <Link href="/lb-slides" onClick={() => setMobileOpen(false)}>
           <span
             className={cn(

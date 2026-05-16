@@ -14,7 +14,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useState } from "react";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -296,6 +297,7 @@ interface Props {
 
 export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
   const open = resourceId !== null;
+  const [activeTab, setActiveTab] = useState("overview");
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -405,20 +407,20 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="overview" className="mt-2">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-                <TabsTrigger value="consumers" data-testid="tab-consumers">
-                  Consumers <span className="ml-1.5 text-xs opacity-60">{data.consumers.length}</span>
-                </TabsTrigger>
-                <TabsTrigger value="workflow" data-testid="tab-workflow">Workflow & Health</TabsTrigger>
-                <TabsTrigger value="quality" data-testid="tab-quality">
-                  Quality & Gaps {data.quality.criticalGaps > 0 && <Badge variant="destructive" className="ml-1.5 px-1.5 py-0 text-[10px]">{data.quality.criticalGaps}</Badge>}
-                </TabsTrigger>
-              </TabsList>
+            <div className="mt-2">
+              <CurrentThemeTab
+                tabs={[
+                  { value: "overview",   label: "Overview" },
+                  { value: "consumers",  label: "Consumers" },
+                  { value: "workflow",   label: "Workflow & Health" },
+                  { value: "quality",    label: "Quality & Gaps" },
+                ]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
 
               {/* OVERVIEW ────────────────────────────────────────────── */}
-              <TabsContent value="overview" className="space-y-3 pt-3">
+              {activeTab === "overview" && (<div className="space-y-3 pt-3">
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div><dt className="text-muted-foreground text-xs">Kind</dt><dd className="font-mono">{data.resource.kind}</dd></div>
                   <div><dt className="text-muted-foreground text-xs">Slug</dt><dd className="font-mono">{data.resource.slug}</dd></div>
@@ -435,10 +437,10 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto">{JSON.stringify(data.resource.config, null, 2)}</pre>
                   </div>
                 )}
-              </TabsContent>
+              </div>)}
 
               {/* CONSUMERS ──────────────────────────────────────────── */}
-              <TabsContent value="consumers" className="pt-3">
+              {activeTab === "consumers" && (<div className="pt-3">
                 {data.consumers.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-6 text-center">
                     No Specialist consumes this resource. Wire it up in the catalog and run the sync.
@@ -498,10 +500,10 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     </table>
                   </div>
                 )}
-              </TabsContent>
+              </div>)}
 
               {/* WORKFLOW & HEALTH ──────────────────────────────────── */}
-              <TabsContent value="workflow" className="pt-3 space-y-4">
+              {activeTab === "workflow" && (<div className="pt-3 space-y-4">
                 {/* Left-to-right flow: Request → This resource → Specialist consumers → Output */}
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Workflow</h4>
@@ -593,10 +595,10 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     </ul>
                   )}
                 </div>
-              </TabsContent>
+              </div>)}
 
               {/* QUALITY & GAPS ─────────────────────────────────────── */}
-              <TabsContent value="quality" className="pt-3 space-y-3">
+              {activeTab === "quality" && (<div className="pt-3 space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded border p-3">
                     <div className="text-xs text-muted-foreground">Avg quality</div>
@@ -727,8 +729,8 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     </div>
                   )}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>)}
+            </div>
 
             <ToolbarRow
               end={<Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-close-detail">Close</Button>}

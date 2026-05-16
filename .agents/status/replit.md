@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T17:33:00Z
+Updated: 2026-05-16T18:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,31 +13,35 @@ main
 
 ## Last Commit on Branch
 
-feat(admin): Brand & Appearance restructure — 8 IUs complete
+feat(admin): standardize CurrentThemeTab across all admin pages, restructure sidebar
 
 ## What Replit Did This Session
 
-Brand & Appearance admin restructure (Plan 2026-05-16-brand-appearance-restructure.md, all 8 IUs):
+Admin tab standardization + sidebar restructure (continued from prior session):
 
-IU-1: AnalystCubeIcon.tsx — `playing` prop added; `suppressMotion = prefersReducedMotion || !playing` replaces bare `prefersReducedMotion` checks throughout; `decorative`/`ariaLabel` a11y props added.
+**Task 1 — CurrentThemeTab standardization (all horizontal tab menus):**
+Converted 9 files from Radix Tabs (Tabs/TabsList/TabsTrigger/TabsContent) to `CurrentThemeTab`:
+- ModelDefaultsTab.tsx
+- DiagramsTab.tsx
+- DataSourcesTab.tsx — also removed unused `cn` + `Badge` imports
+- KnowledgeBaseEditor.tsx
+- CompanyTab.tsx
+- verification/index.tsx
+- NotificationsTab.tsx — fixed multi-root Fragment wrappers for channels/rules/vector-latency tabs
+- AssetDefinitionTab.tsx — added `activeAssetTab` state
+- ResourceDetailDialog.tsx — added `activeTab` state + `useState` import
 
-IU-2: HplusLogoAnimated.tsx (new) — framer-motion float+pulse wrapper around @/assets/logo.png; `playing` prop, `decorative`/`ariaLabel` a11y props; gracefully reduces to static when `!playing` or `prefers-reduced-motion`.
+Pattern: added controlled useState → `<CurrentThemeTab tabs={[...]} activeTab={x} onTabChange={setX}/>` → TabsContent → `{activeTab === "x" && (<div ...>...</div>)}`.
 
-IU-3: AnimationsTab.tsx (new) — card grid of animation previews (H+ Logo, Cube); each card has independent Play/Pause state, initialises paused; uses IconPlay/IconPause.
+**Task 2 — Admin sidebar restructure:**
+- Removed "Brand & Appearance" sidebar group
+- Themes and Brand Assets moved into Configuration group
+- AdminSidebar.tsx updated accordingly
 
-IU-4: BrandAssetsPage.tsx (new) — three sub-tabs (Logos, Brand Assets, Animations) using CurrentThemeTab pattern; lazy-loads BrandAssetsTab + AnimationsTab.
+**Task 3 — Slides menu hidden:**
+- Layout.tsx gates Slides link with `!onAdminRoute && !onIntelligenceRoute`
 
-IU-5: ThemesSection.tsx (new) — thin wrapper rendering ThemesTab; registered as lazy-import in Admin.tsx.
-
-IU-6: AdminSidebar.tsx — AdminSection union: replaced `"brand"` with `"brand-themes" | "brand-assets-page"` as canonicals; `"brand"` moved to legacy aliases. SECTION_REDIRECTS: `"brand"→"brand-assets-page"`, `"logos"→"brand-assets-page"`, `"themes"→"brand-themes"`. buildNavGroups Brand group: two items (Themes/IconSwatchBook + Brand Assets/IconImage) replacing old single Brand Settings entry.
-
-IU-7: Admin.tsx — lazy imports swapped (BrandTab removed, ThemesSection + BrandAssetsPage added); sectionMeta entries added for brand-themes and brand-assets-page; switch cases updated.
-
-IU-8: BrandTab.tsx — deleted (no remaining references).
-
-graphics/index.ts — barrel-exports HplusLogoAnimated and AnalystCubeIcon.
-
-Validation: typecheck ✅ (4/4 packages), spinner-contrast ✅, portal lint ✅.
+Validation: typecheck ✅ (4/4 packages), portal lint ✅.
 Pre-existing lint failure in api-server/src/chat/rebecca-tool-impls-slide-factory.ts (CC-owned no-shadow errors) — not introduced by Replit.
 
 ## Files Replit Owns Right Now

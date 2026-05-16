@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { NodeBox, Arrow, FlowRow, FlowCol, FlowSection } from "@/components/ui/flow-diagram";
 import type { FlowNode } from "@/components/ui/flow-diagram";
@@ -471,125 +472,138 @@ function L3RoleAccess() {
 }
 
 export default function DiagramsTab() {
+  const [activeTab, setActiveTab] = useState("1");
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="1">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="1">Level 1 — Overview</TabsTrigger>
-          <TabsTrigger value="2">Level 2 — Domains</TabsTrigger>
-          <TabsTrigger value="3">Level 3 — Details</TabsTrigger>
-        </TabsList>
+      <div>
+        <div className="mb-4">
+          <CurrentThemeTab
+            tabs={[
+              { value: "1", label: "Level 1 — Overview" },
+              { value: "2", label: "Level 2 — Domains" },
+              { value: "3", label: "Level 3 — Details" },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
 
-        <TabsContent value="1" className="space-y-6 mt-4">
-          <DiagramCard title="Application Flow" description="High-level user journey from login to exports">
-            <L1AppFlow />
-          </DiagramCard>
-          <DiagramCard title="Two-Entity Model" description="Property SPVs, Management Company, and Consolidated view with intercompany elimination">
-            <L1TwoEntity />
-          </DiagramCard>
-          <DiagramCard title="Integration & Infrastructure Map" description="All external services organized by category with data flow directions">
-            <L1Integrations />
-          </DiagramCard>
-        </TabsContent>
+        {activeTab === "1" && (
+          <div className="space-y-6 mt-4">
+            <DiagramCard title="Application Flow" description="High-level user journey from login to exports">
+              <L1AppFlow />
+            </DiagramCard>
+            <DiagramCard title="Two-Entity Model" description="Property SPVs, Management Company, and Consolidated view with intercompany elimination">
+              <L1TwoEntity />
+            </DiagramCard>
+            <DiagramCard title="Integration & Infrastructure Map" description="All external services organized by category with data flow directions">
+              <L1Integrations />
+            </DiagramCard>
+          </div>
+        )}
 
-        <TabsContent value="2" className="mt-4">
-          <Accordion type="multiple" defaultValue={["financial", "manco", "dual-engine", "verification", "auth", "ai", "research"]}>
-            <AccordionItem value="financial">
-              <AccordionTrigger className="text-sm font-semibold">Financial Calculation Pipeline</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="USALI Income Waterfall" description="Revenue → GOP → AGOP → NOI → ANOI → Net Income">
-                  <L2Financial />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="manco">
-              <AccordionTrigger className="text-sm font-semibold">Management Company Engine</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="ManCo Financial Model" description="Revenue (Base + Incentive + Service Fees) → Expenses → Capital Raise → Bottom Line">
-                  <L2ManCo />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="dual-engine">
-              <AccordionTrigger className="text-sm font-semibold">Dual-Engine Verification Architecture</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Client Engine vs Server Checker" description="Both engines run in parallel, then cross-validated for audit opinion">
-                  <L2DualEngine />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="verification">
-              <AccordionTrigger className="text-sm font-semibold">Three-Tier Verification Pipeline</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Verification Tiers & GAAP Compliance" description="Property → Company → Consolidated with ASC references">
-                  <L2VerificationTiers />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="auth">
-              <AccordionTrigger className="text-sm font-semibold">Auth & Theme Resolution</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Authentication & Branding" description="Login → Role → Group → Theme cascade">
-                  <L2Auth />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="ai">
-              <AccordionTrigger className="text-sm font-semibold">Rebecca AI Advisor Architecture</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Rebecca Chat Tool System" description="Server tools + RAG knowledge base">
-                  <L2AI />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="research">
-              <AccordionTrigger className="text-sm font-semibold">Market Research Pipeline</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="ICP-Driven Research & Value Extraction" description="Trigger → Context → LLM → Output → Validation → Storage → UI">
-                  <L2Research />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
+        {activeTab === "2" && (
+          <div className="mt-4">
+            <Accordion type="multiple" defaultValue={["financial", "manco", "dual-engine", "verification", "auth", "ai", "research"]}>
+              <AccordionItem value="financial">
+                <AccordionTrigger className="text-sm font-semibold">Financial Calculation Pipeline</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="USALI Income Waterfall" description="Revenue → GOP → AGOP → NOI → ANOI → Net Income">
+                    <L2Financial />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="manco">
+                <AccordionTrigger className="text-sm font-semibold">Management Company Engine</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="ManCo Financial Model" description="Revenue (Base + Incentive + Service Fees) → Expenses → Capital Raise → Bottom Line">
+                    <L2ManCo />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="dual-engine">
+                <AccordionTrigger className="text-sm font-semibold">Dual-Engine Verification Architecture</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Client Engine vs Server Checker" description="Both engines run in parallel, then cross-validated for audit opinion">
+                    <L2DualEngine />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="verification">
+                <AccordionTrigger className="text-sm font-semibold">Three-Tier Verification Pipeline</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Verification Tiers & GAAP Compliance" description="Property → Company → Consolidated with ASC references">
+                    <L2VerificationTiers />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="auth">
+                <AccordionTrigger className="text-sm font-semibold">Auth & Theme Resolution</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Authentication & Branding" description="Login → Role → Group → Theme cascade">
+                    <L2Auth />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="ai">
+                <AccordionTrigger className="text-sm font-semibold">Rebecca AI Advisor Architecture</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Rebecca Chat Tool System" description="Server tools + RAG knowledge base">
+                    <L2AI />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="research">
+                <AccordionTrigger className="text-sm font-semibold">Market Research Pipeline</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="ICP-Driven Research & Value Extraction" description="Trigger → Context → LLM → Output → Validation → Storage → UI">
+                    <L2Research />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        )}
 
-        <TabsContent value="3" className="mt-4">
-          <Accordion type="multiple" defaultValue={["property", "data-model", "export", "role-access"]}>
-            <AccordionItem value="property">
-              <AccordionTrigger className="text-sm font-semibold">Property Lifecycle</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Investment Lifecycle & Cash Flow Engine" description="Acquisition → Pre-Opening → Operations → Refinance → Exit">
-                  <L3Property />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="data-model">
-              <AccordionTrigger className="text-sm font-semibold">Data Model ER Diagram</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Entity Relationships" description="Core data entities and their relationships">
-                  <L3DataModel />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="export">
-              <AccordionTrigger className="text-sm font-semibold">Export Pipeline</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Six-Format Export Suite" description="PDF, Excel, CSV, PowerPoint, Chart PNG, Table PNG">
-                  <L3Export />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="role-access">
-              <AccordionTrigger className="text-sm font-semibold">Role-Based Access Control</AccordionTrigger>
-              <AccordionContent>
-                <DiagramCard title="Role-Based Access Control" description="Four user roles, sidebar visibility, permission gates">
-                  <L3RoleAccess />
-                </DiagramCard>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-      </Tabs>
+        {activeTab === "3" && (
+          <div className="mt-4">
+            <Accordion type="multiple" defaultValue={["property", "data-model", "export", "role-access"]}>
+              <AccordionItem value="property">
+                <AccordionTrigger className="text-sm font-semibold">Property Lifecycle</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Investment Lifecycle & Cash Flow Engine" description="Acquisition → Pre-Opening → Operations → Refinance → Exit">
+                    <L3Property />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="data-model">
+                <AccordionTrigger className="text-sm font-semibold">Data Model ER Diagram</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Entity Relationships" description="Core data entities and their relationships">
+                    <L3DataModel />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="export">
+                <AccordionTrigger className="text-sm font-semibold">Export Pipeline</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Six-Format Export Suite" description="PDF, Excel, CSV, PowerPoint, Chart PNG, Table PNG">
+                    <L3Export />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="role-access">
+                <AccordionTrigger className="text-sm font-semibold">Role-Based Access Control</AccordionTrigger>
+                <AccordionContent>
+                  <DiagramCard title="Role-Based Access Control" description="Four user roles, sidebar visibility, permission gates">
+                    <L3RoleAccess />
+                  </DiagramCard>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
