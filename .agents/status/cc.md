@@ -9,36 +9,37 @@ Status: active
 
 ## Active Branch
 
-main (d3dde140f — slide-factory PPTX batching fix committed)
+main
 
 ## Last Commit on Branch
 
-d3dde140f  fix(slide-factory): batch table_cell ops per shape + rebuild-pptx route + overflow bypass
+8bc3824fc  feat(T1-3): admin-assigned default scenario per user
 
 ## What CC Did This Session
 
-T0-3 (slide factory pptxR2Key=null fix):
-- Fixed builder-substitution-entries.ts: corrected code→template slide number mapping
-  (Sofia=2, Bianca=4, Chiara=5, Dario=1, Elisa=3, Felix=6) and DEFAULT_SHAPE_NAMES
-  from python-pptx inspection of the v7 template
-- Added `rebuild-pptx` route (POST /api/lb-slides/factory/runs/:id/rebuild-pptx):
-  reassembles PPTX from luccaDraft for complete runs with null pptxR2Key
-- Fixed pptx-substitution.ts: batched all table_cell entries per shape into one
-  setTableData call (applyTableCellsBatched) — resolves sliceRows corruption
-- Added skipOverflowCheck + requiredSlideNumbers options to substituteSlots
-- Made soffice unavailability graceful (PPTX-only upload fallback)
-- Fixed deckR2Key aliasing so GET /download works (ADV-003)
-- Run 10 verified: Table 4 → 4 rows × 3 cols, all 6 slides, all text substitutions correct
-- Committed migration 0069 (pptxR2Key + pdfR2Key columns)
-- /ce-compound: documented the setTableData batching bug at
-  docs/solutions/logic-errors/pptx-automizer-table-cell-batching-1x1-corruption-2026-05-16.md
-  + added 4th constraint to pptx-substitution-library-decision-2026-05-11.md
+T1-1 (security fix — scenario share email leak):
+- scenarios.ts: return 404 for unknown email instead of silent 201 + empty shares[]
+  (body discrimination leak — attacker could distinguish known/unknown by shares.length)
+
+T1-3 (admin default scenario per user — CC scope complete):
+- lib/db/src/schema/auth.ts: added assignedScenarioId (nullable integer, no Drizzle FK to avoid circular import)
+- Migrations 0063 (lib/db) + 0070 (api-server) + runtime guard users-assigned-scenario-001.ts
+  (ADD COLUMN IF NOT EXISTS + DO $$ FK constraint guard)
+- migration-guards.json: added 0069 (pre-existing gap for slide factory) + 0070 (new)
+- scenario-helpers.ts: skip auto-create when user.assignedScenarioId != null
+- storage/users.ts: updateUserAssignedScenario(id, scenarioId | null)
+- routes/helpers.ts: expose assignedScenarioId in userResponse
+- routes/admin/users.ts: PATCH /api/admin/users/:id/assigned-scenario
+
+T1-3 Replit scope still needed:
+- Admin UI: dropdown on user edit page to select a scenario as the user's default
 
 ## What's Pending
 
-- T1-1 through T1-5 (master plan 2026-05-16) — blocked behind T0-3, now unblocked
-- Plan 006 Phase 2 (DEFAULT_* constants → DB) — long-term incremental
-- Deferred CodeRabbit findings from PR #147 (advisory):
+- T1-2: Property soft-delete UI toggle — Replit-safe
+- T1-3 Replit UI: admin dropdown to assign a scenario to a user
+- T1-4: DEFAULT_* constants → model_defaults DB rows (one per session)
+- T1-5: CodeRabbit deferred findings from PR #147 (advisory):
   - `brandId` FK `onDelete: "restrict"` needs migration (lib/db/src/schema/properties.ts)
   - `analyst-admin-runners-mgmt.ts` double-cast
   - `bracket-assignment-minion.ts` EMPTY_PORTFOLIO_DEFAULT_MIX
