@@ -113,6 +113,11 @@ export async function toolAssignPropertyPortfolio(
         return r.ok ? r.value : null;
       })();
 
+  // Ownership check before write — prevent unauthorized mutation
+  const existing = await storage.getProperty(propertyId);
+  if (!existing) return { result: { error: "Property not found" } };
+  if (existing.userId !== ctx.userId) return { result: { error: "Access denied" } };
+
   if (portfolioId !== null) {
     const portfolio = await storage.getPortfolio(portfolioId, ctx.userId);
     if (!portfolio) return { result: { error: "Portfolio not found" } };
@@ -120,7 +125,6 @@ export async function toolAssignPropertyPortfolio(
 
   const updated = await storage.updateProperty(propertyId, { portfolioId });
   if (!updated) return { result: { error: "Property not found" } };
-  if (updated.userId !== ctx.userId) return { result: { error: "Access denied" } };
 
   return {
     result: { property: { id: updated.id, name: updated.name, portfolioId: updated.portfolioId } },
