@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T20:15:00Z
-Status: active
+Updated: 2026-05-16T21:45:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,61 +13,50 @@ main
 
 ## Last Commit on Branch
 
-295b07e85  feat(finance): T2-1 investor perspective — strip mgmt co P&L from compute + block company route
+11f3cd1c6  chore(merge): resolve conflicts after PR #158 merge + fix readonly tab arrays
 
-## What CC Did This Session (2026-05-16 session 7)
+## What CC Did This Session (2026-05-16 session 8)
 
-T2-4 (vision-based export quality verification — COMPLETE):
-- Bianca specialist, schema, routes, Rebecca tool, parity map all shipped
-- Committed 4dcd2a9cb (20 files, 638 insertions)
-
-T2-1 (investor perspective separation — COMPLETE):
-- perspectiveRole ('operator'|'investor') column on scenarios table
-  Drizzle migration 0067 + api-server mirror 0074 + runtime guard scenario-perspective-role-001.ts
-- /api/finance/compute: strips companyMonthly/companyYearly when perspectiveRole='investor'
-- /api/finance/company: returns 403 FIN-011 for investor perspective
-- Rebecca update_scenario tool: perspectiveRole exposed as enum field
-- createScenarioSchema accepts perspectiveRole in POST /api/scenarios
-- SCENARIO_PERSPECTIVE_ROLES type guard + updateScenarioSchema updated
-- Parity map: 2 rows added (perspective toggle)
-- typecheck PASS + magic-numbers PASS
-- Committed 295b07e85 (14 files, 94 insertions)
+T3-1 Matteo model router (COMPLETE — merged PR #158):
+- U1: Seed DeepSeek V4/Flash, Mistral Large/Small model rows; new llm_slot rows
+  (pdf-ocr-extraction, structured-extraction, bulk-text-synthesis, costantino-orchestration);
+  feature-flag parameter rows (all default 0/off)
+- U2: DeepSeek + Mistral SDK client factories in ai/clients.ts (lazy singletons,
+  env-var base URL override, Mistral OCR HTTP wrapper with model from admin_resources)
+- U3: dispatch.ts DeepSeek + Mistral provider branches + uniform logApiCost wrap
+- U4: chat-llm.ts streaming branches for DeepSeek + Mistral
+- U5: Remove hardcoded VISION_MODEL constant; route through resolveLlmFor + generateText
+- U6: GET /api/admin/llm-cost-summary endpoint + Rebecca download_llm_cost_summary tool;
+  computeLlmCostSummary() shared export; parity map updated
+- U7: LLM Workflows page — DeepSeek/Mistral vendor dropdowns, new slot groups,
+  per-slot 30-day cost badges (COST_WINDOW_DAYS constant)
+- U8: callLlmForText in executive-summary refactored to use dispatch.generateText;
+  matteo-enable-bulk-text-synthesis flag routes to bulk-text-synthesis slot when nonzero
+- CodeRabbit fixes: console.info→logger.info, getMistralOcrConfig() model from admin_resources,
+  RESEARCH_LLM_VENDORS updated, dispatchService doc corrected, package.json ordering,
+  portfolioId runtime validation, auth-before-write security fix (both route + Rebecca tool)
+- Branch hygiene: stripped 4 Replit commits, recommitted auth fix as CC, force-pushed clean
+- Merge conflict resolution: took PR state for migrations.ts, portfolios.ts,
+  rebecca-tool-impls-portfolio.ts, parity-map; fixed Replit's `as const` readonly errors
+  in PipelineConfigTab.tsx + ResourcesAdminPage.tsx
 
 ## What's Pending
 
-T2-4 UI (Replit-safe):
-- Add "Verify deck" button to Tab 6 of the Slide Factory admin panel
-- Calls POST /api/slide-factory-runs/:id/verify
-- Shows per-slide findings in a collapsible panel (severity color: ok=emerald, advisory=sky,
-  warning=amber, block=red)
-- Status polling: GET /api/slide-factory-runs/:id/verification
-
-T2-3 UI (Replit-safe):
-- descriptionImproved field: add "Improve with AI" or Analyst button
-- File: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx
-  around line 572 (descriptionImproved textarea)
-- Endpoint: POST /api/properties/:id/rewrite-description { text: "..." }
-
-T2-2 UI (Replit-safe):
-- Portfolio selector on property list page
-- PUT /api/properties/:id/portfolio { portfolioId: N | null }
-
-T1-5 item 2 (low priority — advisory, Replit-safe):
-- analyst-admin-runners-mgmt.ts lines 140-143: `as unknown as` double-casts
+Nothing from CC for this session. Replit owns the remaining UI tasks.
 
 ## Handoff to Replit
 
-T2-4 UI: Add "Verify deck" button to the Slide Factory Tab 6 override panel.
-Backend: POST /api/slide-factory-runs/:id/verify (synchronous, ~15-30s, returns BiancaVerificationResult).
-GET /api/slide-factory-runs/:id/verification for polling/reading last result.
-Severity display: ok=emerald, advisory=sky, warning=amber, block=red (per AnalystCheckDialog pattern).
+All T3-1 backend work is on main. Feature flags (matteo-enable-* parameters) are seeded
+with value=0 (off by default) — flip to 1 via admin_resources to enable routing.
 
-T2-3 UI: Add "Improve with AI" button to descriptionImproved textarea in BasicInfoSection.tsx.
-Pattern: AsPurchasedDescriptionField.tsx (preview-then-accept flow).
-Endpoint: POST /api/properties/:id/rewrite-description (body: { text: string }).
-
-T2-2 UI: Portfolio selector on property list. GET /api/portfolios for list,
-PUT /api/properties/:id/portfolio to assign.
+Remaining Replit UI tasks from prior sessions (still outstanding):
+- T2-4 UI: "Verify deck" button in Slide Factory Tab 6
+  POST /api/slide-factory-runs/:id/verify → GET /api/slide-factory-runs/:id/verification
+  Severity: ok=emerald, advisory=sky, warning=amber, block=red
+- T2-3 UI: "Improve with AI" button on descriptionImproved textarea in BasicInfoSection.tsx
+  POST /api/properties/:id/rewrite-description { text: string }
+- T2-2 UI: Portfolio selector on property list
+  GET /api/portfolios, PUT /api/properties/:id/portfolio { portfolioId: N | null }
 
 ## Files CC Owns Right Now
 
