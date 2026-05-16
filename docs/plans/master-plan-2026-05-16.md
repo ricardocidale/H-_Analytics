@@ -151,7 +151,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-2: Portfolio grouping
-**Status:** ❌ Missing (flat property list; aggregation at query level only)
+**Status:** ✅ Phase complete (2026-05-16) — schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. UI portfolio selector remains (Replit-safe handoff).
 **Context:** Multiple users need to be able to see different groupings of properties (e.g., "Southeast Portfolio," "Colombia Properties"). Currently all properties in a company are a flat list.
 **Done when:**
 - `portfolios` table: `(id, userId, companyId, name, description, createdAt)`
