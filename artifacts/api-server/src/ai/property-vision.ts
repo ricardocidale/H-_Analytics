@@ -8,8 +8,9 @@
  * template fallback logic.
  */
 
-import { getAnthropicClient } from "./clients";
 import { logger } from "../logger";
+import { resolveLlmFor } from "./llm-config-resolver";
+import { generateText } from "./dispatch";
 import {
   buildPropertyBrief,
   briefToPromptLines,
@@ -69,8 +70,6 @@ export interface PropertyVisionText {
   closingLine: string;
   transformationDescription: string;
 }
-
-const VISION_MODEL = "claude-opus-4-6";
 
 /** Local character budgets not centralized in constants-benchmarks (not hard server limits). */
 const VISION_CAPTION_MAX_CHARS = 60;
@@ -218,7 +217,7 @@ export async function generatePropertyVisionTextFromBrief(
 ): Promise<PropertyVisionText> {
   const fallback = buildPropertyVisionFallbackFromBrief(brief);
   try {
-    const anthropic = getAnthropicClient();
+    const { vendor, modelId } = await resolveLlmFor("vision");
 
     // Use SlotContextMap to build a minimal prompt — only fields relevant to
     // the vision + operational + investment groups.
@@ -268,19 +267,20 @@ Return:
   "transformationDescription": "..."
 }`;
 
-    const response = await anthropic.messages.create({
-      model: VISION_MODEL,
-      max_tokens: VISION_DRAFT_MAX_TOKENS,
-      messages: [{ role: "user", content: prompt }],
+    const { text } = await generateText({
+      llm: { vendor, model: modelId },
+      prompt,
+      maxTokens: VISION_DRAFT_MAX_TOKENS,
+      operation: "vision",
+      route: "/api/properties/:id/vision",
     });
 
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      logger.warn("Vision text LLM returned no text block — using fallback", "property-vision");
+    if (!text) {
+      logger.warn("Vision text LLM returned empty — using fallback", "property-vision");
       return fallback;
     }
 
-    const parsed = JSON.parse(stripCodeFences(textBlock.text)) as Partial<PropertyVisionText>;
+    const parsed = JSON.parse(stripCodeFences(text)) as Partial<PropertyVisionText>;
 
     // Merge parsed with fallback to ensure all fields are populated
     return {
