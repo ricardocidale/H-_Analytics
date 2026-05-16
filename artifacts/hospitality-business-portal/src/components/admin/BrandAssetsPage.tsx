@@ -3,14 +3,12 @@ import { CurrentThemeTab } from "@/components/ui/tabs";
 import LogosTab from "./LogosTab";
 
 const BrandAssetsTab = lazy(() => import("./BrandAssetsTab"));
-const AnimationsTab  = lazy(() => import("./AnimationsTab"));
 
-type BrandAssetsSubTab = "logos" | "brand-assets" | "animations";
+type BrandAssetsSubTab = "logos" | "brand-assets";
 
 const SUB_TABS = [
   { value: "logos" as const,        label: "Logos" },
   { value: "brand-assets" as const, label: "Brand Assets" },
-  { value: "animations" as const,   label: "Animations" },
 ];
 
 const TAB_FALLBACK = (
@@ -35,11 +33,6 @@ export default function BrandAssetsPage() {
         {activeTab === "brand-assets" && (
           <Suspense fallback={TAB_FALLBACK}>
             <BrandAssetsTab />
-          </Suspense>
-        )}
-        {activeTab === "animations" && (
-          <Suspense fallback={TAB_FALLBACK}>
-            <AnimationsTab />
           </Suspense>
         )}
       </div>

@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T20:00:00Z
+Updated: 2026-05-16T23:40:00Z
 Status: idle
 
 ## Active Branch
@@ -13,36 +13,12 @@ main
 
 ## Last Commit on Branch
 
-feat(admin): standardize CurrentThemeTab across all admin pages, restructure sidebar
+feat(intelligence): move Animations to Knowledge & Resources — Rebecca + Analyst tabs
 
-## What Replit Did This Session
+## What Replit Is Doing This Session
 
-Admin tab standardization + sidebar restructure (continued from prior session):
-
-**Task 1 — CurrentThemeTab standardization (all horizontal tab menus):**
-Converted 9 files from Radix Tabs (Tabs/TabsList/TabsTrigger/TabsContent) to `CurrentThemeTab`:
-- ModelDefaultsTab.tsx
-- DiagramsTab.tsx
-- DataSourcesTab.tsx — also removed unused `cn` + `Badge` imports
-- KnowledgeBaseEditor.tsx
-- CompanyTab.tsx
-- verification/index.tsx
-- NotificationsTab.tsx — fixed multi-root Fragment wrappers for channels/rules/vector-latency tabs
-- AssetDefinitionTab.tsx — added `activeAssetTab` state
-- ResourceDetailDialog.tsx — added `activeTab` state + `useState` import
-
-Pattern: added controlled useState → `<CurrentThemeTab tabs={[...]} activeTab={x} onTabChange={setX}/>` → TabsContent → `{activeTab === "x" && (<div ...>...</div>)}`.
-
-**Task 2 — Admin sidebar restructure:**
-- Removed "Brand & Appearance" sidebar group
-- Themes and Brand Assets moved into Configuration group
-- AdminSidebar.tsx updated accordingly
-
-**Task 3 — Slides menu hidden:**
-- Layout.tsx gates Slides link with `!onAdminRoute && !onIntelligenceRoute`
-
-Validation: typecheck ✅ (4/4 packages), portal lint ✅.
-Pre-existing lint failure in api-server/src/chat/rebecca-tool-impls-slide-factory.ts (CC-owned no-shadow errors) — not introduced by Replit.
+Completed Plan 2026-05-16-003: Moved Animations from Admin BrandAssetsPage to AI Intelligence
+sidebar under Knowledge & Resources.
 
 ## Files Replit Owns Right Now
 

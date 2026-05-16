@@ -59,6 +59,7 @@ const AgentsRosterPage = lazy(() => import("@/pages/intelligence/AgentsRosterPag
 const SpecialistsRosterPage = lazy(() => import("@/pages/intelligence/SpecialistsRosterPage"));
 const MinionsRosterPage = lazy(() => import("@/pages/intelligence/MinionsRosterPage"));
 const BenchmarkBandsTab = lazy(() => import("@/components/admin/intelligence/BenchmarkBandsTab"));
+const AnimationsPage = lazy(() => import("@/pages/intelligence/AnimationsPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<IntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -97,6 +98,7 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "roster-agents":             { title: "Agents",                     subtitle: "Every Agent in the system — status at a glance, with a live responsiveness probe per row." },
   "roster-specialists":        { title: "Specialists",                subtitle: "Every research Specialist — status at a glance, with a live responsiveness probe per row." },
   "roster-minions":            { title: "Minions",                    subtitle: "Deterministic helper minions used across pipelines. No LLM probe applies; shown for visibility." },
+  "animations":                { title: "Animations",                 subtitle: "Agent persona animations and motion assets — Rebecca and The Analyst." },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-compensation":       { title: "Compensation Intelligence",    subtitle: "" },
@@ -223,6 +225,7 @@ function SectionContent({ section }: { section: IntelligenceSection }) {
     case "roster-specialists":             return <SpecialistsRosterPage />;
     case "roster-minions":                 return <MinionsRosterPage />;
     case "benchmark-bands":                return <BenchmarkBandsTab />;
+    case "animations":                     return <AnimationsPage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
@@ -265,6 +268,7 @@ const VALID_SECTIONS = new Set<IntelligenceSection>([
   "roster-agents",
   "roster-specialists",
   "roster-minions",
+  "animations",
 ]);
 
 export default function Intelligence() {

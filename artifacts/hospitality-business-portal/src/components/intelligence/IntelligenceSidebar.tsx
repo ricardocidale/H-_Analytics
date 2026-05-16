@@ -28,6 +28,7 @@ import {
   IconActivity,
   IconWand2,
   IconList,
+  IconSparkles,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
@@ -90,7 +91,8 @@ export type IntelligenceSection =
   // resolving while the roster pages take over the sidebar entry points.
   | "roster-agents"
   | "roster-specialists"
-  | "roster-minions";
+  | "roster-minions"
+  | "animations";
 
 interface SectionItem {
   value: IntelligenceSection;
@@ -228,6 +230,12 @@ function buildNavGroups(): NavGroup[] {
           label: "Benchmark Bands",
           icon: IconActivity,
           tooltip: "Admin-editable low / mid / high bands for the 24 market calibration groups. Edits update model_constants without a code deploy.",
+        },
+        {
+          value: "animations",
+          label: "Animations",
+          icon: IconSparkles,
+          tooltip: "Agent persona animations and motion assets for Rebecca and The Analyst.",
         },
       ],
     },
