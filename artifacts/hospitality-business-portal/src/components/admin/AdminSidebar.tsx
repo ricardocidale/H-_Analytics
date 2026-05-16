@@ -198,7 +198,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
-        { value: "defaults-brands",             label: "Brands",             icon: IconBriefcase },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
         { value: "reference-ranges",            label: "Reference Ranges",   icon: IconRuler },
