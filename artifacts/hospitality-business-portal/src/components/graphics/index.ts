@@ -18,3 +18,6 @@ export { InsightPanel, type Insight } from "./InsightPanel";
 export { AnimatedPage, AnimatedSection, AnimatedGrid, AnimatedGridItem, ScrollReveal } from "./AnimatedPage";
 
 export { CHART_COLORS, formatCompact, formatPercent, formatPercentRaw, trendDirection, formatMoney } from "./formatters";
+
+export { HplusLogoAnimated } from "./HplusLogoAnimated";
+export { AnalystCubeIcon } from "./AnalystCubeIcon";

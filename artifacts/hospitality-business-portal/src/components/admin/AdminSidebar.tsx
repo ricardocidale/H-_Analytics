@@ -42,7 +42,7 @@ export type AdminSection =
   | "model-defaults"
   | "users" | "activity"
   | "scenarios"
-  | "brand"
+  | "brand-themes" | "brand-assets-page"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
@@ -52,7 +52,7 @@ export type AdminSection =
   // Anything beyond this short list was a code-internal rename and was
   // dropped; new contributors don't need to chase a redirect chain to
   // find the canonical component. See docs/audits/admin-section-audit-2026-04-20.md §MT.1.
-  | "logos" | "themes" | "llms" | "sources"
+  | "brand" | "logos" | "themes" | "llms" | "sources"
   // Sidebar item that lands on the Scenarios page with default-assignment intent.
   | "default-assignments"
   // Canonical read-only roll-up across every Specialist's required fields.
@@ -103,8 +103,9 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Per docs/audits/admin-section-audit-2026-04-20.md §MT.1, every other
   // alias was a code-internal rename and has been dropped — components are
   // now reached by their canonical section name (no redirect hop).
-  "logos": "brand",
-  "themes": "brand",
+  "brand": "brand-assets-page",
+  "logos": "brand-assets-page",
+  "themes": "brand-themes",
   "llms": "data-sources",
   "sources": "data-sources",
   // `required-fields` is the canonical roll-up section now (Admin → Properties
@@ -231,7 +232,8 @@ function buildNavGroups(): NavGroup[] {
       icon: IconPalette,
       description: "Logos, themes, and icon customization",
       sections: [
-        { value: "brand", label: "Brand Settings", icon: IconPalette },
+        { value: "brand-themes",      label: "Themes",       icon: IconSwatchBook },
+        { value: "brand-assets-page", label: "Brand Assets", icon: IconImage },
       ],
     },
     {
