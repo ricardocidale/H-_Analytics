@@ -35,7 +35,6 @@ import {
   DEFAULT_COST_SEG_15YR_PCT,
   DEFAULT_STAFF_TIER1_MAX_PROPERTIES,
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
-  DEFAULT_STABILIZATION_MONTHS,
 } from "../constants";
 import { getFactoryNumber } from "../model-constants-registry";
 
@@ -93,7 +92,7 @@ export const properties = pgTable("properties", {
   maxOccupancy: real("max_occupancy").notNull(),
   occupancyRampMonths: integer("occupancy_ramp_months").notNull(),
   occupancyGrowthStep: real("occupancy_growth_step").notNull(),
-  stabilizationMonths: integer("stabilization_months").notNull().default(DEFAULT_STABILIZATION_MONTHS),
+  stabilizationMonths: integer("stabilization_months").notNull().default(36), // months; bootstrap value, reads property.stabilizationMonths at runtime
 
   pricingModel: text("pricing_model").$type<"per_room" | "per_property">(),
   nightlyPropertyRate: real("nightly_property_rate"),
