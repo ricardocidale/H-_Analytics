@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T07:00:00Z
-Status: active
+Updated: 2026-05-16T10:30:00Z
+Status: handoff-pending
 
 ## Active Branch
 
@@ -44,6 +44,22 @@ T1-3 Replit scope still needed:
   - `analyst-admin-runners-mgmt.ts` double-cast
   - `bracket-assignment-minion.ts` EMPTY_PORTFOLIO_DEFAULT_MIX
   - `property-data.ts` SEED_* literals
+
+## Handoff to Replit
+
+Full handoff doc: `.local/tasks/replit-handoff-2026-05-16.md`
+
+Two tasks for Replit (frontend only, no backend changes needed):
+
+**T1-3 UI** — Add "Assigned Default Scenario" Select dropdown to `EditUserDialog`.
+- Files: `admin/types.ts`, `admin/users/types.ts`, `admin/UsersTab.tsx`, `admin/users/EditUserDialog.tsx`
+- API: `PATCH /api/admin/users/:id/assigned-scenario { scenarioId: number | null }` (CC already built this)
+
+**T1-2** — Restore flow for archived properties in the admin panel.
+- API: `POST /api/admin/properties/:id/restore` (already exists)
+- Scope: find or create an admin properties list; add Restore button per archived row.
+
+Typecheck gate: `pnpm run typecheck` must pass clean after both tasks.
 
 ## Files CC Owns Right Now
 

@@ -11,6 +11,7 @@ import { UserRole } from "@shared/constants";
 import { formatDateTime } from "@/lib/formatters";
 import type { User } from "../types";
 import type { EditUserForm } from "./types";
+import { type AdminScenario } from "../scenarios/ScenarioCard";
 
 interface EditUserDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface EditUserDialogProps {
   setShowEditPassword: React.Dispatch<React.SetStateAction<boolean>>;
   isPending: boolean;
   onSubmit: () => void;
+  scenarios: AdminScenario[];
 }
 
 export default function EditUserDialog({
@@ -34,6 +36,7 @@ export default function EditUserDialog({
   setShowEditPassword,
   isPending,
   onSubmit,
+  scenarios,
 }: EditUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
@@ -76,6 +79,33 @@ export default function EditUserDialog({
               onCheckedChange={(checked) => setEditUser(prev => ({ ...prev, canManageScenarios: checked }))}
               data-testid="switch-edit-scenarios"
             />
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <IconFileStack className="w-4 h-4 text-muted-foreground" />
+              Default Scenario
+            </Label>
+            <Select
+              value={editUser.assignedScenarioId?.toString() ?? "none"}
+              onValueChange={(v) =>
+                setEditUser(prev => ({ ...prev, assignedScenarioId: v === "none" ? null : parseInt(v, 10) }))
+              }
+            >
+              <SelectTrigger data-testid="select-edit-assigned-scenario">
+                <SelectValue placeholder="No default (auto-create)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No default (auto-create)</SelectItem>
+                {scenarios.map((s) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>
+                    {s.name} — {s.ownerEmail}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              When set, this scenario opens on the user's first login instead of an auto-created one.
+            </p>
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2"><IconKey className="w-4 h-4 text-muted-foreground" />Password</Label>

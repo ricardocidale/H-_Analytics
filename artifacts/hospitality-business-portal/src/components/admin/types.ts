@@ -20,6 +20,7 @@ export interface User {
   title: string | null;
   role: string;
   canManageScenarios: boolean;
+  assignedScenarioId: number | null;
   createdAt: string;
 }
 

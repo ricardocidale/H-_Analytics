@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-15T00:00:00Z
+Updated: 2026-05-16T12:33:00Z
 Status: idle
 
 ## Active Branch
@@ -13,21 +13,24 @@ main
 
 ## Last Commit on Branch
 
-fix(auth): enforce login lock on /api/auth/me for non-super-admins
+feat(admin): T1-3 assigned-scenario dropdown + T1-2 archived-properties tab
 
 ## What Replit Did This Session
 
-- Ran dashboard UI/UX audit using Figma MCP → FigJam diagram created
-- Found 4 KPI hero mockup variants (Swiss, Animated, Glass, Bento) in mockup sandbox
-- Placed 4 KPI variant iframes on canvas for side-by-side comparison
-- Created Compare.tsx mockup page showing all 4 variants together
-- Renamed "Dashboard" → "Portfolio Overview" in desktop sidebar nav
-- Renamed "Dashboard" → "Portfolio" in mobile bottom nav
-- Fixed bug 1: /api/system/login-config was missing from PUBLIC_API_PATHS (401 on public endpoint)
-- Fixed bug 2 (critical): /api/auth/me had no awareness of the portal lock; authenticated
-  sessions for non-super-admin users were bypassing the "Access Restricted" screen entirely.
-  Fix: /api/auth/me now returns 401 for any non-super-admin role when loginScreenEnabled=false.
-  super_admin is exempt so the admin can always re-enable the toggle.
+T1-3 (assigned scenario dropdown in Edit User dialog):
+- admin/types.ts: added assignedScenarioId: number | null to User interface
+- admin/users/types.ts: added field to EditUserForm + null default in defaultEditUser
+- admin/UsersTab.tsx: scenarios useQuery, assignScenarioMutation, wired into
+  handleEditUser/handleEditSubmit, scenarios prop passed to EditUserDialog
+- admin/users/EditUserDialog.tsx: scenarios prop, Select dropdown with
+  data-testid="select-edit-assigned-scenario"
+
+T1-2 (archived properties restore tab):
+- AdminPropertiesTab.tsx (new): fetches archived properties, Restore button per row
+- AdminSidebar.tsx: "archived-properties" added to AdminSection union + Portfolio group
+- Admin.tsx: lazy import + sectionMeta + switch case
+
+Typecheck: all 4 packages pass clean.
 
 ## Files Replit Owns Right Now
 

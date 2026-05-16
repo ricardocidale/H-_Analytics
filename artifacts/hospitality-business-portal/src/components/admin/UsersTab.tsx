@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconUserPlus, IconSend, IconHelpCircle } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminUsers } from "./hooks";
+import { useAdminUsers, adminFetch } from "./hooks";
+import { type AdminScenario } from "./scenarios/ScenarioCard";
 import { useAuth } from "@/lib/auth";
 import { UserRole } from "@shared/constants";
 import type { User } from "./types";
@@ -43,6 +44,11 @@ export default function UsersTab() {
   const [defaultsUser, setDefaultsUser] = useState<User | null>(null);
 
   const { data: users, isLoading: usersLoading } = useAdminUsers();
+
+  const { data: scenarios } = useQuery<AdminScenario[]>({
+    queryKey: ["admin", "scenarios"],
+    queryFn: adminFetch<AdminScenario[]>("/api/admin/scenarios", "Failed to fetch scenarios"),
+  });
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -148,6 +154,21 @@ export default function UsersTab() {
     },
   });
 
+  const assignScenarioMutation = useMutation({
+    mutationFn: async ({ id, scenarioId }: { id: number; scenarioId: number | null }) => {
+      await apiRequest("PATCH", `/api/admin/users/${id}/assigned-scenario`, { scenarioId }, {
+        fallbackMessage: "Failed to assign scenario",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast({ title: "Scenario Assigned", description: "Default scenario updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditUser = (targetUser: User) => {
     setSelectedUser(targetUser);
     setOriginalEmail(targetUser.email);
@@ -160,6 +181,7 @@ export default function UsersTab() {
       role: targetUser.role || UserRole.USER,
       password: "",
       canManageScenarios: targetUser.canManageScenarios ?? true,
+      assignedScenarioId: targetUser.assignedScenarioId ?? null,
     });
     setShowEditPassword(false);
     setEditDialogOpen(true);
@@ -193,6 +215,9 @@ export default function UsersTab() {
       passwordMutation.mutate({ id: selectedUser.id, password: editUser.password });
     }
     editMutation.mutate({ id: selectedUser.id, data });
+    if (editUser.assignedScenarioId !== (selectedUser.assignedScenarioId ?? null)) {
+      assignScenarioMutation.mutate({ id: selectedUser.id, scenarioId: editUser.assignedScenarioId });
+    }
   };
 
   return (
@@ -300,6 +325,7 @@ export default function UsersTab() {
       setShowEditPassword={setShowEditPassword}
       isPending={editMutation.isPending}
       onSubmit={handleEditSubmit}
+      scenarios={scenarios ?? []}
     />
 
     <InviteUsersDialog

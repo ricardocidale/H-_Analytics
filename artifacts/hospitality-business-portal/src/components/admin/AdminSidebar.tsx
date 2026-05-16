@@ -47,6 +47,7 @@ export type AdminSection =
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
   | "property-heroes"
+  | "archived-properties"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
   // dropped; new contributors don't need to chase a redirect chain to
@@ -208,10 +209,11 @@ function buildNavGroups(): NavGroup[] {
       icon: IconProperties,
       description: "Properties, scenarios, and default assignments",
       sections: [
-        { value: "required-fields",     label: "Required Fields",     icon: IconFileCheck },
-        { value: "property-heroes",     label: "Property Heroes",     icon: IconImage },
-        { value: "scenarios",           label: "All Scenarios",       icon: IconGitFork },
-        { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
+        { value: "required-fields",      label: "Required Fields",     icon: IconFileCheck },
+        { value: "property-heroes",      label: "Property Heroes",     icon: IconImage },
+        { value: "archived-properties",  label: "Archived",            icon: IconProperties },
+        { value: "scenarios",            label: "All Scenarios",       icon: IconGitFork },
+        { value: "default-assignments",  label: "Default Assignments", icon: IconUserCog },
       ],
     },
     {

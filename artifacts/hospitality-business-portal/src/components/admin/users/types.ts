@@ -24,6 +24,7 @@ export type EditUserForm = {
   role: string;
   password: string;
   canManageScenarios: boolean;
+  assignedScenarioId: number | null;
 };
 
 export const defaultNewUser: NewUserForm = {
@@ -45,4 +46,5 @@ export const defaultEditUser: EditUserForm = {
   role: UserRole.USER,
   password: "",
   canManageScenarios: true,
+  assignedScenarioId: null,
 };

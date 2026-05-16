@@ -24,11 +24,11 @@ Four net-new capabilities agreed in the 2026-05-16 brainstorm. These are **Phase
 
 ---
 
-## Capability 1 — Fabio: Model Router Specialist
+## Capability 1 — Matteo: Model Router Specialist
 
 ### What it does
 
-A lightweight routing layer that classifies each LLM call by task type and selects the cheapest model that meets quality requirements for that class. Fabio is a **Specialist** (cross-app, used across all pipelines).
+A lightweight routing layer that classifies each LLM call by task type and selects the cheapest model that meets quality requirements for that class. Matteo is a **Specialist** (cross-app, used across all pipelines).
 
 ### Task → model routing matrix (initial)
 
@@ -44,10 +44,10 @@ A lightweight routing layer that classifies each LLM call by task type and selec
 
 ### Architecture
 
-- Fabio sits in front of all `callLlm()` and direct SDK calls
-- Task type is declared by the calling agent/specialist (not inferred by Fabio)
+- Matteo sits in front of all `callLlm()` and direct SDK calls
+- Task type is declared by the calling agent/specialist (not inferred by Matteo)
 - Routing table lives in `admin_resources` rows (kind = `llm_slot`) — admin-editable, no redeploy required
-- Fabio reads the table at call time; falls back to Claude Sonnet if no route configured for a task type
+- Matteo reads the table at call time; falls back to Claude Sonnet if no route configured for a task type
 - Cost logging per task type surfaces in the Admin panel so the founder can tune
 
 ### Infrastructure note
@@ -55,7 +55,7 @@ A lightweight routing layer that classifies each LLM call by task type and selec
 Anthropic's Agent SDK is Claude-only at the transport layer. Multi-provider routing requires an AI gateway:
 - **LiteLLM** (open source, most mature) or **Bifrost** (open source, 20+ providers) as the gateway layer
 - Both translate provider API formats transparently
-- The gateway becomes the single interface; Fabio calls the gateway, not providers directly
+- The gateway becomes the single interface; Matteo calls the gateway, not providers directly
 
 ### Expected savings
 
@@ -121,19 +121,19 @@ Anthropic reports up to +10 task success points over standard prompting; file ge
 
 ---
 
-## Capability 4 — Lorenzo: Data Source Discovery Agent
+## Capability 4 — Giorgio: Data Source Discovery Agent
 
 ### What it does
 
-A native Managed Agent whose sole job is discovering, validating, and proposing new hospitality data sources. Lorenzo runs autonomously, periodically, without human prompting.
+A native Managed Agent whose sole job is discovering, validating, and proposing new hospitality data sources. Giorgio runs autonomously, periodically, without human prompting.
 
 ### Trigger conditions
 
 - Weekly scheduled run
-- Triggered by a new property geography being added (e.g., first Spain property → Lorenzo runs a Spain hospitality data survey)
-- Triggered by a data source health failure in Costantino (source went dead → Lorenzo finds a replacement)
+- Triggered by a new property geography being added (e.g., first Spain property → Giorgio runs a Spain hospitality data survey)
+- Triggered by a data source health failure in Costantino (source went dead → Giorgio finds a replacement)
 
-### What Lorenzo does per cycle
+### What Giorgio does per cycle
 
 1. Surveys the web for hospitality data APIs, research firms, and datasets relevant to active property geographies
 2. Validates each candidate: tests the API/URL, checks data freshness, evaluates geographic coverage
@@ -141,7 +141,7 @@ A native Managed Agent whose sole job is discovering, validating, and proposing 
 4. Proposes additions as draft `admin_resources` rows with quality assessment
 5. Does NOT auto-merge — proposals require founder review and approval before activation
 
-### What dreaming learns for Lorenzo
+### What dreaming learns for Giorgio
 
 - Which discovery patterns (search queries, source categories) find validated sources vs noise
 - Which source categories have the highest hit rate by geography
@@ -152,11 +152,11 @@ A native Managed Agent whose sole job is discovering, validating, and proposing 
 - Built as a native Anthropic Managed Agent (model, system prompt, tools, MCP servers defined once)
 - Tools: web search, fetch, code execution (to test APIs), `admin_resources` read/write (proposals only)
 - Session history persisted server-side by Anthropic
-- Dreaming watches Lorenzo cycles and refines the playbook
+- Dreaming watches Giorgio cycles and refines the playbook
 
 ### Naming convention
 
-Lorenzo follows CLAUDE.md §10: Italian name, cross-app specialist, single name (no NN suffix). Role: "Data Source Discovery Agent."
+Giorgio follows CLAUDE.md §10: Italian name, cross-app specialist, single name (no NN suffix). Role: "Data Source Discovery Agent."
 
 ---
 
@@ -185,10 +185,10 @@ Vision-based continuous design auditor (screenshots → compares against design 
 
 | Capability | Incremental token cost | Compounding value |
 |---|---|---|
-| Fabio (model router) | Net negative — saves 30–50% | High: compounds on every call |
+| Matteo (model router) | Net negative — saves 30–50% | High: compounds on every call |
 | Dreaming | Low: scheduled, runs on accumulated sessions | High: improves research quality per session |
 | Outcomes | Low: one extra Sonnet call per research session | Medium: reduces low-quality outputs reaching users |
-| Lorenzo | Low: weekly scheduled; short cycles | Medium: compounds as source catalog grows |
+| Giorgio | Low: weekly scheduled; short cycles | Medium: compounds as source catalog grows |
 
 All four are net-positive or cost-neutral on a per-session basis once the routing savings are realized.
 
@@ -198,8 +198,8 @@ All four are net-positive or cost-neutral on a per-session basis once the routin
 
 | Name | Role | Type | Format |
 |---|---|---|---|
-| Fabio | Model Router Specialist | Specialist | Single name |
-| Lorenzo | Data Source Discovery Agent | Specialist | Single name |
+| Matteo | Model Router Specialist | Specialist | Single name |
+| Giorgio | Data Source Discovery Agent | Specialist | Single name |
 
 Add both to `.agents/skills/slide-factory/SKILL.md` roster per CLAUDE.md §10.
 
@@ -207,9 +207,9 @@ Add both to `.agents/skills/slide-factory/SKILL.md` roster per CLAUDE.md §10.
 
 ## Definition of done (Phase 2)
 
-1. Fabio routes at least 5 distinct task types to non-Sonnet models; cost per session measurably reduced
+1. Matteo routes at least 5 distinct task types to non-Sonnet models; cost per session measurably reduced
 2. Gustavo writes session outcomes to managed memory store after each synthesis
 3. Dreaming access obtained; review-before-land mode configured
 4. Outcomes gate active on all research sessions; grader logs visible in admin
-5. Lorenzo runs first autonomous cycle; proposes at least one valid new source
+5. Giorgio runs first autonomous cycle; proposes at least one valid new source
 6. Routing table visible and editable in Admin → Model Defaults panel

@@ -49,6 +49,7 @@ const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fiel
 const ObservabilityTab = lazy(() => import("@/components/admin/ObservabilityTab"));
 const ComplianceTab = lazy(() => import("@/components/admin/ComplianceTab"));
 const LoginSettingsTab = lazy(() => import("@/components/admin/LoginSettingsTab"));
+const AdminPropertiesTab = lazy(() => import("@/components/admin/AdminPropertiesTab"));
 
 export type { AdminSaveState };
 
@@ -75,7 +76,8 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
   compliance:            { title: "Compliance",               subtitle: "Vito compliance audit findings: constants taxonomy, admin_resources parity, and KB coverage gaps" },
   "login-settings":     { title: "Login Settings",           subtitle: "Control whether the login form is shown to portal visitors" },
-  "property-heroes":     { title: "Property Heroes",           subtitle: "View and download hero images for all properties, individually or as a ZIP" },
+  "property-heroes":        { title: "Property Heroes",           subtitle: "View and download hero images for all properties, individually or as a ZIP" },
+  "archived-properties":    { title: "Archived Properties",       subtitle: "View and restore properties that have been archived" },
 
   // AI Research → Specialists (P5). The page header *title* for these
   // sections is computed dynamically from the catalog + the live
@@ -257,7 +259,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "sidebar-visibility": return <SidebarVisibilityTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
-    case "property-heroes":  return <PropertyHeroImagesTab />;
+    case "property-heroes":      return <PropertyHeroImagesTab />;
+    case "archived-properties":  return <AdminPropertiesTab />;
     case "observability":    return <ObservabilityTab />;
     case "compliance":       return <ComplianceTab />;
     case "login-settings":  return <LoginSettingsTab />;
