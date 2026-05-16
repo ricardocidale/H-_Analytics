@@ -104,8 +104,8 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-4: DEFAULT_* constants → model_defaults DB rows (incremental)
-**Status:** ⚠️ Partial (schema decoupled 2026-05-16)
-**Progress:** Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals (0.085, 0.05, 0.25, 0.25). Schema bootstrap values no longer couple to TS constants. Engine fallback removal (`?? DEFAULT_*` in aggregators/loanCalculations) deferred until `PropertyInput` type update (making these fields required) which requires updating proof test fixtures.
+**Status:** ✅ Phase complete (2026-05-16)
+**Progress:** (1) Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals. (2) `PropertyInput.exitCapRate/dispositionCommission/landValuePercent` and `LoanParams` equivalents promoted to required `number` — DB NOT NULL guarantee enforced at the type boundary. (3) All `?? DEFAULT_*` dead-code fallbacks removed from engine and calc layers (cashFlowAggregator, yearlyAggregator, loanCalculations, resolve-assumptions, exit-scenarios). Proof test fixtures updated. Committed 2026-05-16 (6d8cbaf0f).
 **Context:** CLAUDE.md §2 prohibits TypeScript constants for financial values. ~5+ legacy `DEFAULT_*` constants remain in `lib/shared/src/constants*.ts`. Each session should clean one up.
 **Done when (per constant):**
 - Constant removed from `constants*.ts`
