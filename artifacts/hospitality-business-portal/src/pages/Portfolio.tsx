@@ -21,6 +21,7 @@
  * invalidation of all financial queries so dashboards update.
  */
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PropertyStatus } from "@shared/constants";
 import Layout from "@/components/Layout";
 import { PageLoadingState } from "@/components/ui/page-loading-state";
@@ -45,6 +46,14 @@ import { PageTransition } from "@/components/ui/animated";
 import { AnimatedPage, AnimatedGrid } from "@/components/graphics";
 import { AddPropertyDialog, PortfolioPropertyCard } from "@/components/portfolio";
 import type { AddPropertyFormData } from "@/components/portfolio";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2 } from "@/components/icons/themed-icons";
 
 /** Utility: shift a YYYY-MM-DD date string forward by N months. */
 function addMonths(dateStr: string, months: number): string {
@@ -81,6 +90,11 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
 
 type PortfolioTab = "properties" | "map";
 
+interface PortfolioItem {
+  id: number;
+  name: string;
+}
+
 export default function Portfolio() {
   const { data: properties, isLoading, isError } = useProperties();
   const { data: _global } = useGlobalAssumptions();
@@ -88,10 +102,41 @@ export default function Portfolio() {
   const deleteProperty = useDeleteProperty();
   const createProperty = useCreateProperty();
   const updateProperty = useUpdateProperty();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [_activeTab, _setActiveTab] = useState<PortfolioTab>("properties");
   const [formData, setFormData] = useState<AddPropertyFormData>({ ...INITIAL_FORM_DATA });
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
+
+  const { data: portfolios = [] } = useQuery<PortfolioItem[]>({
+    queryKey: ["portfolios"],
+    queryFn: async () => {
+      const r = await fetch("/api/portfolios", { credentials: "include" });
+      if (!r.ok) throw new Error("Failed to fetch portfolios");
+      return r.json() as Promise<PortfolioItem[]>;
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async ({ propertyId, portfolioId }: { propertyId: number; portfolioId: number }) => {
+      const r = await fetch(`/api/properties/${propertyId}/portfolio`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ portfolioId }),
+      });
+      if (!r.ok) throw new Error("Failed to assign property");
+      return r.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["properties"] });
+      toast({ title: "Property assigned", description: "Property has been added to the portfolio." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to assign property.", variant: "destructive" });
+    },
+  });
 
   const handleAcquisitionDateChange = (date: string) => {
     const updates: Partial<AddPropertyFormData> = { acquisitionDate: date };
@@ -187,6 +232,10 @@ export default function Portfolio() {
     return <PageErrorState message="Failed to load portfolio data" />;
   }
 
+  const unassignedProperties = properties?.filter(
+    (p) => (p as typeof p & { portfolioId?: number | null }).portfolioId == null
+  ) ?? [];
+
   return (
     <Layout>
       <AnimatedPage>
@@ -227,6 +276,73 @@ export default function Portfolio() {
             />
           ))}
         </AnimatedGrid>
+
+        {/* Unassigned properties section */}
+        {unassignedProperties.length > 0 && (
+          <div className="space-y-4 border-t border-border pt-6">
+            <div className="flex items-center justify-between min-w-0 gap-4">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-foreground">Unassigned Properties</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {unassignedProperties.length}{" "}
+                  {unassignedProperties.length === 1 ? "property" : "properties"} not in any
+                  portfolio
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Select
+                  value={selectedPortfolioId?.toString() ?? ""}
+                  onValueChange={(v) => setSelectedPortfolioId(Number(v))}
+                >
+                  <SelectTrigger className="w-[200px]" data-testid="select-target-portfolio">
+                    <SelectValue placeholder="Select portfolio…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {portfolios.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {unassignedProperties.map((property) => (
+                <div
+                  key={property.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 gap-3 min-w-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{property.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{property.location}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      if (selectedPortfolioId != null) {
+                        assignMutation.mutate({
+                          propertyId: property.id,
+                          portfolioId: selectedPortfolioId,
+                        });
+                      }
+                    }}
+                    disabled={selectedPortfolioId == null || assignMutation.isPending}
+                    data-testid={`button-assign-property-${property.id}`}
+                  >
+                    {assignMutation.isPending && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    )}
+                    Assign to portfolio
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div></PageTransition>
       </AnimatedPage>
     </Layout>

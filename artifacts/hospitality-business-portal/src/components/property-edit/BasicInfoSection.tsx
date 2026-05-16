@@ -18,6 +18,7 @@ import { PROPERTY_STATUS_VALUES, DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, PLATFOR
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import ImprovedDescriptionField from "./ImprovedDescriptionField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CityCombobox } from "@/components/ui/city-combobox";
 import AddressAutocomplete, { type PlaceDetails } from "@/components/AddressAutocomplete";
@@ -569,13 +570,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                 Description (Improved)
                 <InfoTooltip text="A narrative description of the property after planned improvements. Describe the transformation, new amenities, and revised target guest profile." />
               </Label>
-              <Textarea
-                value={draft.descriptionImproved ?? ""}
-                onChange={(e) => onChange("descriptionImproved", e.target.value || null)}
-                placeholder={purchasedDescriptionForPlaceholder ? purchasedDescriptionForPlaceholder + (purchasedDescriptionForPlaceholder.length >= 120 ? "…" : "") : "Describe the property after improvements..."}
-                className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/60 focus:placeholder:text-muted-foreground min-h-[100px] resize-y"
-                data-testid="input-description-improved"
-              />
+              <ImprovedDescriptionField draft={draft} onChange={onChange} />
             </div>
           </div>
         </div>

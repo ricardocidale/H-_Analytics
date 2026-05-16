@@ -30,6 +30,13 @@ export type FactoryTab =
   | "f-agents"
   | "f-download";
 
+export interface VerificationFinding {
+  slideNumber: number;
+  severity: "ok" | "advisory" | "warning" | "block";
+  category: "text_cutoff" | "placeholder" | "readability" | "layout" | "consistency" | "data_quality";
+  description: string;
+}
+
 export interface SlideFactoryRun {
   id: number;
   userId: number;
@@ -47,6 +54,11 @@ export interface SlideFactoryRun {
   agentResults: Record<string, SlideAgentResultFE> | null;
   deckR2Key: string | null;
   pptxR2Key: string | null;
+  pdfR2Key: string | null;
+  wishListLog: unknown[] | null;
+  slotContentHashes: unknown | null;
+  verificationStatus: "running" | "passed" | "failed" | "error" | null;
+  verificationLog: VerificationFinding[] | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
