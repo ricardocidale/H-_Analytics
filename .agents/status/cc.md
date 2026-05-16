@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T17:00:00Z
+Updated: 2026-05-16T18:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,41 +13,49 @@ main
 
 ## Last Commit on Branch
 
-007f9823b  docs(master-plan): mark T2-2 portfolio grouping complete (2026-05-16)
+0987d6968  feat(T2-3): Rebecca content-gen tools — generate_executive_summary + rewrite_property_description
 
-## What CC Did This Session (2026-05-16 session 4)
+## What CC Did This Session (2026-05-16 session 5)
 
-T2-2 (Portfolio grouping — backend COMPLETE):
-- Drizzle schema: portfolios.ts (new table), properties.ts (portfolioId FK), index.ts export
-- SQL migrations: lib/db/migrations/0065 + api-server/migrations/0072
-- Runtime guard: portfolios-001.ts (CREATE TABLE/INDEX/COLUMN IF NOT EXISTS)
-  registered in migration-guards.json + wired in startup/migrations.ts
-- Storage: PortfolioStorage class (6 methods), registered in IStorage + buildDomainFactories
-- API routes: GET /portfolios, POST /portfolios, PATCH /portfolios/:id,
-  DELETE /portfolios/:id, GET /portfolios/:id/properties, PUT /properties/:id/portfolio
-- Rebecca tools (6): list_portfolios, create_portfolio, update_portfolio, delete_portfolio,
-  list_portfolio_properties, assign_property_portfolio — wired in defs + dispatch
-- DataChangedEntry entityType union extended with "portfolio"
-- Parity map: 6 portfolio rows added
-- typecheck PASS + magic-numbers PASS
-- Committed ec4e26743
+T2-3 (Analyst button audit + content tools — phase 1 COMPLETE):
+- Audit: explored entire frontend for Analyst buttons vs uncovered text fields
+  Section A: 20+ Analyst button sites documented
+  Section B: 14 text fields without buttons identified
+- Two pure parity gaps closed (routes existed, no Rebecca tools):
+  * generate_executive_summary — calls generatePropertyExecutiveSummary directly,
+    invalidates route-level cache, returns structured + formatted text
+  * rewrite_property_description — runs aiUtilityLlm copywriter prompt,
+    returns rewritten text (caller uses patch_property to persist)
+- Named constants: MAX_REWRITE_DESCRIPTION_CHARS=5000, REWRITE_DESCRIPTION_MAX_TOKENS=1024
+  added to lib/shared/src/constants.ts
+- Parity map: "Content Generation Actions" section (3 rows) added
+- typecheck PASS + magic-numbers PASS + engine tests 41/41 PASS
+- Committed 0987d6968
 
 ## What's Pending
 
+T2-3 UI (Replit-safe):
+- descriptionImproved field: add "Improve with AI" or Analyst button (same pattern as
+  AsPurchasedDescriptionField.tsx but for the improved description textarea)
+- File: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx
+  around line 572 (descriptionImproved textarea)
+- Endpoint to call: POST /api/properties/:id/rewrite-description { text: "..." }
+
 T2-2 UI (Replit-safe):
-- Portfolio selector dropdown on property list page
-- Property detail view showing which portfolio it belongs to
-- Files: artifacts/hospitality-business-portal/src/features/properties/
+- Portfolio selector on property list page
+- PUT /api/properties/:id/portfolio { portfolioId: N | null }
 
 T1-5 item 2 (low priority — advisory, Replit-safe):
 - analyst-admin-runners-mgmt.ts lines 140-143: `as unknown as` double-casts
 
 ## Handoff to Replit
 
-T2-2 backend is fully live. Replit can now build the UI portfolio selector:
-1. Fetch portfolio list: GET /api/portfolios
-2. Property list page: add portfolio filter/group selector
-3. Assign via: PUT /api/properties/:id/portfolio { portfolioId: N | null }
+T2-3: Add "Improve with AI" button to descriptionImproved textarea in BasicInfoSection.tsx.
+Pattern to follow: AsPurchasedDescriptionField.tsx (preview-then-accept flow).
+Endpoint: POST /api/properties/:id/rewrite-description (body: { text: string }).
+
+T2-2: Add portfolio selector to property list. Endpoint: GET /api/portfolios for list,
+PUT /api/properties/:id/portfolio to assign.
 
 ## Files CC Owns Right Now
 
