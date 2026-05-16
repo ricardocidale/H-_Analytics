@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T18:00:00Z
+Updated: 2026-05-16T19:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,33 +13,40 @@ main
 
 ## Last Commit on Branch
 
-0987d6968  feat(T2-3): Rebecca content-gen tools — generate_executive_summary + rewrite_property_description
+4dcd2a9cb  feat(bianca): T2-4 visual quality verification for factory decks
 
-## What CC Did This Session (2026-05-16 session 5)
+## What CC Did This Session (2026-05-16 session 6)
 
-T2-3 (Analyst button audit + content tools — phase 1 COMPLETE):
-- Audit: explored entire frontend for Analyst buttons vs uncovered text fields
-  Section A: 20+ Analyst button sites documented
-  Section B: 14 text fields without buttons identified
-- Two pure parity gaps closed (routes existed, no Rebecca tools):
-  * generate_executive_summary — calls generatePropertyExecutiveSummary directly,
-    invalidates route-level cache, returns structured + formatted text
-  * rewrite_property_description — runs aiUtilityLlm copywriter prompt,
-    returns rewritten text (caller uses patch_property to persist)
-- Named constants: MAX_REWRITE_DESCRIPTION_CHARS=5000, REWRITE_DESCRIPTION_MAX_TOKENS=1024
-  added to lib/shared/src/constants.ts
-- Parity map: "Content Generation Actions" section (3 rows) added
-- typecheck PASS + magic-numbers PASS + engine tests 41/41 PASS
-- Committed 0987d6968
+T2-4 (vision-based export quality verification — COMPLETE):
+- Bianca specialist agent in src/slides/bianca-verification.ts:
+  PPTX download from R2 → LibreOffice headless PNG conversion → Anthropic vision
+  batched call with tool_use structured output → per-slide findings
+- Six-category rubric: text_cutoff, placeholder, readability, layout, consistency, data_quality
+  Severity: ok / advisory / warning / block
+- Schema: verificationStatus + verificationLog columns on slide_factory_runs
+  Drizzle migration 0066 + api-server mirror 0073 + runtime guard slide-factory-verification-001.ts
+- admin-resources-014.ts seeds bianca-verification llm_slot (claude-haiku-4-5 default)
+- Routes: POST /api/slide-factory-runs/:id/verify + GET .../verification
+- Rebecca tool: verify_factory_deck (toolVerifyFactoryDeck)
+- Parity map: 2 rows added (verify + read-verification)
+- Magic-numbers: BIANCA_SIGKILL_GRACE_MS=5*1000, BIANCA_TMP_DIR_NAME_MAX_LEN=64 named
+- typecheck PASS + magic-numbers PASS
+- Committed 4dcd2a9cb (20 files, 638 insertions)
 
 ## What's Pending
 
+T2-4 UI (Replit-safe):
+- Add "Verify deck" button to Tab 6 of the Slide Factory admin panel
+- Calls POST /api/slide-factory-runs/:id/verify
+- Shows per-slide findings in a collapsible panel (severity color: ok=emerald, advisory=sky,
+  warning=amber, block=red)
+- Status polling: GET /api/slide-factory-runs/:id/verification
+
 T2-3 UI (Replit-safe):
-- descriptionImproved field: add "Improve with AI" or Analyst button (same pattern as
-  AsPurchasedDescriptionField.tsx but for the improved description textarea)
+- descriptionImproved field: add "Improve with AI" or Analyst button
 - File: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx
   around line 572 (descriptionImproved textarea)
-- Endpoint to call: POST /api/properties/:id/rewrite-description { text: "..." }
+- Endpoint: POST /api/properties/:id/rewrite-description { text: "..." }
 
 T2-2 UI (Replit-safe):
 - Portfolio selector on property list page
@@ -50,11 +57,16 @@ T1-5 item 2 (low priority — advisory, Replit-safe):
 
 ## Handoff to Replit
 
-T2-3: Add "Improve with AI" button to descriptionImproved textarea in BasicInfoSection.tsx.
-Pattern to follow: AsPurchasedDescriptionField.tsx (preview-then-accept flow).
+T2-4 UI: Add "Verify deck" button to the Slide Factory Tab 6 override panel.
+Backend: POST /api/slide-factory-runs/:id/verify (synchronous, ~15-30s, returns BiancaVerificationResult).
+GET /api/slide-factory-runs/:id/verification for polling/reading last result.
+Severity display: ok=emerald, advisory=sky, warning=amber, block=red (per AnalystCheckDialog pattern).
+
+T2-3 UI: Add "Improve with AI" button to descriptionImproved textarea in BasicInfoSection.tsx.
+Pattern: AsPurchasedDescriptionField.tsx (preview-then-accept flow).
 Endpoint: POST /api/properties/:id/rewrite-description (body: { text: string }).
 
-T2-2: Add portfolio selector to property list. Endpoint: GET /api/portfolios for list,
+T2-2 UI: Portfolio selector on property list. GET /api/portfolios for list,
 PUT /api/properties/:id/portfolio to assign.
 
 ## Files CC Owns Right Now

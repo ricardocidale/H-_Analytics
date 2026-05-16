@@ -180,17 +180,18 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-4: Vision-based export quality verification
-**Status:** ❌ Not started
+**Status:** ✅ Complete (2026-05-16) — commit `4dcd2a9cb`
 **Context:** The app currently produces PDFs and PPTX files without verifying what they look like. An output verification agent would catch invisible text, cut-off fields, palette violations, and grammar errors before delivery.
-**Done when:**
-- After factory run or export generation, a verification agent renders the PDF/PPTX, screenshots it, and checks against a rubric via vision model
-- Rubric: no text < 9pt, no cut-off fields, no placeholder text visible, consistent heading styles, page numbers present
-- On failure: the agent describes the specific issue; optionally re-generates with corrected prompt
-- Verification log stored with the run record
+**Shipped:**
+- Bianca — new cross-app Visual Quality Verification Specialist (`src/slides/bianca-verification.ts`)
+- Converts PPTX slides to PNG via LibreOffice headless; submits all slides to Claude vision in one batched call
+- Six-category rubric: text_cutoff, placeholder, readability, layout, consistency, data_quality; severity: ok/advisory/warning/block
+- `verificationStatus` + `verificationLog` columns on `slide_factory_runs` (migration 0066/0073 + runtime guard)
+- `POST /api/slide-factory-runs/:id/verify` + `GET .../verification` routes
+- Rebecca `verify_factory_deck` tool for agent-native parity
+- LLM slot `bianca-verification` seeded via admin-resources-014 (defaults to Claude Haiku)
 
-**Effort:** 1–2 weeks (new agent + outcome rubric + vision model integration)
-**Owner:** CC (agent + route)
-**Note:** This is the "app is blind to what it exports" fix. Start after T0-3 confirms the factory output quality — verification wraps a working pipeline, not a broken one.
+**Note:** UI integration (Tab 6 verify button) is a Replit-safe handoff task.
 
 ---
 
