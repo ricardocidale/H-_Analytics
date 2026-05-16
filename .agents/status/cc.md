@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T14:00:00Z
+Updated: 2026-05-16T15:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,40 +13,37 @@ main
 
 ## Last Commit on Branch
 
-b6cc85d4c  fix(icp): document EMPTY_PORTFOLIO_DEFAULT_MIX weights as algorithm calibration (T1-5)
+f5e8c40a5  docs(seeds): add market-source citations to SEED_* cap rate and financing constants
 
-## What CC Did This Session (2026-05-16 session 2)
+## What CC Did This Session (2026-05-16 session 3)
 
-T1-4 (DEFAULT_* schema decoupling):
-- lib/db/src/schema/properties.ts: removed DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE,
-  DEFAULT_LAND_VALUE_PERCENT, DEFAULT_PROPERTY_INCOME_TAX_RATE from imports; replaced with
-  inline numeric literals (0.085, 0.05, 0.25, 0.25) in .default() calls
-- Engine fallback removal deferred: LoanParams/PropertyInput types still declare these as
-  number | null — making them required would break 20+ proof test fixtures
+T1-4 (DEFAULT_* engine fallback removal — COMPLETE):
+- PropertyInput.exitCapRate/dispositionCommission/landValuePercent promoted to required number
+- LoanParams equivalents promoted to required number
+- All ?? DEFAULT_* dead-code fallbacks removed from:
+  cashFlowAggregator, yearlyAggregator, loanCalculations, resolve-assumptions, exit-scenarios
+- Proof test fixtures updated (8 files); known-value-runner.ts updated
+- Committed 6d8cbaf0f — typecheck + all engine/calc tests green
 
-T1-5 (CodeRabbit PR #147 deferred findings):
-- migrations 0064 (lib/db) + 0071 (api-server): fix brand_id FK to explicit ON DELETE RESTRICT
-- bracket-assignment-minion.ts: added taxonomy comment confirming EMPTY_MIX_WEIGHT_* as
-  algorithm calibration constants (confirmed exception to DEFAULT_* rule)
+T1-5 item 4 (SEED_* source citations — COMPLETE):
+- Added market-data source citations to Colombia cap rates (CBRE LatAm + CRP basis),
+  US regional cap rates (CBRE 2025 US Hotel Survey), Colombia financing (BanRep rate),
+  ADR growth tiers (STR/CoStar 2025 RevPAR forecasts)
+- Committed f5e8c40a5
 
-Vulnerability fix (earlier session):
-- Merged PR #156 (norfolk-starter next bump, 14 Dependabot alerts closed)
-- Merged PR #157 (esbuild >=0.25.4 override + remove @google-cloud/storage — 2 more alerts)
-- Zero open Dependabot alerts
+T1-5 items 1 + 3 done in previous session.
 
 ## What's Pending
 
-- T1-4: engine fallback removal (`?? DEFAULT_*`) — blocked on making PropertyInput fields
-  non-nullable (requires updating ~20 proof test fixtures first); standalone PR needed
-- T1-5 items 2 + 4 (Replit-safe or advisory):
-  - analyst-admin-runners-mgmt.ts double-cast (`as unknown as`)
-  - property-data.ts SEED_* literals — add source citations
+T1-5 item 2 (low priority — advisory, Replit-safe):
+- analyst-admin-runners-mgmt.ts lines 140-143: `as unknown as` double-casts
+- Replace with typed adapter functions or explicit type assertions
 
 ## Handoff to Replit
 
-None — all changes are committed to main. No Replit UI tasks pending.
+None — all changes are committed to main.
 
-If Replit wants to pick up T1-5 item 2 (double-cast in analyst-admin-runners-mgmt.ts):
+If Replit wants to pick up T1-5 item 2:
 - File: `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` lines 140-143
 - Replace `as unknown as` chains with typed adapter functions or explicit type assertions
 
