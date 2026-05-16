@@ -39,7 +39,11 @@ import { pickBestFitBracket, type BracketMatchRule } from "../../ai/ambient/mini
 /** Weight floor applied to any bracket that would otherwise reach zero. */
 const MINIMUM_BRACKET_WEIGHT = 0.05;
 
-// Default-mix weights for an empty portfolio (must sum to 1.0):
+// Default-mix weights for an empty portfolio (must sum to 1.0).
+// Taxonomy: algorithm calibration constants (non-financial, non-admin-configurable).
+// These are weights for a bracket-classification fallback — analogous to
+// NOL_UTILIZATION_CAP in the engine — not financial model inputs. Confirmed
+// exception to the DEFAULT_* prohibition in CLAUDE.md §2.
 const EMPTY_MIX_WEIGHT_US_TERTIARY_RESORT  = 0.30;
 const EMPTY_MIX_WEIGHT_US_GATEWAY          = 0.25;
 const EMPTY_MIX_WEIGHT_LATAM_PRIME_URBAN   = 0.25;
