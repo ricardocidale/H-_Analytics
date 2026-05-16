@@ -119,12 +119,12 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-5: CodeRabbit deferred findings from PR #147
-**Status:** Advisory (documented in `.agents/status/cc.md`)
+**Status:** ⚠️ Partial (items 1 + 3 done 2026-05-16)
 **Items:**
-1. `brandId` FK needs `onDelete: "restrict"` migration in `lib/db/src/schema/properties.ts`
-2. Double-cast in `artifacts/api-server/src/ai/analyst-admin-runners-mgmt.ts`
-3. `EMPTY_PORTFOLIO_DEFAULT_MIX` constant in `bracket-assignment-minion.ts` (taxonomy violation)
-4. SEED_* literals in `property-data.ts` (should be confirmed exception or migrated)
+1. ✅ `brandId` FK `ON DELETE RESTRICT` — migrations 0064/0071 added (commit 5b7f2ab0b)
+2. ⬜ Double-cast in `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` — Replit-safe, deferred
+3. ✅ `EMPTY_PORTFOLIO_DEFAULT_MIX` — taxonomy comment added confirming algorithm calibration exception (commit b6cc85d4c)
+4. ⬜ SEED_* literals in `property-data.ts` — advisory; add source citations or migrate to SQL seed
 
 **Effort:** 2–4 hours total
 **Owner:** CC (items 1, 3) + Replit-safe (items 2, 4)

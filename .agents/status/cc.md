@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T11:00:00Z
+Updated: 2026-05-16T14:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,50 +13,42 @@ main
 
 ## Last Commit on Branch
 
-43b620fb3  refactor(T1-4): migrate DEFAULT_FIXED_COST_ESCALATION_RATE to DB
+b6cc85d4c  fix(icp): document EMPTY_PORTFOLIO_DEFAULT_MIX weights as algorithm calibration (T1-5)
 
-## What CC Did This Session
+## What CC Did This Session (2026-05-16 session 2)
 
-T1-1 (security fix — scenario share email leak):
-- scenarios.ts: return 404 for unknown email instead of silent 201 + empty shares[]
+T1-4 (DEFAULT_* schema decoupling):
+- lib/db/src/schema/properties.ts: removed DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE,
+  DEFAULT_LAND_VALUE_PERCENT, DEFAULT_PROPERTY_INCOME_TAX_RATE from imports; replaced with
+  inline numeric literals (0.085, 0.05, 0.25, 0.25) in .default() calls
+- Engine fallback removal deferred: LoanParams/PropertyInput types still declare these as
+  number | null — making them required would break 20+ proof test fixtures
 
-T1-3 CC scope (admin default scenario per user):
-- lib/db/src/schema/auth.ts: assignedScenarioId column
-- Migrations 0063 + 0070, runtime guard users-assigned-scenario-001.ts
-- storage/users.ts: updateUserAssignedScenario + session select
-- routes/helpers.ts: assignedScenarioId in userResponse
-- routes/admin/users.ts: PATCH /api/admin/users/:id/assigned-scenario
+T1-5 (CodeRabbit PR #147 deferred findings):
+- migrations 0064 (lib/db) + 0071 (api-server): fix brand_id FK to explicit ON DELETE RESTRICT
+- bracket-assignment-minion.ts: added taxonomy comment confirming EMPTY_MIX_WEIGHT_* as
+  algorithm calibration constants (confirmed exception to DEFAULT_* rule)
 
-T1-4 (DEFAULT_* → model_defaults): DEFAULT_STABILIZATION_MONTHS, DEFAULT_OCCUPANCY_RAMP_MONTHS (engine paths), DEFAULT_FIXED_COST_ESCALATION_RATE
-
-Replit completed same session:
-- T1-3 UI: "Default Scenario" dropdown in EditUserDialog (admin/types.ts, users/types.ts, UsersTab.tsx, EditUserDialog.tsx)
-- T1-2: AdminPropertiesTab.tsx + AdminSidebar.tsx "Archived" entry + Restore button
+Vulnerability fix (earlier session):
+- Merged PR #156 (norfolk-starter next bump, 14 Dependabot alerts closed)
+- Merged PR #157 (esbuild >=0.25.4 override + remove @google-cloud/storage — 2 more alerts)
+- Zero open Dependabot alerts
 
 ## What's Pending
 
-- T1-4: remaining DEFAULT_* constants (incremental, CC only)
-- T1-5: CodeRabbit deferred findings from PR #147 (advisory):
-  - `brandId` FK `onDelete: "restrict"` needs migration (lib/db/src/schema/properties.ts)
-  - `analyst-admin-runners-mgmt.ts` double-cast
-  - `bracket-assignment-minion.ts` EMPTY_PORTFOLIO_DEFAULT_MIX
-  - `property-data.ts` SEED_* literals
+- T1-4: engine fallback removal (`?? DEFAULT_*`) — blocked on making PropertyInput fields
+  non-nullable (requires updating ~20 proof test fixtures first); standalone PR needed
+- T1-5 items 2 + 4 (Replit-safe or advisory):
+  - analyst-admin-runners-mgmt.ts double-cast (`as unknown as`)
+  - property-data.ts SEED_* literals — add source citations
 
 ## Handoff to Replit
 
-Full handoff doc: `.local/tasks/replit-handoff-2026-05-16.md`
+None — all changes are committed to main. No Replit UI tasks pending.
 
-Two tasks for Replit (frontend only, no backend changes needed):
-
-**T1-3 UI** — Add "Assigned Default Scenario" Select dropdown to `EditUserDialog`.
-- Files: `admin/types.ts`, `admin/users/types.ts`, `admin/UsersTab.tsx`, `admin/users/EditUserDialog.tsx`
-- API: `PATCH /api/admin/users/:id/assigned-scenario { scenarioId: number | null }` (CC already built this)
-
-**T1-2** — Restore flow for archived properties in the admin panel.
-- API: `POST /api/admin/properties/:id/restore` (already exists)
-- Scope: find or create an admin properties list; add Restore button per archived row.
-
-Typecheck gate: `pnpm run typecheck` must pass clean after both tasks.
+If Replit wants to pick up T1-5 item 2 (double-cast in analyst-admin-runners-mgmt.ts):
+- File: `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` lines 140-143
+- Replace `as unknown as` chains with typed adapter functions or explicit type assertions
 
 ## Files CC Owns Right Now
 
