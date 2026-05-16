@@ -329,13 +329,14 @@ export default function NotificationsTab() {
 
         {tab === "rules" && (<>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="min-w-0">
               <h3 className="text-lg font-semibold font-display">Alert Rules</h3>
               <p className="text-sm text-muted-foreground">
                 Define threshold rules that trigger notifications when property metrics breach limits.
               </p>
             </div>
             <Button
+              className="shrink-0"
               data-testid="button-add-rule"
               onClick={() => {
                 setEditingRule({ metric: "dscr", operator: "<", threshold: 1.2, scope: "all", cooldownMinutes: 1440, isActive: true, name: "" });

@@ -386,8 +386,8 @@ export default function KnowledgeBaseEditor() {
         <Card className="bg-card border-accent-pop/20 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Version History</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setHistoryId(null)} data-testid="button-close-history">Close</Button>
+              <CardTitle className="text-sm font-semibold min-w-0">Version History</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setHistoryId(null)} data-testid="button-close-history" className="shrink-0">Close</Button>
             </div>
           </CardHeader>
           <CardContent>

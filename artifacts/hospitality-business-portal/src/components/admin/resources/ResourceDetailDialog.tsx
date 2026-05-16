@@ -183,13 +183,13 @@ function ConsumerHistorySparkline({
   );
 }
 
-function ScorePill({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-muted-foreground text-xs">—</span>;
+function ScorePill({ score, className }: { score: number | null; className?: string }) {
+  if (score === null) return <span className={cn("text-muted-foreground text-xs", className)}>—</span>;
   const tone = score >= 80 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
     : score >= 60 ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
     : "bg-rose-500/15 text-rose-700 dark:text-rose-400";
   return (
-    <span className={cn("inline-flex items-center justify-center min-w-[2.25rem] px-2 py-0.5 rounded text-xs font-mono font-medium", tone)} data-testid={`quality-score-pill-${score}`}>
+    <span className={cn("inline-flex items-center justify-center min-w-[2.25rem] px-2 py-0.5 rounded text-xs font-mono font-medium", tone, className)} data-testid={`quality-score-pill-${score}`}>
       {score}
     </span>
   );
@@ -250,12 +250,12 @@ function ConsumerHistoryRow({
   return (
     <div className="rounded border p-2.5" data-testid={`consumer-history-${specialistId}`}>
       <div className="flex items-center justify-between mb-1.5">
-        <div className="text-sm font-medium">{specialistName}</div>
-        <ScorePill score={qualityScore} />
+        <div className="text-sm font-medium min-w-0">{specialistName}</div>
+        <ScorePill score={qualityScore} className="shrink-0" />
       </div>
       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-        <span>Score history — last {points?.length ?? 0} day{(points?.length ?? 0) === 1 ? "" : "s"}</span>
-        <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
+        <span className="min-w-0">Score history — last {points?.length ?? 0} day{(points?.length ?? 0) === 1 ? "" : "s"}</span>
+        <span className="font-mono shrink-0">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
       </div>
       {isLoading ? (
         <div
@@ -650,13 +650,13 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                   ) : (
                     <div data-testid="resource-aggregate-history">
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                        <span>
+                        <span className="min-w-0">
                           Daily average across {data.consumers.length} consumer
                           {data.consumers.length === 1 ? "" : "s"} — last{" "}
                           {historyData.aggregate.points.length} day
                           {historyData.aggregate.points.length === 1 ? "" : "s"}
                         </span>
-                        <span className="font-mono">
+                        <span className="font-mono shrink-0">
                           green ≥ 80 · amber ≥ 60 · red &lt; 60
                         </span>
                       </div>
@@ -718,8 +718,8 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                       {data.consumers.filter((c) => c.qualityGaps.length > 0).map((c) => (
                         <div key={c.specialistId} className="rounded border p-2" data-testid={`gap-group-${c.specialistId}`}>
                           <div className="flex items-center justify-between mb-1.5">
-                            <div className="text-sm font-medium">{c.specialistName}</div>
-                            <ScorePill score={c.qualityScore} />
+                            <div className="text-sm font-medium min-w-0">{c.specialistName}</div>
+                            <ScorePill score={c.qualityScore} className="shrink-0" />
                           </div>
                           <ul className="space-y-1">
                             {c.qualityGaps.map((g) => (<GapPill key={g.code} gap={g} />))}

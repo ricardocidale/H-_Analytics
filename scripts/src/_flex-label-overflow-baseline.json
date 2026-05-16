@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-16T17:35:22.569Z",
+  "updatedAt": "2026-05-16T18:33:49.045Z",
   "signatures": [
     "artifacts/hospitality-business-portal/src/components/DocumentExtractionPanel.tsx:633:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/GuidedWalkthrough.tsx:428:min-w-0:shrink-0",
@@ -13,7 +13,6 @@
     "artifacts/hospitality-business-portal/src/components/admin/LoginSettingsTab.tsx:221:min-w-0",
     "artifacts/hospitality-business-portal/src/components/admin/LoginSettingsTab.tsx:95:min-w-0",
     "artifacts/hospitality-business-portal/src/components/admin/LogosTab.tsx:158:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/NotificationsTab.tsx:335:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ResearchTab.tsx:95:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ScenariosTab.tsx:132:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ScenariosTabSections.tsx:156:min-w-0:shrink-0",
@@ -36,7 +35,6 @@
     "artifacts/hospitality-business-portal/src/components/admin/ai-agents/RebeccaConfig.tsx:797:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ai-agents/RebeccaFixturesPanel.tsx:400:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ai-agents/agent-shared.tsx:251:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/ai/KnowledgeBaseEditor.tsx:392:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ai/ModelRoutingPanel.tsx:163:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ai/ModelRoutingPanel.tsx:231:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/ai/ModelRoutingPanel.tsx:304:min-w-0:shrink-0",
@@ -67,10 +65,6 @@
     "artifacts/hospitality-business-portal/src/components/admin/research-center/PropertyMarketSections.tsx:398:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research/SourcesSection.tsx:107:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research/SourcesSection.tsx:44:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/resources/ResourceDetailDialog.tsx:251:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/resources/ResourceDetailDialog.tsx:255:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/resources/ResourceDetailDialog.tsx:650:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/resources/ResourceDetailDialog.tsx:718:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/resources/ResourcesTab.tsx:192:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/scenarios/ScenarioAccessDialog.tsx:108:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/system/ApiDashboardGrid.tsx:170:min-w-0:shrink-0",
