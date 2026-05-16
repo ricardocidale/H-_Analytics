@@ -167,7 +167,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-3: Analyst button — content generation discipline
-**Status:** Partially implemented (analyst buttons trigger research); needs audit of which fields are not yet covered
+**Status:** ⚠️ Partial (2026-05-16) — audit complete; `generate_executive_summary` + `rewrite_property_description` Rebecca tools shipped; UI button for descriptionImproved pending (Replit-safe)
 **Context:** The vision is that users regenerate content rather than type it. Every text field with variable content should have an Analyst button that populates it from research or AI inference.
 **Done when:**
 - Audit of all property and scenario text fields: list which have Analyst buttons and which don't

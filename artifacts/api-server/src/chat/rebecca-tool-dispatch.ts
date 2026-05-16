@@ -1,6 +1,10 @@
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
 import { toolGenerateFinancialReportExportLink } from "./rebecca-tool-impls-report";
 import {
+  toolGenerateExecutiveSummary,
+  toolRewritePropertyDescription,
+} from "./rebecca-tool-impls-content";
+import {
   toolListProperties,
   toolGetProperty,
   toolUpdateProperty,
@@ -320,6 +324,10 @@ export async function dispatchRebeccaTool(
         return await toolUpdateBracketMix(args, ctx);
       case "generate_financial_report_export_link":
         return toolGenerateFinancialReportExportLink(args);
+      case "generate_executive_summary":
+        return await toolGenerateExecutiveSummary(args, ctx);
+      case "rewrite_property_description":
+        return await toolRewritePropertyDescription(args, ctx);
       case "list_portfolios":
         return await toolListPortfolios(ctx);
       case "create_portfolio":
