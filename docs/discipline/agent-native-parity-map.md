@@ -31,7 +31,8 @@ feature ships or a new Rebecca tool is added.
 | View scenario detail | Scenario page | `get_scenario` | ✅ |
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
-| Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
+| Edit scenario name / description / tags / perspectiveRole | Scenario → Edit | `update_scenario` | ✅ |
+| Switch scenario to investor perspective (hide mgmt co P&L) | Scenario → Edit → Perspective | `update_scenario (perspectiveRole='investor'\|'operator')` | ✅ |
 | Edit scenario financial assumptions | Scenario → Edit | `update_scenario_assumptions` | ✅ |
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |

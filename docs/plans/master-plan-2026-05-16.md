@@ -31,7 +31,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 | Agent infrastructure (Costantino, Pietro, Iris, Vito) | ✅ All working | NO | 27 DB-driven LLM slots |
 | Railway deployment | ✅ Complete | YES | Zero hard Replit dependencies |
 | Admin default scenario per user | ❌ Missing | NO | Needs `users.assignedScenarioId` + hydration |
-| Management company / investor view separation | ❌ Missing | NO | No perspectiveRole; single user-centric model |
+| Management company / investor view separation | ✅ Done (2026-05-16) | NO | perspectiveRole on scenarios; compute strips mgmt co P&L for investor |
 | Portfolio grouping (sub-groups) | ❌ Missing | NO | Flat property list; aggregation at query level only |
 | Model router (Matteo) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
 | Dreaming on research | ❌ Not started | NO | Phase 2 — research memory accumulation |
@@ -135,17 +135,18 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Close the feature gaps users and investors will notice. Weeks 4–8.*
 
 ### T2-1: Management company / investor view separation
-**Status:** ❌ Missing
+**Status:** ✅ Phase complete (2026-05-16) — schema, migration, runtime guard, finance route filter, scenario route, Rebecca tool, parity map. UI (admin per-user perspectiveRole setter + hidden menu items) remains Replit-safe.
 **Context:** An investor in a single property should not see the management company's P&L, overhead, or fee structures. Currently all users see the same data model.
-**Done when:**
-- `scenarios` table has `perspectiveRole` enum: `operator | investor`
-- Finance engine route: when `perspectiveRole = investor`, strip management company fee lines from output; return only property-level cash flows and returns
-- UI: admin can set `perspectiveRole` on a per-user default scenario
-- Menu items: admin panel, management company assumptions hidden when role = investor
-- Existing scenarios default to `operator` perspective (no data migration needed)
+**Done when (backend):**
+- ✅ `scenarios.perspectiveRole` enum: `operator | investor`, default `operator`, migration 0067/0074 + runtime guard
+- ✅ Finance route `/compute`: strips `companyMonthly`/`companyYearly` when `perspectiveRole='investor'`
+- ✅ Finance route `/company`: returns 403 FIN-011 for investor perspective
+- ✅ Rebecca `update_scenario` tool exposes `perspectiveRole` toggle
+- ✅ `createScenarioSchema` + `updateScenarioSchema` updated
+- ⬜ UI: admin can set `perspectiveRole` on a per-user default scenario (Replit-safe)
+- ⬜ UI: Menu items — management company assumptions hidden when role = investor (Replit-safe)
 
-**Effort:** 10–15 days (engine route + schema + UI)
-**Owner:** CC (finance route, schema) + Replit-safe (UI)
+**Owner:** CC ✅ (finance route, schema) + Replit-safe ⬜ (UI)
 **Note:** This is independent of the LP/GP waterfall — that is a separate feature. Investor view simply excludes management company economics from what the user sees.
 
 ---

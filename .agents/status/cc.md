@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T19:30:00Z
-Status: idle
+Updated: 2026-05-16T20:15:00Z
+Status: active
 
 ## Active Branch
 
@@ -13,25 +13,25 @@ main
 
 ## Last Commit on Branch
 
-4dcd2a9cb  feat(bianca): T2-4 visual quality verification for factory decks
+295b07e85  feat(finance): T2-1 investor perspective — strip mgmt co P&L from compute + block company route
 
-## What CC Did This Session (2026-05-16 session 6)
+## What CC Did This Session (2026-05-16 session 7)
 
 T2-4 (vision-based export quality verification — COMPLETE):
-- Bianca specialist agent in src/slides/bianca-verification.ts:
-  PPTX download from R2 → LibreOffice headless PNG conversion → Anthropic vision
-  batched call with tool_use structured output → per-slide findings
-- Six-category rubric: text_cutoff, placeholder, readability, layout, consistency, data_quality
-  Severity: ok / advisory / warning / block
-- Schema: verificationStatus + verificationLog columns on slide_factory_runs
-  Drizzle migration 0066 + api-server mirror 0073 + runtime guard slide-factory-verification-001.ts
-- admin-resources-014.ts seeds bianca-verification llm_slot (claude-haiku-4-5 default)
-- Routes: POST /api/slide-factory-runs/:id/verify + GET .../verification
-- Rebecca tool: verify_factory_deck (toolVerifyFactoryDeck)
-- Parity map: 2 rows added (verify + read-verification)
-- Magic-numbers: BIANCA_SIGKILL_GRACE_MS=5*1000, BIANCA_TMP_DIR_NAME_MAX_LEN=64 named
-- typecheck PASS + magic-numbers PASS
+- Bianca specialist, schema, routes, Rebecca tool, parity map all shipped
 - Committed 4dcd2a9cb (20 files, 638 insertions)
+
+T2-1 (investor perspective separation — COMPLETE):
+- perspectiveRole ('operator'|'investor') column on scenarios table
+  Drizzle migration 0067 + api-server mirror 0074 + runtime guard scenario-perspective-role-001.ts
+- /api/finance/compute: strips companyMonthly/companyYearly when perspectiveRole='investor'
+- /api/finance/company: returns 403 FIN-011 for investor perspective
+- Rebecca update_scenario tool: perspectiveRole exposed as enum field
+- createScenarioSchema accepts perspectiveRole in POST /api/scenarios
+- SCENARIO_PERSPECTIVE_ROLES type guard + updateScenarioSchema updated
+- Parity map: 2 rows added (perspective toggle)
+- typecheck PASS + magic-numbers PASS
+- Committed 295b07e85 (14 files, 94 insertions)
 
 ## What's Pending
 
