@@ -28,7 +28,7 @@ export interface WebResearchResult {
   summary: string;
   citations: WebResearchCitation[];
   retrievedAt: Date;
-  tokenCost?: number;
+  tokenCost?: number | null;
 }
 
 export interface WebResearchRequest {

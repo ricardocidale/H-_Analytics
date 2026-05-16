@@ -17,22 +17,14 @@ import pricingConfig from "../config/llm-pricing.json";
 
 export interface CostEntry {
   timestamp: string;
-  service:
-    | "anthropic"
-    | "openai"
-    | "gemini"
-    | "replicate"
-    | "resend"
-    | "document-ai"
-    | "google-maps"
-    | "perplexity"
-    | "exa"
-    | "tavily";
+  /** Vendor / service identifier. Kept as string so new vendors don't require type changes. */
+  service: string;
   model?: string;
   operation: string;
   inputTokens?: number;
   outputTokens?: number;
-  estimatedCostUsd: number;
+  /** null when the model/service has no pricing entry configured. */
+  estimatedCostUsd: number | null;
   durationMs?: number;
   userId?: number;
   route: string;
@@ -53,7 +45,7 @@ export function estimateCost(
   model: string | undefined,
   inputTokens: number,
   outputTokens: number,
-): number {
+): number | null {
   // Try token-based pricing first
   if (model && TOKEN_PRICING[model]) {
     const p = TOKEN_PRICING[model];
@@ -68,7 +60,9 @@ export function estimateCost(
     return (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
   }
 
-  return 0;
+  // Unknown model and service — return null so the admin sees "no price configured"
+  // rather than a silent zero that looks like a free call.
+  return null;
 }
 
 /** Look up flat per-unit cost */
