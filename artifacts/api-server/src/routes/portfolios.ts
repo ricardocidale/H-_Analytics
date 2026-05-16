@@ -100,6 +100,11 @@ export function register(app: Express) {
 
       const { portfolioId } = req.body as { portfolioId: number | null };
 
+      // Ownership check before write — prevent unauthorized mutation
+      const existing = await storage.getProperty(propertyId);
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018" });
+      if (existing.userId !== user.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PORT-019" });
+
       // Validate target portfolio belongs to user (if assigning)
       if (portfolioId !== null && portfolioId !== undefined) {
         const portfolio = await storage.getPortfolio(portfolioId, user.id);
@@ -107,12 +112,7 @@ export function register(app: Express) {
       }
 
       const updated = await storage.updateProperty(propertyId, { portfolioId: portfolioId ?? null });
-      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018" });
-
-      // Ownership check — updateProperty doesn't filter by userId
-      if (updated.userId !== user.id) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PORT-019" });
-      }
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PORT-018b" });
 
       res.status(HTTP_200_OK).json(updated);
     } catch (error: unknown) {
