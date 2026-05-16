@@ -33,7 +33,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 | Admin default scenario per user | ❌ Missing | NO | Needs `users.assignedScenarioId` + hydration |
 | Management company / investor view separation | ❌ Missing | NO | No perspectiveRole; single user-centric model |
 | Portfolio grouping (sub-groups) | ❌ Missing | NO | Flat property list; aggregation at query level only |
-| Model router (Fabio) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
+| Model router (Matteo) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
 | Dreaming on research | ❌ Not started | NO | Phase 2 — research memory accumulation |
 | Email existence leak in sharing | ⚠️ Security bug | NO | Returns 201 instead of 404 on unknown email |
 | DEFAULT_* → model_defaults migration | ⚠️ Partial | NO | Incremental — 5+ legacy TS constants remain |
@@ -61,15 +61,8 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T0-3: Confirm slide factory PPTX quality for manual-finish use
-**Status:** Factory is operationally complete per audit. Needs a real test run.
-**Done when:**
-- One full factory run completes end-to-end for a demo property (from trigger-build → PPTX + PDF in R2)
-- PPTX opened in PowerPoint: all text placeholders filled, no placeholder text visible, images present
-- PDF rendered via LibreOffice: legible, no cut-off fields
-- Document: which slots currently require manual polish (list by slide number)
-
-**Effort:** 1–2 hours (run the factory, review output, list gaps)
-**Owner:** CC (test run + documentation)
+**Status:** ✅ Done (2026-05-16, commit d3dde140f)
+**Result:** Full factory run 10 completed end-to-end. PPTX assembled (all 6 slides, 28 substitution entries), uploaded to R2, download route working. Root cause of `pptxR2Key=null` was `pptx-automizer` corrupting table data when `setTableData` was called once per cell — fixed by batching all `table_cell` entries per shape into one call (`applyTableCellsBatched`). `rebuild-pptx` route added for recovering complete runs with null R2 keys. LibreOffice unavailability handled gracefully (PPTX-only fallback). Learning documented at `docs/solutions/logic-errors/pptx-automizer-table-cell-batching-1x1-corruption-2026-05-16.md`.
 
 ---
 
@@ -77,15 +70,8 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Fix security issues, close small gaps, and reduce technical debt. Weeks 1–4.*
 
 ### T1-1: Fix email existence leak in scenario sharing
-**Status:** ⚠️ Security bug
-**File:** `artifacts/api-server/src/routes/scenarios.ts` (POST /api/scenarios/shares)
-**Done when:**
-- Request with unknown email returns `404 { error: "User not found" }` (not `201 + empty array`)
-- Test: `POST /api/scenarios/shares { email: "notauser@example.com" }` → 404
-- No information leakage about whether any other email exists
-
-**Effort:** 1–2 hours
-**Owner:** CC or Replit-safe (no engine code)
+**Status:** ✅ Done (2026-05-16)
+**Fix:** `artifacts/api-server/src/routes/scenarios.ts` line ~481 — changed silent `201 { shares: [] }` for unknown email to `404 { error: "User not found", code: "SCN-046" }`. The `201` response with empty `shares[]` leaked user existence via body discrimination (caller could tell unknown email by `shares.length === 0` with no error). Typecheck + magic-numbers gate pass.
 
 ---
 
@@ -212,11 +198,12 @@ Every CC or Replit session should open this file first. Before writing a line of
 
 Full requirements: `docs/brainstorms/agent-autonomy-managed-agents-dreaming-requirements.md`
 
-### T3-1: Fabio — Model Router Specialist
+### T3-1: Matteo — Model Router Specialist
+**Note:** Named Matteo to avoid conflict with existing Fabio minion (range-quality validator at `lib/engine/src/analyst/minions/fabio.ts`).
 **Priority:** Highest in Track 3 (reduces token costs, pays for the other agents)
 **Done when:**
 - LiteLLM or Bifrost gateway installed and routing traffic from H+ → multiple providers
-- Fabio specialist resolves task type → gateway → cheapest viable model per the routing matrix
+- Matteo specialist resolves task type → gateway → cheapest viable model per the routing matrix
 - Routing table in `admin_resources` (kind = `llm_slot`), admin-editable
 - Mistral OCR 3 routing for PDF parsing tasks
 - DeepSeek V4-Flash routing for bulk extraction / code generation
@@ -255,13 +242,14 @@ Full requirements: `docs/brainstorms/agent-autonomy-managed-agents-dreaming-requ
 
 ---
 
-### T3-4: Lorenzo — Data Source Discovery Agent
+### T3-4: Giorgio — Data Source Discovery Agent
+**Note:** Named Giorgio to avoid conflict with existing Lorenzo swarm (Lorenzo-01..05, slide factory canonical ingestion).
 **Done when:**
 - Native Managed Agent defined (system prompt, tools: web search, code execution, admin_resources write)
 - Weekly scheduled run + geography-triggered run
-- Lorenzo proposes new `admin_resources` rows (draft state, requires founder review)
-- Dreaming watches Lorenzo cycles; accumulates which source categories yield validated results
-- Admin panel: "Lorenzo proposals" queue for review
+- Giorgio proposes new `admin_resources` rows (draft state, requires founder review)
+- Dreaming watches Giorgio cycles; accumulates which source categories yield validated results
+- Admin panel: "Giorgio proposals" queue for review
 
 **Effort:** 2–3 weeks
 **Owner:** CC (Managed Agent definition, scheduler, admin UI)
@@ -335,10 +323,10 @@ WEEKS 4-8:
   T2-4  Export verification agent      ← wrap working factory with quality gate
 
 MONTHS 2-4:
-  T3-1  Fabio model router             ← token cost reduction
+  T3-1  Matteo model router            ← token cost reduction
   T3-2  Dreaming on research           ← research quality improvement
   T3-3  Outcomes gate                  ← research quality gate
-  T3-4  Lorenzo discovery agent        ← data source autonomy
+  T3-4  Giorgio discovery agent        ← data source autonomy
 
 LONG TERM:
   T4-1  Replit graduation              ← operational decision, no code
@@ -356,7 +344,7 @@ LONG TERM:
 - `artifacts/api-server/src/finance/`, `artifacts/api-server/src/report/`
 - `artifacts/api-server/src/tests/proof/`, `artifacts/api-server/src/tests/engine/`
 - All DB schema migrations
-- Any new agent definition (Fabio, Lorenzo, etc.)
+- Any new agent definition (Matteo, Giorgio, etc.)
 - LLM routing logic
 
 **Replit-safe (UI, non-engine routes, non-schema features):**

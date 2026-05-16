@@ -478,9 +478,7 @@ export function register(app: Express) {
 
       const recipient = await storage.getUserByEmail(recipientEmail);
       if (!recipient) {
-        // Silent success — same status and shape as a successful share with no new rows.
-        // Returning 200 here leaks email existence via status-code discrimination.
-        return res.status(HTTP_201_CREATED).json({ shares: [], recipientName: null });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "User not found", code: "SCN-046" });
       }
 
       const sharer = getAuthUser(req);
