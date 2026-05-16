@@ -89,6 +89,8 @@ export type SlideFactoryRunPatch = Partial<
     | "slotContentHashes"
     | "startedAt"
     | "completedAt"
+    | "verificationStatus"
+    | "verificationLog"
   >
 >;
 

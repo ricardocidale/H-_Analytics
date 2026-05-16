@@ -30,9 +30,9 @@ Every CC or Replit session should open this file first. Before writing a line of
 | Rebecca (AI assistant) | ✅ 104 tools, near-full parity | NO | 2 minor deferred gaps; 1 N/A |
 | Agent infrastructure (Costantino, Pietro, Iris, Vito) | ✅ All working | NO | 27 DB-driven LLM slots |
 | Railway deployment | ✅ Complete | YES | Zero hard Replit dependencies |
-| Admin default scenario per user | ❌ Missing | NO | Needs `users.assignedScenarioId` + hydration |
-| Management company / investor view separation | ❌ Missing | NO | No perspectiveRole; single user-centric model |
-| Portfolio grouping (sub-groups) | ❌ Missing | NO | Flat property list; aggregation at query level only |
+| Admin default scenario per user | ✅ Done (2026-05-16) | NO | `users.assignedScenarioId`; EditUserDialog dropdown; hydration at login |
+| Management company / investor view separation | ✅ Done (2026-05-16) | NO | perspectiveRole on scenarios; compute strips mgmt co P&L for investor |
+| Portfolio grouping (sub-groups) | ✅ Done (2026-05-16) | NO | portfolios table + assign UI; unassigned properties section on Portfolio page |
 | Model router (Matteo) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
 | Dreaming on research | ❌ Not started | NO | Phase 2 — research memory accumulation |
 | Email existence leak in sharing | ⚠️ Security bug | NO | Returns 201 instead of 404 on unknown email |
@@ -104,8 +104,8 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-4: DEFAULT_* constants → model_defaults DB rows (incremental)
-**Status:** ⚠️ Partial (schema decoupled 2026-05-16)
-**Progress:** Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals (0.085, 0.05, 0.25, 0.25). Schema bootstrap values no longer couple to TS constants. Engine fallback removal (`?? DEFAULT_*` in aggregators/loanCalculations) deferred until `PropertyInput` type update (making these fields required) which requires updating proof test fixtures.
+**Status:** ✅ Phase complete (2026-05-16)
+**Progress:** (1) Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals. (2) `PropertyInput.exitCapRate/dispositionCommission/landValuePercent` and `LoanParams` equivalents promoted to required `number` — DB NOT NULL guarantee enforced at the type boundary. (3) All `?? DEFAULT_*` dead-code fallbacks removed from engine and calc layers (cashFlowAggregator, yearlyAggregator, loanCalculations, resolve-assumptions, exit-scenarios). Proof test fixtures updated. Committed 2026-05-16 (6d8cbaf0f).
 **Context:** CLAUDE.md §2 prohibits TypeScript constants for financial values. ~5+ legacy `DEFAULT_*` constants remain in `lib/shared/src/constants*.ts`. Each session should clean one up.
 **Done when (per constant):**
 - Constant removed from `constants*.ts`
@@ -119,12 +119,12 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-5: CodeRabbit deferred findings from PR #147
-**Status:** ⚠️ Partial (items 1 + 3 done 2026-05-16)
+**Status:** ⚠️ Partial (items 1, 3, 4 done 2026-05-16)
 **Items:**
 1. ✅ `brandId` FK `ON DELETE RESTRICT` — migrations 0064/0071 added (commit 5b7f2ab0b)
-2. ⬜ Double-cast in `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` — Replit-safe, deferred
+2. ⬜ Double-cast in `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` — advisory, deferred
 3. ✅ `EMPTY_PORTFOLIO_DEFAULT_MIX` — taxonomy comment added confirming algorithm calibration exception (commit b6cc85d4c)
-4. ⬜ SEED_* literals in `property-data.ts` — advisory; add source citations or migrate to SQL seed
+4. ✅ SEED_* literals in `property-data.ts` — market-source citations added to cap rates, financing rates, ADR growth tiers (commit f5e8c40a5)
 
 **Effort:** 2–4 hours total
 **Owner:** CC (items 1, 3) + Replit-safe (items 2, 4)
@@ -135,23 +135,24 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Close the feature gaps users and investors will notice. Weeks 4–8.*
 
 ### T2-1: Management company / investor view separation
-**Status:** ❌ Missing
+**Status:** ✅ Phase complete (2026-05-16) — schema, migration, runtime guard, finance route filter, scenario route, Rebecca tool, parity map. UI (admin per-user perspectiveRole setter + hidden menu items) remains Replit-safe.
 **Context:** An investor in a single property should not see the management company's P&L, overhead, or fee structures. Currently all users see the same data model.
-**Done when:**
-- `scenarios` table has `perspectiveRole` enum: `operator | investor`
-- Finance engine route: when `perspectiveRole = investor`, strip management company fee lines from output; return only property-level cash flows and returns
-- UI: admin can set `perspectiveRole` on a per-user default scenario
-- Menu items: admin panel, management company assumptions hidden when role = investor
-- Existing scenarios default to `operator` perspective (no data migration needed)
+**Done when (backend):**
+- ✅ `scenarios.perspectiveRole` enum: `operator | investor`, default `operator`, migration 0067/0074 + runtime guard
+- ✅ Finance route `/compute`: strips `companyMonthly`/`companyYearly` when `perspectiveRole='investor'`
+- ✅ Finance route `/company`: returns 403 FIN-011 for investor perspective
+- ✅ Rebecca `update_scenario` tool exposes `perspectiveRole` toggle
+- ✅ `createScenarioSchema` + `updateScenarioSchema` updated
+- ⬜ UI: admin can set `perspectiveRole` on a per-user default scenario (Replit-safe)
+- ⬜ UI: Menu items — management company assumptions hidden when role = investor (Replit-safe)
 
-**Effort:** 10–15 days (engine route + schema + UI)
-**Owner:** CC (finance route, schema) + Replit-safe (UI)
+**Owner:** CC ✅ (finance route, schema) + Replit-safe ⬜ (UI)
 **Note:** This is independent of the LP/GP waterfall — that is a separate feature. Investor view simply excludes management company economics from what the user sees.
 
 ---
 
 ### T2-2: Portfolio grouping
-**Status:** ❌ Missing (flat property list; aggregation at query level only)
+**Status:** ✅ Complete (2026-05-16) — CC: schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. Replit: "Unassigned Properties" section on Portfolio.tsx with per-row dropdown + "Assign to portfolio" button; calls PUT /api/properties/:id/portfolio, invalidates properties query.
 **Context:** Multiple users need to be able to see different groupings of properties (e.g., "Southeast Portfolio," "Colombia Properties"). Currently all properties in a company are a flat list.
 **Done when:**
 - `portfolios` table: `(id, userId, companyId, name, description, createdAt)`
@@ -167,7 +168,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-3: Analyst button — content generation discipline
-**Status:** Partially implemented (analyst buttons trigger research); needs audit of which fields are not yet covered
+**Status:** ✅ Complete (2026-05-16) — CC: audit, `generate_executive_summary` + `rewrite_property_description` Rebecca tools. Replit: `ImprovedDescriptionField.tsx` extracted from `BasicInfoSection.tsx` (view/edit toggle, "Improve with AI" preview dialog, Clear + Done; `data-testid="input-description-improved"`).
 **Context:** The vision is that users regenerate content rather than type it. Every text field with variable content should have an Analyst button that populates it from research or AI inference.
 **Done when:**
 - Audit of all property and scenario text fields: list which have Analyst buttons and which don't
@@ -180,17 +181,18 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-4: Vision-based export quality verification
-**Status:** ❌ Not started
+**Status:** ✅ Complete (2026-05-16) — commit `4dcd2a9cb`
 **Context:** The app currently produces PDFs and PPTX files without verifying what they look like. An output verification agent would catch invisible text, cut-off fields, palette violations, and grammar errors before delivery.
-**Done when:**
-- After factory run or export generation, a verification agent renders the PDF/PPTX, screenshots it, and checks against a rubric via vision model
-- Rubric: no text < 9pt, no cut-off fields, no placeholder text visible, consistent heading styles, page numbers present
-- On failure: the agent describes the specific issue; optionally re-generates with corrected prompt
-- Verification log stored with the run record
+**Shipped:**
+- Bianca — new cross-app Visual Quality Verification Specialist (`src/slides/bianca-verification.ts`)
+- Converts PPTX slides to PNG via LibreOffice headless; submits all slides to Claude vision in one batched call
+- Six-category rubric: text_cutoff, placeholder, readability, layout, consistency, data_quality; severity: ok/advisory/warning/block
+- `verificationStatus` + `verificationLog` columns on `slide_factory_runs` (migration 0066/0073 + runtime guard)
+- `POST /api/slide-factory-runs/:id/verify` + `GET .../verification` routes
+- Rebecca `verify_factory_deck` tool for agent-native parity
+- LLM slot `bianca-verification` seeded via admin-resources-014 (defaults to Claude Haiku)
 
-**Effort:** 1–2 weeks (new agent + outcome rubric + vision model integration)
-**Owner:** CC (agent + route)
-**Note:** This is the "app is blind to what it exports" fix. Start after T0-3 confirms the factory output quality — verification wraps a working pipeline, not a broken one.
+**Note:** UI integration shipped by Replit — "Verify deck quality" button in DownloadTab.tsx, collapsible findings panel with severity dots, auto-expands prior results on load. `SlideFactoryTypes.ts` updated with `VerificationFinding` interface and 5 new run fields.
 
 ---
 

@@ -116,7 +116,7 @@ export async function toolCreateScenario(
 // update_scenario / update_scenario_assumptions
 // ---------------------------------------------------------------------------
 
-const REBECCA_SCENARIO_UPDATE_KEYS = ["name", "description", "tags"] as const;
+const REBECCA_SCENARIO_UPDATE_KEYS = ["name", "description", "tags", "perspectiveRole"] as const;
 
 export async function toolUpdateScenario(
   args: Record<string, unknown>,

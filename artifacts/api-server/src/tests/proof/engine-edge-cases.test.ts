@@ -58,6 +58,9 @@ const MINIMAL_COSTS = {
   revShareEvents: 0.0,
   revShareFB: 0.0,
   revShareOther: 0.0,
+  landValuePercent: 0.25,
+  exitCapRate: 0.085,
+  dispositionCommission: 0.05,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -238,6 +241,9 @@ describe('Engine Edge Cases (T011)', () => {
       revShareEvents: 0.0,
       revShareFB: 0.0,
       revShareOther: 0.0,
+      landValuePercent: 0.25,
+      exitCapRate: 0.085,
+      dispositionCommission: 0.05,
       operationsStartDate: '2024-01-01',
       roomCount: 10,
       startAdr: 100,

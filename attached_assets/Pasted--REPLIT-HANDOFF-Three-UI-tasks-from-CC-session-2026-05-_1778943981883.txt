@@ -1,0 +1,112 @@
+ ---
+  REPLIT HANDOFF — Three UI tasks from CC session (2026-05-16)
+  
+  These are the Replit-safe UI completions for T2-2, T2-3, and T2-4. The backends are already shipped. Do each task end-to-end; typecheck must pass after each one.
+
+  ---
+  Task A — T2-3: "Improve with AI" button on the Description (Improved) field
+  
+  What: The "As Purchased" description already has an AI rewrite button (AsPurchasedDescriptionField.tsx). The "Description (Improved)" textarea needs the sametreatment.
+
+  Where to change: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx, lines 567–579. Right now it's a bare <Textarea>.
+
+  What to build: Extract the descriptionImproved textarea into a new component ImprovedDescriptionField.tsx in the same directory, following AsPurchasedDescriptionField.tsx
+  exactly as a pattern. The new component should:
+  - Show the textarea + "Improve with AI" button (with spinner while loading) + Clear button + Done button
+  - On button click: call POST /api/properties/${draft.id}/rewrite-description with body { text: currentValue }
+  - Response shape: { rewritten: string }
+  - Show preview in a Dialog (same accept/dismiss dialog pattern as AsPurchasedDescriptionField.tsx)
+  - On accept: call onChange("descriptionImproved", rewritten)
+  - Use data-testid="input-description-improved" on the textarea (already in the test suite)
+
+  Replace the <Textarea> block at lines 572–578 with <ImprovedDescriptionField draft={draft} onChange={onChange} />. Keep the surrounding <Label> and <InfoTooltip> in the parent.
+
+  ---
+  Task B — T2-4: "Verify deck" button in the Slide Factory Tab 6
+  
+  Step 1 — Update the type. In artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryTypes.ts, add to the SlideFactoryRun interface (after pptxR2Key):
+
+  pdfR2Key: string | null;
+  wishListLog: unknown[] | null;
+  slotContentHashes: unknown | null;
+
+  Where to change: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx, lines 567–579. Right now it's a bare <Textarea>.
+
+  What to build: Extract the descriptionImproved textarea into a new component ImprovedDescriptionField.tsx in the same directory, following
+  AsPurchasedDescriptionField.tsx exactly as a pattern. The new component should:
+  - Show the textarea + "Improve with AI" button (with spinner while loading) + Clear button + Done button
+  - On button click: call POST /api/properties/${draft.id}/rewrite-description with body { text: currentValue }
+  - Response shape: { rewritten: string }
+  - Show preview in a Dialog (same accept/dismiss dialog pattern as AsPurchasedDescriptionField.tsx)
+  - On accept: call onChange("descriptionImproved", rewritten)
+  - Use data-testid="input-description-improved" on the textarea (already in the test suite)
+
+  Replace the <Textarea> block at lines 572–578 with <ImprovedDescriptionField draft={draft} onChange={onChange} />. Keep the surrounding <Label> and
+  <InfoTooltip> in the parent.
+
+  ---
+  Task B — T2-4: "Verify deck" button in the Slide Factory Tab 6
+
+  Step 1 — Update the type. In artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryTypes.ts, add to the SlideFactoryRun interface
+  (after pptxR2Key):
+
+  pdfR2Key: string | null;
+  wishListLog: unknown[] | null;
+  slotContentHashes: unknown | null;
+  verificationStatus: "running" | "passed" | "failed" | "error" | null;
+  verificationLog: VerificationFinding[] | null;
+
+  Also add the VerificationFinding interface:
+
+  export interface VerificationFinding {
+    slideNumber: number;
+    severity: "ok" | "advisory" | "warning" | "block";
+    category: "text_cutoff" | "placeholder" | "readability" | "layout" | "consistency" | "data_quality";
+    description: string;
+  }
+
+  Step 2 — Add the verify button + findings panel. In artifacts/hospitality-business-portal/src/features/slide-factory/tabs/DownloadTab.tsx, after the download
+  buttons section (after line 138, before the FactoryOverridePanel):
+
+  - Add a "Verify deck quality" button (variant outline, size sm). When clicked, call POST /api/slide-factory-runs/${run.id}/verify (POST, credentials include,
+  no body). The call takes ~15–30 s — show a spinner with "Verifying…" while pending.
+  - After the response, call onRunUpdate with the updated run data (response from the verify endpoint includes status, findings, overallVerdict, etc — update
+  the run's verificationStatus and verificationLog from the response).
+  - Display findings in a collapsible section below the button. For each finding:
+    - Severity dot color: ok = emerald-500, advisory = sky-500, warning = amber-500, block = red-500
+    - One row per finding: slide number, category (formatted nicely, e.g. text_cutoff → "Text cut-off"), description text
+  - Show overall verdict text from overallVerdict in the response
+  - If verificationStatus is already set on the run (from a previous verify run), show those results immediately without re-running
+
+  Only show the verify button when hasPptx is true.
+
+  ---
+  Task C — T2-2: Portfolio filter on the Portfolio page
+
+  Where: artifacts/hospitality-business-portal/src/pages/Portfolio.tsx
+
+  What: The Portfolio page at /portfolio shows properties in the selected portfolio. Add a small section at the bottom of the page (or in a side panel):
+  "Unassigned properties" — a list of properties where portfolioId is null. Each unassigned property shows a "Assign to this portfolio" button.
+
+  Endpoints:
+  - GET /api/portfolios — list user's portfolios (already called by the page)
+  - GET /api/portfolios/:id/properties — properties in a portfolio (already called)
+  - PUT /api/properties/:id/portfolio with body { portfolioId: number } — assign a property to a portfolio. On success, refetch the portfolio properties list.
+
+  To get unassigned properties: call GET /api/properties (the standard property list) and filter client-side for entries where portfolioId is null. Or use a
+  separate query.
+
+  Important: The page already has portfolioId from the URL param. Use that as the target for assignment. After a successful assign, invalidate/refetch both the
+  portfolio properties list and the unassigned list.
+
+  ---
+  General rules
+
+  - pnpm run typecheck must pass after each task
+  - Follow existing patterns in the same file (button variants, toast usage, loading state via useState)
+  - No new dependencies — use components already in the codebase (Button, Loader2, useToast, Dialog, etc.)
+  - Update .agents/status/replit.md when done: set Status to idle and list what was completed
+
+  ---
+  The user also noted that T1-5 item 2 (double-cast as unknown as in analyst-admin-runners-mgmt.ts lines 140-143) is a low-priority advisory finding that can be
+   cleaned up opportunistically — it's not blocking anything.

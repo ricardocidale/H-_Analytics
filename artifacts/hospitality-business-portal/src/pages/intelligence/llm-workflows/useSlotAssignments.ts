@@ -8,6 +8,9 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+
+const COST_SUMMARY_STALE_MS = 5 * 60 * 1000;
+const COST_WINDOW_DAYS = 30;
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +27,16 @@ export interface SlotSelection {
   modelSlug: string | null;
 }
 
+export interface SlotCostSummary {
+  slotSlug: string;
+  modelSlug: string;
+  vendor: string;
+  calls: number;
+  totalCostUsd: number;
+  avgCostPerCall: number;
+  p95DurationMs: number | null;
+}
+
 export interface UseSlotAssignmentsResult {
   slotResources: ResourcePublicView[];
   slotsLoading: boolean;
@@ -35,6 +48,8 @@ export interface UseSlotAssignmentsResult {
   >;
   originalSlugs: Record<number, string | null>;
   isDirty: boolean;
+  /** Cost summary keyed by slotSlug, populated by the 30-day cost query. */
+  costBySlot: Record<string, SlotCostSummary>;
   /**
    * Total count of unsaved slot changes across ALL categories. The Save
    * button persists every dirty slot regardless of which category is active.
@@ -71,6 +86,21 @@ export function useSlotAssignments(
   const { data: modelResources = [] } = useQuery<ResourcePublicView[]>({
     queryKey: ["/api/admin/resources?kind=model"],
   });
+
+  const { data: costSummaryData } = useQuery<{
+    perSlot: SlotCostSummary[];
+  }>({
+    queryKey: [`/api/admin/llm-cost-summary?windowDays=${COST_WINDOW_DAYS}`],
+    staleTime: COST_SUMMARY_STALE_MS,
+  });
+
+  const costBySlot = useMemo(() => {
+    const map: Record<string, SlotCostSummary> = {};
+    for (const entry of costSummaryData?.perSlot ?? []) {
+      map[entry.slotSlug] = entry;
+    }
+    return map;
+  }, [costSummaryData]);
 
   const modelsByVendor = useMemo(() => {
     const map: Record<string, ResourcePublicView[]> = {};
@@ -211,5 +241,6 @@ export function useSlotAssignments(
     otherDirtyCount,
     batchSavePending: batchSave.isPending,
     handleSlotSave,
+    costBySlot,
   };
 }

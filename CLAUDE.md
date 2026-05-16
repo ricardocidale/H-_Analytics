@@ -361,6 +361,10 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret — same dual-env requirement as above |
 | `OPENAI_EMBEDDING_KEY` | Separate embedding key |
 | `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini AI provider |
+| `DEEPSEEK_API_KEY` | DeepSeek AI provider (T3-1 Matteo — bulk-text-synthesis slot) |
+| `DEEPSEEK_API_BASE_URL` | Optional override for DeepSeek API base URL (default resolved from admin_resources) |
+| `MISTRAL_API_KEY` | Mistral AI provider (T3-1 Matteo — pdf-ocr-extraction slot, Mistral chat models) |
+| `MISTRAL_OCR_ENDPOINT` | Optional override for Mistral OCR 3 endpoint (default resolved from admin_resources) |
 | `RESEND_API_KEY` | Transactional email (Resend) |
 | `SENTRY_DSN` | Error monitoring (Sentry) |
 

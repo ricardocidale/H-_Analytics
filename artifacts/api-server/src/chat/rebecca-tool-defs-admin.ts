@@ -401,5 +401,22 @@ export function getAdminTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    {
+      name: "download_llm_cost_summary",
+      description:
+        "Return a breakdown of LLM API spending for the requested time window. " +
+        "Groups costs by slot (task type) and model, with call counts, total USD spent, average cost per call, and p95 latency. " +
+        "Use to answer questions like 'What did we spend on LLMs this week?' or 'Which slot is costing the most?' Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          windowDays: {
+            type: "number",
+            description: "Number of past days to include (1–365). Defaults to 30.",
+          },
+        },
+        required: [],
+      },
+    },
   ];
 }

@@ -397,6 +397,47 @@ export async function runSchemaMigrations() {
     await runUsersAssignedScenario001();
     await markMigrationApplied("users_assigned_scenario_001");
   }
+
+  // T2-2 — portfolio grouping.
+  // Creates portfolios table + adds nullable portfolio_id FK to properties.
+  if (!(await isMigrationApplied("portfolios_001"))) {
+    const { runPortfolios001 } = await import("../migrations/portfolios-001");
+    await runPortfolios001();
+    await markMigrationApplied("portfolios_001");
+  }
+
+  // T2-4 — Bianca visual quality verification columns.
+  // Adds verification_status and verification_log to slide_factory_runs.
+  if (!(await isMigrationApplied("slide_factory_verification_001"))) {
+    const { runSlideFactoryVerification001 } = await import("../migrations/slide-factory-verification-001");
+    await runSlideFactoryVerification001();
+    await markMigrationApplied("slide_factory_verification_001");
+  }
+
+  // admin-resources-014 — Bianca verification LLM slot.
+  if (!(await isMigrationApplied("admin_resources_014"))) {
+    const { runAdminResources014 } = await import("../migrations/admin-resources-014");
+    await runAdminResources014();
+    await markMigrationApplied("admin_resources_014");
+  }
+
+  // T2-1 — Investor perspective role column on scenarios.
+  // Adds perspective_role text NOT NULL DEFAULT 'operator' to scenarios.
+  if (!(await isMigrationApplied("scenario_perspective_role_001"))) {
+    const { runScenarioPerspectiveRole001 } = await import("../migrations/scenario-perspective-role-001");
+    await runScenarioPerspectiveRole001();
+    await markMigrationApplied("scenario_perspective_role_001");
+  }
+
+  // T3-1 — Matteo model router seed.
+  // Adds DeepSeek/Mistral model rows, Mistral OCR API row, new llm_slot rows
+  // (pdf-ocr-extraction, structured-extraction, bulk-text-synthesis), and
+  // fixes the missing costantino-orchestration slot that caused resolver throws.
+  if (!(await isMigrationApplied("admin_resources_006_matteo_router"))) {
+    const { runAdminResources006MatteoRouter } = await import("../migrations/admin-resources-006-matteo-router");
+    await runAdminResources006MatteoRouter();
+    await markMigrationApplied("admin_resources_006_matteo_router");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

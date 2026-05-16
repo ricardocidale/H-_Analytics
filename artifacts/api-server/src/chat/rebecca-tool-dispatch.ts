@@ -1,6 +1,10 @@
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
 import { toolGenerateFinancialReportExportLink } from "./rebecca-tool-impls-report";
 import {
+  toolGenerateExecutiveSummary,
+  toolRewritePropertyDescription,
+} from "./rebecca-tool-impls-content";
+import {
   toolListProperties,
   toolGetProperty,
   toolUpdateProperty,
@@ -58,6 +62,7 @@ import {
   toolDeleteSlideFactoryRun,
   toolTriggerLorenzoIngestion,
   toolTriggerLuccaDraft,
+  toolVerifyFactoryDeck,
 } from "./rebecca-tool-impls-slide-factory";
 import {
   toolTriggerIrisHealthCheck,
@@ -109,7 +114,16 @@ import {
   toolGetMgmtCoMarkupFactors,
   toolGetBracketMix,
   toolUpdateBracketMix,
+  toolDownloadLlmCostSummary,
 } from "./rebecca-tool-impls-admin";
+import {
+  toolListPortfolios,
+  toolCreatePortfolio,
+  toolUpdatePortfolio,
+  toolDeletePortfolio,
+  toolListPortfolioProperties,
+  toolAssignPropertyPortfolio,
+} from "./rebecca-tool-impls-portfolio";
 
 export async function dispatchRebeccaTool(
   name: string,
@@ -276,6 +290,8 @@ export async function dispatchRebeccaTool(
         return await toolRevokeShare(args, ctx);
       case "delete_slide_factory_run":
         return await toolDeleteSlideFactoryRun(args, ctx);
+      case "verify_factory_deck":
+        return await toolVerifyFactoryDeck(args, ctx);
       case "list_prospective_properties":
         return await toolListProspectiveProperties(ctx);
       case "save_prospective_property":
@@ -310,8 +326,26 @@ export async function dispatchRebeccaTool(
         return await toolGetBracketMix(ctx);
       case "update_bracket_mix":
         return await toolUpdateBracketMix(args, ctx);
+      case "download_llm_cost_summary":
+        return await toolDownloadLlmCostSummary(args, ctx);
       case "generate_financial_report_export_link":
         return toolGenerateFinancialReportExportLink(args);
+      case "generate_executive_summary":
+        return await toolGenerateExecutiveSummary(args, ctx);
+      case "rewrite_property_description":
+        return await toolRewritePropertyDescription(args, ctx);
+      case "list_portfolios":
+        return await toolListPortfolios(ctx);
+      case "create_portfolio":
+        return await toolCreatePortfolio(args, ctx);
+      case "update_portfolio":
+        return await toolUpdatePortfolio(args, ctx);
+      case "delete_portfolio":
+        return await toolDeletePortfolio(args, ctx);
+      case "list_portfolio_properties":
+        return await toolListPortfolioProperties(args, ctx);
+      case "assign_property_portfolio":
+        return await toolAssignPropertyPortfolio(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }

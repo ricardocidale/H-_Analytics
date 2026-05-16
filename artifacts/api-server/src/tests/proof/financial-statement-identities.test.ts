@@ -58,6 +58,9 @@ const BASE_COSTS = {
   revShareEvents: 0.05,
   revShareFB: 0.15,
   revShareOther: 0.02,
+  landValuePercent: 0.25,
+  exitCapRate: 0.085,
+  dispositionCommission: 0.05,
 };
 
 /** Unlevered hotel — same as MINIMAL_HOTEL in engine-integrity-fixes.test.ts */

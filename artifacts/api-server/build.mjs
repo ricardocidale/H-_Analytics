@@ -144,6 +144,7 @@ async function buildAll() {
       "@ai-sdk/google",
       "@anthropic-ai/sdk",
       "@google/genai",
+      "@mistralai/mistralai",
       "@perplexity-ai/perplexity_ai",
       "openai",
       "ai",

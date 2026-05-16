@@ -7,6 +7,8 @@ import { getIrisTools } from "./rebecca-tool-defs-iris";
 import { getKbTools } from "./rebecca-tool-defs-kb";
 import { getAdminTools } from "./rebecca-tool-defs-admin";
 import { getReportExportTools } from "./rebecca-tool-defs-report";
+import { getPortfolioTools } from "./rebecca-tool-defs-portfolio";
+import { getContentTools } from "./rebecca-tool-defs-content";
 
 export function getRebeccaTools(): ToolParam[] {
   return [
@@ -18,5 +20,7 @@ export function getRebeccaTools(): ToolParam[] {
     ...getKbTools(),
     ...getAdminTools(),
     ...getReportExportTools(),
+    ...getPortfolioTools(),
+    ...getContentTools(),
   ];
 }

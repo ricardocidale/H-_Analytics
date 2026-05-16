@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { LLM_VENDORS } from "@/components/admin/research-center/research-shared";
 import type { ResourcePublicView } from "@shared/schema";
 import type { VendorStatus } from "./types";
+import type { SlotCostSummary } from "./useSlotAssignments";
 
 export interface SlotCardProps {
   slot: ResourcePublicView;
@@ -22,6 +23,7 @@ export interface SlotCardProps {
   originalSlug: string | null;
   modelsByVendor: Record<string, ResourcePublicView[]>;
   vendorStatuses: VendorStatus[];
+  costSummary?: SlotCostSummary;
   onVendorChange: (vendor: string) => void;
   onModelChange: (vendorFilter: string, modelSlug: string) => void;
 }
@@ -32,6 +34,7 @@ export function SlotCard({
   originalSlug,
   modelsByVendor,
   vendorStatuses,
+  costSummary,
   onVendorChange,
   onModelChange,
 }: SlotCardProps) {
@@ -94,6 +97,15 @@ export function SlotCard({
               className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-700 border-amber-300"
             >
               unsaved
+            </Badge>
+          )}
+          {costSummary && costSummary.totalCostUsd > 0 && (
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1 py-0 h-3.5 bg-slate-100 text-slate-600 border-slate-200"
+              title={`${costSummary.calls} calls · avg $${costSummary.avgCostPerCall.toFixed(4)}/call · 30d`}
+            >
+              ${costSummary.totalCostUsd.toFixed(2)}
             </Badge>
           )}
           {dotClass && (

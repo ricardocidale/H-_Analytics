@@ -297,6 +297,7 @@ export function createResearchClient(
     case "microsoft":
     case "meta":
     case "deepseek":
+    case "mistral":
       throw new UnsupportedResearchVendorError(vendor);
     default:
       // Exhaustiveness guard: if shared `LlmVendor` grows, the compiler

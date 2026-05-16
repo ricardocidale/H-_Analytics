@@ -5,6 +5,8 @@ import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
   DEFAULT_LAND_VALUE_PERCENT,
+  DEFAULT_EXIT_CAP_RATE,
+  DEFAULT_COMMISSION_RATE,
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
@@ -90,6 +92,8 @@ function buildEngineInputs(tc: TestCase): { property: import("@engine/types").Pr
       incentiveManagementFeeRate: tc.property.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
       operatingReserve: 0,
       willRefinance: "No",
+      exitCapRate: DEFAULT_EXIT_CAP_RATE,
+      dispositionCommission: DEFAULT_COMMISSION_RATE,
     },
     global: {
       modelStartDate: opsDate,

@@ -513,3 +513,16 @@ export const ICP_BRACKET_MIX_WEIGHT_TOLERANCE = 0.01;
  * Matches the catalog size — currently 4 starter brackets, room for one more.
  */
 export const ICP_BRACKET_MIX_MAX_ENTRIES = 5;
+
+/**
+ * Maximum character length for the property description rewrite endpoint and
+ * Rebecca's rewrite_property_description tool. Mirrors the Zod validation
+ * in routes/properties.ts rewriteDescriptionSchema.
+ */
+export const MAX_REWRITE_DESCRIPTION_CHARS = 5000;
+
+/**
+ * Max output token budget for property description rewrite LLM calls.
+ * Generous enough for 2–3 paragraphs of polished copy.
+ */
+export const REWRITE_DESCRIPTION_MAX_TOKENS = 1024;

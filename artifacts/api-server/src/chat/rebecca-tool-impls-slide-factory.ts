@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW } from "../constants";
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
 import { requireNumericArg } from "./rebecca-tool-types";
+import { getSlideFactoryRun, updateSlideFactoryRun } from "../storage/slide-factory-runs";
 
 /** Fire-and-forget a detached async operation; logs rejections so they are never silent. */
 function dispatchDetached(promise: Promise<unknown>, context: string): void {
@@ -589,4 +590,53 @@ export async function toolTriggerLuccaDraft(
     },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
+}
+
+export async function toolVerifyFactoryDeck(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "runId");
+  if (!idResult.ok) return idResult.result;
+  const runId = idResult.value;
+
+  const run = await getSlideFactoryRun(runId, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${runId} not found` } };
+
+  if (!run.pptxR2Key) {
+    return {
+      result: {
+        error: "This run has no PPTX. Verification requires a completed factory deck.",
+        status: run.status,
+      },
+    };
+  }
+
+  const { runBiancaVerification } = await import("../slides/bianca-verification");
+
+  await updateSlideFactoryRun(runId, { verificationStatus: "running" });
+
+  try {
+    const result = await runBiancaVerification(run.pptxR2Key, String(runId));
+    await updateSlideFactoryRun(runId, {
+      verificationStatus: result.status,
+      verificationLog: result.findings,
+    });
+    return {
+      result,
+      dataChanged: { entityType: "slide_factory_run", entityId: runId },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSlideFactoryRun(runId, {
+      verificationStatus: "error",
+      verificationLog: [
+        { slideNumber: 0, severity: "block", category: "layout", description: `Verification failed: ${message}` },
+      ],
+    });
+    return {
+      result: { error: message, verificationStatus: "error" },
+      dataChanged: { entityType: "slide_factory_run", entityId: runId },
+    };
+  }
 }

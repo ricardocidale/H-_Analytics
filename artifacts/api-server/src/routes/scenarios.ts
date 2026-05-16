@@ -239,6 +239,7 @@ export function register(app: Express) {
         computeHash,
         version: 1,
         baseSnapshotHash: diffResult.snapshotHash,
+        ...(validation.data.perspectiveRole ? { perspectiveRole: validation.data.perspectiveRole } : {}),
       });
 
       if (diffResult.propertyDiffs.length > 0) {

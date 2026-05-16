@@ -285,6 +285,21 @@
     "0071_properties_brand_id_fk_restrict": {
       "status": "self-idempotent",
       "reason": "T1-5 \u2014 fixes brand_id FK constraint to explicitly declare ON DELETE RESTRICT, matching the Drizzle schema declaration. Migration 0065 added the FK without ON DELETE clause (PostgreSQL defaults to NO ACTION, functionally identical for non-deferred constraints). No data changes; only drops and recreates the same FK constraint with the explicit action."
+    },
+    "0072_create_portfolios": {
+      "status": "guarded",
+      "guard": "portfolios-001.ts",
+      "reason": "T2-2 \u2014 creates portfolios table (id, user_id, name, description, created_at, updated_at) with FK to users ON DELETE CASCADE, then adds nullable portfolio_id FK column to properties ON DELETE SET NULL. Both DDL operations are idempotent (CREATE TABLE IF NOT EXISTS, ADD COLUMN IF NOT EXISTS, DO $$ constraint guard)."
+    },
+    "0073_slide_factory_verification": {
+      "status": "guarded",
+      "guard": "slide-factory-verification-001.ts",
+      "reason": "T2-4 \u2014 adds nullable verification_status (text) and verification_log (jsonb) columns to slide_factory_runs for Bianca visual quality verification results. Both columns are idempotent (ADD COLUMN IF NOT EXISTS)."
+    },
+    "0074_scenario_perspective_role": {
+      "status": "guarded",
+      "guard": "scenario-perspective-role-001.ts",
+      "reason": "T2-1 \u2014 adds perspective_role text NOT NULL DEFAULT 'operator' column to scenarios. Existing rows receive 'operator' via the DEFAULT clause. Idempotent (ADD COLUMN IF NOT EXISTS)."
     }
   }
 }

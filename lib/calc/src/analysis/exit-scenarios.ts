@@ -37,8 +37,6 @@ import {
 import { US_STATE_DEFAULTS } from "@shared/countryDefaults";
 import {
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_COMMISSION_RATE,
-  DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import { dPow } from "../shared/decimal";
 
@@ -663,8 +661,8 @@ export function computeExitScenarios(input: ExitScenariosInput): ExitScenariosOu
   const loan = calculateLoanParams(property, global);
   const refi = calculateRefinanceParams(property, global, loan, yearlyNoi, Math.max(yearlyNoi.length, ceilingYears));
 
-  const exitCapRate = property.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const brokerRate = property.dispositionCommission ?? global.commissionRate ?? DEFAULT_COMMISSION_RATE;
+  const exitCapRate = property.exitCapRate;
+  const brokerRate = property.dispositionCommission;
   const jurisdiction = lookupJurisdictionRates(property.country, property.stateProvince, input.transferTaxRates);
 
   // Engine cashflows include initial equity outflow at acquisitionYear; strip

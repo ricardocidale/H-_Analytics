@@ -56,6 +56,8 @@ const BASE_COSTS = {
   revShareEvents: 0.0,
   revShareFB: 0.0,
   revShareOther: 0.0,
+  landValuePercent: 0.25,
+  dispositionCommission: 0.05,
 };
 
 const MINIMAL_HOTEL: PropertyInput = {
@@ -70,6 +72,7 @@ const MINIMAL_HOTEL: PropertyInput = {
   occupancyGrowthStep: 0,
   purchasePrice: 2_000_000,
   type: 'hotel',
+  exitCapRate: 0.085,
 };
 
 // ── Finding #3: PMT throws for monthlyRate > 0.05 ────────────────────────────
@@ -497,6 +500,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       occupancyGrowthStep: 0,
       purchasePrice: 2_000_000,
       type: 'hotel',
+      exitCapRate: 0.085,
     };
 
     const global: GlobalInput = {
@@ -535,6 +539,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       occupancyGrowthStep: 0,
       purchasePrice: 1_500_000,
       type: 'hotel',
+      exitCapRate: 0.085,
     };
     const global: GlobalInput = {
       modelStartDate: '2024-01-01',
@@ -566,6 +571,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       occupancyGrowthStep: 0,
       purchasePrice: 2_000_000,
       type: 'hotel',
+      exitCapRate: 0.085,
     };
     const global: GlobalInput = {
       modelStartDate: '2024-01-01',
@@ -603,6 +609,9 @@ describe('Finding #7 — aggregatePropertyByYear/aggregateUnifiedByYear parity (
       preOpeningCosts: 0,
       operatingReserve: 0,
       type: prop.type,
+      landValuePercent: prop.landValuePercent,
+      exitCapRate: prop.exitCapRate,
+      dispositionCommission: prop.dispositionCommission,
     };
     const unified = aggregateUnifiedByYear(monthly, loanParams, undefined, years);
 
@@ -776,6 +785,7 @@ describe('Finding #4 — Incentive fee gated on post-debt-service levered cash (
       acquisitionTermYears: 25,
       incentiveManagementFeeRate: 0.15,  // 15% incentive fee
       feeSubordination: 'none',          // explicitly none — test must catch the base-formula bug
+      exitCapRate: 0.085,
     };
 
     const global: GlobalInput = {

@@ -51,8 +51,11 @@ import * as analystAdminRoutes from "./routes/analyst-admin";
 import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
 import * as propertyDdRoutes from "./routes/property-dd";
 import * as marketSignalsRoutes from "./routes/market-signals";
+import * as portfolioRoutes from "./routes/portfolios";
+import * as slideFactoryVerificationRoutes from "./routes/slide-factory-verification";
 import { propertySlidesRouter } from "./routes/property-slides";
 import * as brandAssetsRoutes from "./routes/brand-assets";
+import * as adminLlmCostRoutes from "./routes/admin-llm-cost";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -87,6 +90,7 @@ export async function registerRoutes(
   premiumExportRoutes.register(app);
   exportGenerateRoutes.register(app);
   adminIntegrationRoutes.register(app);
+  adminLlmCostRoutes.register(app);
   geospatialRoutes.register(app);
   notificationRoutes.register(app);
   documentRoutes.register(app);
@@ -111,6 +115,8 @@ export async function registerRoutes(
   specialistPhotoEnhancerRoutes.register(app);
   propertyDdRoutes.register(app);
   marketSignalsRoutes.register(app);
+  portfolioRoutes.register(app);
+  slideFactoryVerificationRoutes.register(app);
   registerPublicAssumptionGuardrailRoutes(app);
   registerPublicFeesRoutes(app);
 

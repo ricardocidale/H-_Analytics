@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T14:00:00Z
-Status: idle
+Updated: 2026-05-16T20:15:00Z
+Status: active
 
 ## Active Branch
 
@@ -13,42 +13,61 @@ main
 
 ## Last Commit on Branch
 
-b6cc85d4c  fix(icp): document EMPTY_PORTFOLIO_DEFAULT_MIX weights as algorithm calibration (T1-5)
+295b07e85  feat(finance): T2-1 investor perspective — strip mgmt co P&L from compute + block company route
 
-## What CC Did This Session (2026-05-16 session 2)
+## What CC Did This Session (2026-05-16 session 7)
 
-T1-4 (DEFAULT_* schema decoupling):
-- lib/db/src/schema/properties.ts: removed DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE,
-  DEFAULT_LAND_VALUE_PERCENT, DEFAULT_PROPERTY_INCOME_TAX_RATE from imports; replaced with
-  inline numeric literals (0.085, 0.05, 0.25, 0.25) in .default() calls
-- Engine fallback removal deferred: LoanParams/PropertyInput types still declare these as
-  number | null — making them required would break 20+ proof test fixtures
+T2-4 (vision-based export quality verification — COMPLETE):
+- Bianca specialist, schema, routes, Rebecca tool, parity map all shipped
+- Committed 4dcd2a9cb (20 files, 638 insertions)
 
-T1-5 (CodeRabbit PR #147 deferred findings):
-- migrations 0064 (lib/db) + 0071 (api-server): fix brand_id FK to explicit ON DELETE RESTRICT
-- bracket-assignment-minion.ts: added taxonomy comment confirming EMPTY_MIX_WEIGHT_* as
-  algorithm calibration constants (confirmed exception to DEFAULT_* rule)
-
-Vulnerability fix (earlier session):
-- Merged PR #156 (norfolk-starter next bump, 14 Dependabot alerts closed)
-- Merged PR #157 (esbuild >=0.25.4 override + remove @google-cloud/storage — 2 more alerts)
-- Zero open Dependabot alerts
+T2-1 (investor perspective separation — COMPLETE):
+- perspectiveRole ('operator'|'investor') column on scenarios table
+  Drizzle migration 0067 + api-server mirror 0074 + runtime guard scenario-perspective-role-001.ts
+- /api/finance/compute: strips companyMonthly/companyYearly when perspectiveRole='investor'
+- /api/finance/company: returns 403 FIN-011 for investor perspective
+- Rebecca update_scenario tool: perspectiveRole exposed as enum field
+- createScenarioSchema accepts perspectiveRole in POST /api/scenarios
+- SCENARIO_PERSPECTIVE_ROLES type guard + updateScenarioSchema updated
+- Parity map: 2 rows added (perspective toggle)
+- typecheck PASS + magic-numbers PASS
+- Committed 295b07e85 (14 files, 94 insertions)
 
 ## What's Pending
 
-- T1-4: engine fallback removal (`?? DEFAULT_*`) — blocked on making PropertyInput fields
-  non-nullable (requires updating ~20 proof test fixtures first); standalone PR needed
-- T1-5 items 2 + 4 (Replit-safe or advisory):
-  - analyst-admin-runners-mgmt.ts double-cast (`as unknown as`)
-  - property-data.ts SEED_* literals — add source citations
+T2-4 UI (Replit-safe):
+- Add "Verify deck" button to Tab 6 of the Slide Factory admin panel
+- Calls POST /api/slide-factory-runs/:id/verify
+- Shows per-slide findings in a collapsible panel (severity color: ok=emerald, advisory=sky,
+  warning=amber, block=red)
+- Status polling: GET /api/slide-factory-runs/:id/verification
+
+T2-3 UI (Replit-safe):
+- descriptionImproved field: add "Improve with AI" or Analyst button
+- File: artifacts/hospitality-business-portal/src/components/property-edit/BasicInfoSection.tsx
+  around line 572 (descriptionImproved textarea)
+- Endpoint: POST /api/properties/:id/rewrite-description { text: "..." }
+
+T2-2 UI (Replit-safe):
+- Portfolio selector on property list page
+- PUT /api/properties/:id/portfolio { portfolioId: N | null }
+
+T1-5 item 2 (low priority — advisory, Replit-safe):
+- analyst-admin-runners-mgmt.ts lines 140-143: `as unknown as` double-casts
 
 ## Handoff to Replit
 
-None — all changes are committed to main. No Replit UI tasks pending.
+T2-4 UI: Add "Verify deck" button to the Slide Factory Tab 6 override panel.
+Backend: POST /api/slide-factory-runs/:id/verify (synchronous, ~15-30s, returns BiancaVerificationResult).
+GET /api/slide-factory-runs/:id/verification for polling/reading last result.
+Severity display: ok=emerald, advisory=sky, warning=amber, block=red (per AnalystCheckDialog pattern).
 
-If Replit wants to pick up T1-5 item 2 (double-cast in analyst-admin-runners-mgmt.ts):
-- File: `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` lines 140-143
-- Replace `as unknown as` chains with typed adapter functions or explicit type assertions
+T2-3 UI: Add "Improve with AI" button to descriptionImproved textarea in BasicInfoSection.tsx.
+Pattern: AsPurchasedDescriptionField.tsx (preview-then-accept flow).
+Endpoint: POST /api/properties/:id/rewrite-description (body: { text: string }).
+
+T2-2 UI: Portfolio selector on property list. GET /api/portfolios for list,
+PUT /api/properties/:id/portfolio to assign.
 
 ## Files CC Owns Right Now
 

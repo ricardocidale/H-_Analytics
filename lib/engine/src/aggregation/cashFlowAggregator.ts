@@ -27,7 +27,6 @@ import {
   getAcquisitionYear,
   YearlyCashFlowResult,
 } from "../debt/loanCalculations";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@norfolk/shared/constants";
 
 /**
  * Aggregate monthly engine data into yearly YearlyCashFlowResult[].
@@ -47,8 +46,8 @@ export function aggregateCashFlowByYear(
   const results: YearlyCashFlowResult[] = [];
   let cumulative = 0;
 
-  const exitCapRate = property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
+  const exitCapRate = property.exitCapRate;
+  const commissionRate = property.dispositionCommission;
 
   for (let y = 0; y < years; y++) {
     const yearStart = y * 12;

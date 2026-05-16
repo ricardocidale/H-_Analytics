@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-16T12:41:13.500Z",
+  "updatedAt": "2026-05-16T17:35:22.569Z",
   "signatures": [
     "artifacts/hospitality-business-portal/src/components/DocumentExtractionPanel.tsx:633:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/GuidedWalkthrough.tsx:428:min-w-0:shrink-0",
@@ -65,7 +65,6 @@
     "artifacts/hospitality-business-portal/src/components/admin/research-center/IcpSourcesPanel.tsx:42:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research-center/PropertyMarketSections.tsx:236:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research-center/PropertyMarketSections.tsx:398:min-w-0:shrink-0",
-    "artifacts/hospitality-business-portal/src/components/admin/research-center/research-shared.tsx:236:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research/SourcesSection.tsx:107:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/research/SourcesSection.tsx:44:min-w-0:shrink-0",
     "artifacts/hospitality-business-portal/src/components/admin/resources/ResourceDetailDialog.tsx:251:min-w-0:shrink-0",

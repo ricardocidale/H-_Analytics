@@ -45,6 +45,7 @@ export const scenarios = pgTable("scenarios", {
   lastEngineVersion: text("last_engine_version"),
   tags: jsonb("tags").$type<string[]>().default([]),
   kind: text("kind").notNull().default("manual"),
+  perspectiveRole: text("perspective_role").notNull().default("operator"),
   isLocked: boolean("is_locked").notNull().default(false),
   deletedAt: timestamp("deleted_at"),
   deletedBy: integer("deleted_by"),
@@ -120,6 +121,9 @@ export const insertScenarioAccessSchema = createInsertSchema(scenarioAccess).pic
 export type ScenarioAccess = typeof scenarioAccess.$inferSelect;
 export type InsertScenarioAccess = z.infer<typeof insertScenarioAccessSchema>;
 
+export const SCENARIO_PERSPECTIVE_ROLES = ["operator", "investor"] as const;
+export type ScenarioPerspectiveRole = typeof SCENARIO_PERSPECTIVE_ROLES[number];
+
 export const insertScenarioSchema = createInsertSchema(scenarios).pick({
   userId: true,
   name: true,
@@ -137,6 +141,7 @@ export const insertScenarioSchema = createInsertSchema(scenarios).pick({
   tags: true,
   kind: true,
   isLocked: true,
+  perspectiveRole: true,
 });
 
 export const insertScenarioPropertyOverrideSchema = createInsertSchema(scenarioPropertyOverrides).pick({
@@ -152,6 +157,7 @@ export const updateScenarioSchema = z.object({
   name: z.string().min(1).max(60).optional(),
   description: z.string().nullable().optional(),
   tags: z.array(z.string().min(1).max(50)).max(20).optional(),
+  perspectiveRole: z.enum(["operator", "investor"]).optional(),
 });
 
 export const selectScenarioSchema = createSelectSchema(scenarios);

@@ -143,6 +143,8 @@ function makeCompleteRun(
     pdfR2Key: null,
     wishListLog: [],
     slotContentHashes: null,
+    verificationStatus: null,
+    verificationLog: null,
     startedAt: now,
     completedAt: now,
     createdAt: now,

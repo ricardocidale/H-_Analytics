@@ -2,10 +2,10 @@
  * server/ai/clients.ts — Singleton AI SDK clients
  *
  * Centralized lazy-singleton factories for OpenAI, Anthropic, Gemini,
- * Perplexity, and Exa. Each client is created once on first use and reused
- * for all subsequent calls. This prevents per-request instantiation overhead
- * (TCP connections, token refresh) and provides a single place to configure
- * base URLs, API versions, etc.
+ * Perplexity, Exa, DeepSeek, and Mistral. Each client is created once on
+ * first use and reused for all subsequent calls. This prevents per-request
+ * instantiation overhead (TCP connections, token refresh) and provides a
+ * single place to configure base URLs, API versions, etc.
  *
  * All factories share the same missing-key error shape via `requireApiKey`,
  * so downstream callers can rely on a consistent message format. The module
@@ -16,12 +16,15 @@
  *
  * Usage:
  *   import { getOpenAIClient, getAnthropicClient, getGeminiClient, getExaClient } from "../ai/clients";
+ *   import { getDeepSeekClient, getMistralClient, getMistralOcrClient } from "../ai/clients";
  */
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { Perplexity } from "@perplexity-ai/perplexity_ai";
 import Exa from "exa-js";
+import { Mistral } from "@mistralai/mistralai";
+import { logger } from "../logger";
 
 // ── Shared key check ────────────────────────────────────
 
@@ -127,4 +130,121 @@ export function getExaClient(): Exa {
   const apiKey = requireApiKey("Exa", ["EXA_API_KEY"]);
   _exa = new Exa(apiKey);
   return _exa;
+}
+
+// ── DeepSeek ─────────────────────────────────────────────
+//
+// Uses the OpenAI-compatible SDK with an explicit baseURL to prevent
+// OPENAI_BASE_URL env-var bleed (see integration-issues/openai-sdk-env-base-url-overrides-*).
+// baseURL is read from DEEPSEEK_API_BASE_URL env var (if set) or resolved once
+// from the deepseek-v4-flash model row's config.endpoint on first call.
+
+let _deepseek: OpenAI | null = null;
+let _deepseekInitPromise: Promise<OpenAI> | null = null;
+
+async function resolveDeepSeekBaseUrl(): Promise<string> {
+  if (process.env.DEEPSEEK_API_BASE_URL) return process.env.DEEPSEEK_API_BASE_URL;
+  // Resolve from admin_resources model row to avoid hardcoding the URL here.
+  const { storage } = await import("../storage");
+  const row = await storage.getAdminResourceBySlug?.("model", "deepseek-v4-flash");
+  const endpoint = row?.config?.endpoint as string | undefined;
+  if (!endpoint) {
+    throw new Error(
+      "[matteo:deepseek:init] deepseek-v4-flash model row missing config.endpoint — set DEEPSEEK_API_BASE_URL or re-run admin-resources-006-matteo-router migration",
+    );
+  }
+  return endpoint;
+}
+
+export function getDeepSeekClient(): Promise<OpenAI> {
+  if (_deepseek) return Promise.resolve(_deepseek);
+  if (_deepseekInitPromise) return _deepseekInitPromise;
+  _deepseekInitPromise = (async () => {
+    const apiKey = requireApiKey("DeepSeek", ["DEEPSEEK_API_KEY"]);
+    const baseURL = await resolveDeepSeekBaseUrl();
+    // Explicit baseURL prevents OPENAI_BASE_URL env var from bleeding into DeepSeek calls.
+    _deepseek = new OpenAI({ apiKey, baseURL });
+    logger.info(`[matteo:deepseek:init] baseURL=${baseURL}`, "clients");
+    return _deepseek;
+  })();
+  return _deepseekInitPromise;
+}
+
+// ── Mistral chat ──────────────────────────────────────────
+//
+// Uses the @mistralai/mistralai first-party SDK with explicit client
+// construction (serverURL from env var or model row) for clean initialization.
+
+let _mistral: Mistral | null = null;
+
+export function getMistralClient(): Mistral {
+  if (_mistral) return _mistral;
+  const apiKey = requireApiKey("Mistral", ["MISTRAL_API_KEY"]);
+  _mistral = new Mistral({ apiKey });
+  logger.info("[matteo:mistral:init] client initialized", "clients");
+  return _mistral;
+}
+
+// ── Mistral OCR (HTTP-only) ───────────────────────────────
+//
+// Mistral OCR 3 is an HTTP-only API, not a chat model. This thin wrapper
+// exposes a single `extractText(pdfBase64, mimeType)` method backed by
+// a fetch call against the endpoint stored in the admin_resources api row.
+
+export interface MistralOcrClient {
+  extractText(params: {
+    pdfBase64: string;
+    documentName?: string;
+  }): Promise<{ pages: Array<{ index: number; markdown: string }> }>;
+}
+
+const MISTRAL_OCR_MODEL_FALLBACK = "mistral-ocr-latest";
+
+async function getMistralOcrConfig(): Promise<{ endpoint: string; model: string }> {
+  if (process.env.MISTRAL_OCR_ENDPOINT) {
+    return { endpoint: process.env.MISTRAL_OCR_ENDPOINT, model: MISTRAL_OCR_MODEL_FALLBACK };
+  }
+  const { storage } = await import("../storage");
+  const row = await storage.getAdminResourceBySlug?.("api", "mistral-ocr-3");
+  const endpoint = row?.config?.endpoint as string | undefined;
+  if (!endpoint) {
+    throw new Error(
+      "[matteo:mistral-ocr:init] mistral-ocr-3 api row missing config.endpoint — set MISTRAL_OCR_ENDPOINT or re-run admin-resources-006-matteo-router migration",
+    );
+  }
+  const model = (row?.config?.model as string | undefined) ?? MISTRAL_OCR_MODEL_FALLBACK;
+  return { endpoint, model };
+}
+
+export async function getMistralOcrClient(): Promise<MistralOcrClient> {
+  const apiKey = requireApiKey("Mistral OCR", ["MISTRAL_API_KEY"]);
+  const { endpoint, model } = await getMistralOcrConfig();
+  logger.info(`[matteo:mistral-ocr:init] endpoint=${endpoint}`, "clients");
+  return {
+    async extractText({ pdfBase64, documentName }) {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          document: {
+            type: "document_url",
+            ...(documentName ? { document_name: documentName } : {}),
+            document_url: `data:application/pdf;base64,${pdfBase64}`,
+          },
+          include_image_base64: false,
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => "(no body)");
+        throw new Error(`Mistral OCR API error ${response.status}: ${body}`);
+      }
+      return response.json() as Promise<{
+        pages: Array<{ index: number; markdown: string }>;
+      }>;
+    },
+  };
 }

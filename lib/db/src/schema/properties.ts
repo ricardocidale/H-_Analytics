@@ -4,6 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { companies, businessBrands, type ResearchValueEntry } from "./core";
 import { users } from "./auth";
+import { portfolios } from "./portfolios";
 import type { PriceEvent as PriceEventEntry } from "../price-history";
 import {
   PropertyStatus,
@@ -370,6 +371,9 @@ export const properties = pgTable("properties", {
   // Why The Analyst excluded this property (null if not excluded)
   validationReason: text("validation_reason"),
 
+  // Portfolio grouping — null = unassigned (T2-2)
+  portfolioId: integer("portfolio_id").references(() => portfolios.id, { onDelete: "set null" }),
+
   // Soft-delete: null = active, non-null = archived (never hard-delete properties)
   archivedAt: timestamp("archived_at"),
   archivedBy: integer("archived_by").references(() => users.id),
@@ -546,6 +550,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   flaggedFieldCount: true,
   validationReason: true,
   priceEvents: true,
+  portfolioId: true,
 }).extend({
   imageUrl: z.string().min(1, "imageUrl is required"),
   startOccupancy: z.number().min(0).max(1),

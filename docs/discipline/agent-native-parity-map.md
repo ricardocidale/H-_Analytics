@@ -15,6 +15,12 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | View property list | Properties sidebar | `list_properties` | ✅ |
 | View property detail | Property page | `get_property` | ✅ |
+| List portfolio groups | Portfolios (T2-2, UI pending) | `list_portfolios` | ✅ |
+| Create portfolio group | Portfolios → New (T2-2, UI pending) | `create_portfolio` | ✅ |
+| Rename / describe portfolio | Portfolio → Edit (T2-2, UI pending) | `update_portfolio` | ✅ |
+| Delete portfolio | Portfolio → Delete (T2-2, UI pending) | `delete_portfolio` | ✅ |
+| List properties in portfolio | Portfolio → Properties (T2-2, UI pending) | `list_portfolio_properties` | ✅ |
+| Assign property to portfolio | Property → Assign Portfolio (T2-2, UI pending) | `assign_property_portfolio` | ✅ |
 | Create property | Properties → New | `create_property` (deprecated — use create_property_record + seed_property_fees), `create_property_record` + `seed_property_fees` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
 | Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
@@ -25,7 +31,8 @@ feature ships or a new Rebecca tool is added.
 | View scenario detail | Scenario page | `get_scenario` | ✅ |
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
-| Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
+| Edit scenario name / description / tags / perspectiveRole | Scenario → Edit | `update_scenario` | ✅ |
+| Switch scenario to investor perspective (hide mgmt co P&L) | Scenario → Edit → Perspective | `update_scenario (perspectiveRole='investor'\|'operator')` | ✅ |
 | Edit scenario financial assumptions | Scenario → Edit | `update_scenario_assumptions` | ✅ |
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
@@ -121,6 +128,8 @@ feature ships or a new Rebecca tool is added.
 | Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` | `download_factory_v2_deck` (format='pdf') | ✅ |
 | Download rendered deck PPTX (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download/pptx` | `download_factory_v2_deck` (format='pptx') | ✅ |
 | Download both PDF and PPTX (Tab 6) | See above | `download_factory_v2_deck` (format='both') | ✅ |
+| Visually verify deck quality before delivery (Bianca) | `POST /api/slide-factory-runs/:id/verify` | `verify_factory_deck` | ✅ |
+| Read last verification result for a run | `GET /api/slide-factory-runs/:id/verification` | `verify_factory_deck` (re-run to refresh) | ✅ |
 
 **Auto-fire pattern note:** `accept-brief` and `assign-properties` are
 fire-and-forget transitions — they immediately advance status and return
@@ -261,3 +270,17 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | View violations | Admin → Compliance | — | 🚫 N/A (read-only display; no mutation needed via chat) |
 | Resolve violation | Admin → Compliance → Resolve | — | 🚫 N/A (admin-only destructive action) |
 | Accept violation | Admin → Compliance → Accept | — | 🚫 N/A (admin-only destructive action) |
+
+## Content Generation Actions (T2-3)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Generate / regenerate executive summary | Property → Executive Summary → Analyst button | `generate_executive_summary` | ✅ |
+| Rewrite property description (as-purchased) | Property → Edit → Description → Improve with AI | `rewrite_property_description` | ✅ |
+| Rewrite property description (as-improved) | Property → Edit → Description Improved | `rewrite_property_description` | ✅ (UI button pending — Replit-safe) |
+
+## LLM Cost Monitoring Actions (T3-1)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| View LLM cost summary by slot/model | Admin → LLM Workflows → Cost tab | `download_llm_cost_summary` | ✅ |

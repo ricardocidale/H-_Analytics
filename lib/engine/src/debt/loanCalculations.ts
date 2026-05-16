@@ -22,7 +22,7 @@
 export interface LoanParams {
   purchasePrice: number;
   buildingImprovements: number;
-  landValuePercent?: number | null;
+  landValuePercent: number;
   preOpeningCosts: number;
   operatingReserve: number;
   type: string;
@@ -40,8 +40,8 @@ export interface LoanParams {
   refinanceClosingCostRate?: number | null;
   refiMaxLtvToOriginal?: number | null;
   refinanceBasis?: string | null;
-  exitCapRate?: number | null;
-  dispositionCommission?: number | null;
+  exitCapRate: number;
+  dispositionCommission: number;
   depreciationYears?: number | null;
 }
 
@@ -152,10 +152,10 @@ export function calculateLoanParams(
   const interestRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
   const termYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
   const taxRate = property.taxRate ?? getFactoryNumber('taxRate', property.country ?? undefined);
-  const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
-  
+  const commissionRate = property.dispositionCommission;
+
   // Depreciable basis: land doesn't depreciate (IRS Publication 946 / ASC 360)
-  const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = property.landValuePercent;
   const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
   // Audit #319 R4: registry-backed factory fallback (US baseline = 39 yrs).
   const effectiveDepYears = property.depreciationYears ?? global?.depreciationYears ?? getFactoryNumber('depreciationYears');

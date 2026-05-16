@@ -196,5 +196,22 @@ export function getSlideFactoryTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    {
+      name: "verify_factory_deck",
+      description:
+        "Run Bianca (visual quality verification) on a completed slide factory deck. " +
+        "Bianca renders each PPTX slide to PNG via LibreOffice, then checks all slides " +
+        "against a rubric (cut-off text, placeholders, readability, layout, consistency, " +
+        "data quality) using Claude vision. Returns per-slide findings and an overall verdict. " +
+        "Use when the user asks to verify, inspect, or quality-check a deck before delivery. " +
+        "Run only on completed runs with a PPTX (status: complete).",
+      parameters: {
+        type: "object",
+        properties: {
+          runId: { type: "number", description: "Slide factory run ID." },
+        },
+        required: ["runId"],
+      },
+    },
   ];
 }

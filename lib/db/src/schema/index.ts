@@ -55,3 +55,4 @@ export * from "./types/jsonb-shapes";
 export * from "./icp-brackets";
 export * from "./self-test-logs";
 export * from "./fees";
+export * from "./portfolios";

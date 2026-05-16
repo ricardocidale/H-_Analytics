@@ -58,6 +58,7 @@ import { BulkDraftRunsStorageImpl, type BulkDraftRunsStorage } from "./bulk-draf
 import { LbSlidesStorageImpl, type LbSlidesStorage } from "./lb-slides";
 import { MarketRatesStorage } from "./market-rates";
 import { ReferenceDataStorage } from "./reference-data";
+import { PortfolioStorage } from "./portfolios";
 
 export interface IStorage extends
   UserStorage,
@@ -93,7 +94,8 @@ export interface IStorage extends
   BulkDraftRunsStorage,
   LbSlidesStorage,
   MarketRatesStorage,
-  ReferenceDataStorage {
+  ReferenceDataStorage,
+  PortfolioStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -146,6 +148,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new LbSlidesStorageImpl(),
     () => new MarketRatesStorage(),
     () => new ReferenceDataStorage(),
+    () => new PortfolioStorage(),
   ] as const;
 }
 

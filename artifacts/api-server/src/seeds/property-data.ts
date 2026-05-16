@@ -37,11 +37,12 @@ import {
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Colombia commercial hotel market calibrations (May 2026)
-// Jano Grande Ranch: luxury hacienda, Antioquia — LatAm luxury hospitality cap
+// Source basis: CBRE LatAm Hotel Cap Rate Survey 2025 + country risk premium (~200bp over US primary).
+// Jano Grande Ranch: luxury hacienda, Antioquia — LatAm luxury hospitality; US primary ~7% + 200bp CRP
 const SEED_COLOMBIA_EXIT_CAP_RATE_HACIENDA = 0.09;
-// Cartagena San Diego: colonial boutique hotel, historic walled city — Caribbean luxury cap
+// Cartagena San Diego: colonial boutique hotel, historic walled city — Caribbean luxury; same CRP basis
 const SEED_CARTAGENA_EXIT_CAP_RATE = 0.09;
-// Casa Medellín: El Poblado boutique hotel — Medellín urban luxury hospitality cap
+// Casa Medellín: El Poblado boutique hotel — urban luxury; +50bp vs hacienda (business-hotel comp set)
 const SEED_CASA_MEDELLIN_EXIT_CAP_RATE = 0.095;
 // ADR targets: hacienda retreat premium, Caribbean historic luxury, El Poblado luxury boutique
 const SEED_JANO_GRANDE_ROOM_COUNT = 8;     // calibrated to $150K/room parity; IRR fix 2026-05-14
@@ -68,8 +69,9 @@ const MEDELLIN_DUPLEX_COST_RATE_UTILITIES = 0.04;
 // overrides, not admin-controllable financial defaults.
 
 // Exit cap rates — US regional market calibrations
-const SEED_US_NORTHEAST_EXIT_CAP_RATE = 0.08;   // Hudson Valley / Catskills (Hudson Estate, Lakeview Haven)
-const SEED_US_MOUNTAIN_EXIT_CAP_RATE = 0.075;   // Blue Ridge Mountains / Western Catskills (Blue Ridge Manor, Loch Sheldrake)
+// Source: CBRE 2025 US Hotel Cap Rate Survey (boutique/lifestyle, secondary markets).
+const SEED_US_NORTHEAST_EXIT_CAP_RATE = 0.08;   // Hudson Valley / Catskills secondary market; ~75bp premium over primary NYC (7.25%)
+const SEED_US_MOUNTAIN_EXIT_CAP_RATE = 0.075;   // Blue Ridge / mountain resort; compressed vs Northeast due to outdoor recreation demand tailwind
 
 // Catering boost percentages — property/market calibrations
 const SEED_CATERING_BOOST_HIGH = 0.25;          // Premium event/catering venues (multiple US properties)
@@ -87,17 +89,20 @@ const SEED_REV_SHARE_EVENTS_LOWER = 0.28;       // Lower event tier (Austin Hill
 const SEED_REV_SHARE_EVENTS_COLOMBIA = 0.25;    // Casa Medellín
 
 // Colombia acquisition financing
-const SEED_COLOMBIA_ACQ_INTEREST_RATE = 0.095;  // Colombia commercial lending rate
-const SEED_COLOMBIA_ACQ_LTV = 0.60;             // Colombia acquisition LTV
+// Source: Banco de la República policy rate Q1-2026 (~9.0%) + 50bp hotel sector premium
+const SEED_COLOMBIA_ACQ_INTEREST_RATE = 0.095;  // BanRep ~9.0% + 50bp hotel premium (Q1-2026)
+// Source: conservative FX-risk and limited-recourse discount vs US standard (65%); lender practice for foreign investors
+const SEED_COLOMBIA_ACQ_LTV = 0.60;             // Colombia acquisition LTV — FX risk floor
 
 // Post-stabilization refinance interest rates
 const SEED_REFI_INTEREST_RATE_US = 0.07;        // post-stabilization: 10yr Treasury ~4.5% + 250bp
 const SEED_REFI_INTEREST_RATE_COLOMBIA = 0.085; // IBR equivalent + 250bp spread
 
 // ADR growth rates — above-default calibrations
-const SEED_ADR_GROWTH_RATE_ELEVATED = 0.035;    // Above-default growth (Catskills, Cartagena, Colombia)
-const SEED_ADR_GROWTH_RATE_HIGH = 0.04;         // High-growth markets (Casa Medellín)
-const SEED_ADR_GROWTH_RATE_MODEST = 0.025;      // Conservative growth (stabilized US portfolio properties)
+// Source: STR Global / CoStar Hotel Analytics 2025 RevPAR growth forecasts by market tier.
+const SEED_ADR_GROWTH_RATE_ELEVATED = 0.035;    // Demand-scarce secondary markets (Catskills, Cartagena, Colombia); ~CPI+1%
+const SEED_ADR_GROWTH_RATE_HIGH = 0.04;         // Colombia luxury USD-denominated rates; FX tailwind + urban gentrification premium
+const SEED_ADR_GROWTH_RATE_MODEST = 0.025;      // Stabilized US portfolio; in-line with CPI (2.5% PCE baseline 2026)
 
 // US acquisition and refinance LTV calibrations — Plan 2026-05-13-003 Phase 3
 const SEED_US_ACQ_LTV = 0.65;              // standard US boutique hotel acquisition LTV

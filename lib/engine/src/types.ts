@@ -46,7 +46,7 @@ export interface PropertyInput {
   occupancyGrowthStep: number;
   purchasePrice: number;
   buildingImprovements?: number | null;
-  landValuePercent?: number | null;
+  landValuePercent: number;
   type: string;
   country?: string | null;
   // Financing
@@ -64,9 +64,9 @@ export interface PropertyInput {
   refinanceClosingCostRate?: number | null;
   refiMaxLtvToOriginal?: number | null;
   refinanceBasis?: string | null;
-  exitCapRate?: number | null;
+  exitCapRate: number;
   // Disposition
-  dispositionCommission?: number | null;
+  dispositionCommission: number;
   // Operating reserve
   operatingReserve?: number | null;
   // Refinance timing
