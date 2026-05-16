@@ -1,7 +1,7 @@
 ---
 title: "CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches"
 date: 2026-05-10
-last_updated: 2026-05-13
+last_updated: 2026-05-16
 category: docs/solutions/workflow-issues
 module: cc-replit-branch-hygiene
 problem_type: workflow_issue
@@ -553,6 +553,68 @@ Diagnostic confirmed the divergence:
 User chose Path B (cherry-pick): the Replit Agent enumerated the three stranded SHAs (`2d4daac80` schema, `3a8b32d8a` plan, `71153f770` brief) and provided the **full updated content** of the brief inline, since `71153f770` was pre-ce.code-review and CC needed the post-review version (4 fixes applied: parity-test discovery cmd, schema-migrations runbook ref, branch-hygiene ref, DoD wording). CC then cherry-picked the schema and plan commits, then committed a fresh CC-authored commit with the pasted-over brief content as commit #4 on a clean branch off `origin/main`. PR opened from CC's shell, with the PR body acknowledging the recreate origin: "Brief recreated from Replit Agent SHA `22bf2e822` stranded on sandbox; original SHAs `2d4daac80` and `3a8b32d8a` cherry-picked."
 
 Net cost: ~15 minutes of coordination overhead (mostly the user copy-pasting the brief content). The alternative — re-deriving 137 lines of handoff brief from scratch — would have been ~45 minutes plus a high risk of CC and Replit Agent drifting on what the brief said.
+
+## Sub-pattern: All Replit commits on a CC PR branch are worthless — reset and force-push (no cherry-pick needed)
+
+The cherry-pick workflow (§ "Cherry-pick workflow when Replit Agent commits are present") creates
+a new clean branch. When ALL Replit commits on the branch are worthless AND CC's own commits
+are the most-recent meaningful commits, the faster path is to reset the branch in place and
+force-push, skipping branch creation entirely.
+
+**When this applies:**
+
+- CC's commits are contiguous at the top of the log OR at a known SHA
+- Every Replit commit between the last CC commit and HEAD is worthless (auto-checkpoint noise,
+  unrelated UI work, status file updates)
+- The PR branch has not been merged
+
+**Procedure:**
+
+```bash
+# 1. Identify the last CC commit SHA (filter by CC email, not Replit email)
+git log origin/main..HEAD --format="%h %ae %s"
+# Find the most-recent line NOT from 52429710-ricardocidale@users.noreply.replit.com
+
+# 2. Reset the branch to the last CC commit (strips all Replit commits above it)
+git reset --hard <last-cc-sha>
+
+# 3. Re-apply any needed CC work that was lost (if any)
+# ... edit, stage, commit as normal CC commit
+
+# 4. Force push with lease — fails safely if the remote moved again since your last fetch
+git push --force-with-lease origin <branch>
+
+# 5. Verify the diff is clean
+git diff origin/main...HEAD --name-only
+```
+
+`--force-with-lease` is safer than `--force`: it refuses to push if the remote has new commits
+since your last fetch, protecting against inadvertently overwriting a concurrent legitimate push.
+
+**When NOT to use this path:**
+
+- If any Replit commit is valuable (e.g., a docs update, a test fixture) → use cherry-pick
+  workflow instead to preserve the valuable commits on a separate PR
+- If CC's commits are interleaved with Replit commits (not contiguous) → use cherry-pick workflow;
+  reset would discard CC work
+- If the PR has already been merged → don't modify history on main
+
+**Worked example — 2026-05-16 PR #158 session:**
+
+```bash
+git log origin/main..HEAD --format="%h %ae %s"
+# a1b2c3d  52429710-ricardocidale@...  checkpoint (worthless)
+# e4f5g6h  52429710-ricardocidale@...  feat(ui): update main menu items (unrelated)
+# i7j8k9l  52429710-ricardocidale@...  checkpoint (worthless)
+# m0n1o2p  ricardocidale@...          fix(portfolios): auth-before-write security fix (CC)
+# ...
+
+# Last CC commit is m0n1o2p — reset to it, stripping 3 worthless Replit commits
+git reset --hard m0n1o2p
+git push --force-with-lease origin feat/t3-1-matteo-model-router
+```
+
+The PR diff narrowed to only CC-authored files. CodeRabbit re-reviewed the clean branch.
 
 ## Related
 
