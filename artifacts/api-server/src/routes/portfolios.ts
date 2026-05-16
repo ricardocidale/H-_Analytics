@@ -98,7 +98,11 @@ export function register(app: Express) {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PORT-016" });
 
-      const { portfolioId } = req.body as { portfolioId: number | null };
+      const rawPortfolioId = (req.body as { portfolioId?: unknown })?.portfolioId;
+      if (rawPortfolioId !== null && rawPortfolioId !== undefined && typeof rawPortfolioId !== "number") {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "portfolioId must be a number or null", code: "PORT-020" });
+      }
+      const portfolioId = rawPortfolioId as number | null | undefined;
 
       // Ownership check before write — prevent unauthorized mutation
       const existing = await storage.getProperty(propertyId);
