@@ -110,6 +110,14 @@ import {
   toolGetBracketMix,
   toolUpdateBracketMix,
 } from "./rebecca-tool-impls-admin";
+import {
+  toolListPortfolios,
+  toolCreatePortfolio,
+  toolUpdatePortfolio,
+  toolDeletePortfolio,
+  toolListPortfolioProperties,
+  toolAssignPropertyPortfolio,
+} from "./rebecca-tool-impls-portfolio";
 
 export async function dispatchRebeccaTool(
   name: string,
@@ -312,6 +320,18 @@ export async function dispatchRebeccaTool(
         return await toolUpdateBracketMix(args, ctx);
       case "generate_financial_report_export_link":
         return toolGenerateFinancialReportExportLink(args);
+      case "list_portfolios":
+        return await toolListPortfolios(ctx);
+      case "create_portfolio":
+        return await toolCreatePortfolio(args, ctx);
+      case "update_portfolio":
+        return await toolUpdatePortfolio(args, ctx);
+      case "delete_portfolio":
+        return await toolDeletePortfolio(args, ctx);
+      case "list_portfolio_properties":
+        return await toolListPortfolioProperties(args, ctx);
+      case "assign_property_portfolio":
+        return await toolAssignPropertyPortfolio(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }

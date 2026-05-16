@@ -51,6 +51,7 @@ import * as analystAdminRoutes from "./routes/analyst-admin";
 import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
 import * as propertyDdRoutes from "./routes/property-dd";
 import * as marketSignalsRoutes from "./routes/market-signals";
+import * as portfolioRoutes from "./routes/portfolios";
 import { propertySlidesRouter } from "./routes/property-slides";
 import * as brandAssetsRoutes from "./routes/brand-assets";
 
@@ -111,6 +112,7 @@ export async function registerRoutes(
   specialistPhotoEnhancerRoutes.register(app);
   propertyDdRoutes.register(app);
   marketSignalsRoutes.register(app);
+  portfolioRoutes.register(app);
   registerPublicAssumptionGuardrailRoutes(app);
   registerPublicFeesRoutes(app);
 

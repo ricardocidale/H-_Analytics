@@ -10,7 +10,7 @@ export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
             | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run"
-            | "company" | "market_rate" | "property_finder" | "service_template";
+            | "company" | "market_rate" | "property_finder" | "service_template" | "portfolio";
   entityId: number;
 };
 

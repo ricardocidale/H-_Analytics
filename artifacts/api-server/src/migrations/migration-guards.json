@@ -285,6 +285,11 @@
     "0071_properties_brand_id_fk_restrict": {
       "status": "self-idempotent",
       "reason": "T1-5 \u2014 fixes brand_id FK constraint to explicitly declare ON DELETE RESTRICT, matching the Drizzle schema declaration. Migration 0065 added the FK without ON DELETE clause (PostgreSQL defaults to NO ACTION, functionally identical for non-deferred constraints). No data changes; only drops and recreates the same FK constraint with the explicit action."
+    },
+    "0072_create_portfolios": {
+      "status": "guarded",
+      "guard": "portfolios-001.ts",
+      "reason": "T2-2 \u2014 creates portfolios table (id, user_id, name, description, created_at, updated_at) with FK to users ON DELETE CASCADE, then adds nullable portfolio_id FK column to properties ON DELETE SET NULL. Both DDL operations are idempotent (CREATE TABLE IF NOT EXISTS, ADD COLUMN IF NOT EXISTS, DO $$ constraint guard)."
     }
   }
 }

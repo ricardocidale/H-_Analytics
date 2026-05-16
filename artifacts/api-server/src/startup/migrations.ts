@@ -397,6 +397,14 @@ export async function runSchemaMigrations() {
     await runUsersAssignedScenario001();
     await markMigrationApplied("users_assigned_scenario_001");
   }
+
+  // T2-2 — portfolio grouping.
+  // Creates portfolios table + adds nullable portfolio_id FK to properties.
+  if (!(await isMigrationApplied("portfolios_001"))) {
+    const { runPortfolios001 } = await import("../migrations/portfolios-001");
+    await runPortfolios001();
+    await markMigrationApplied("portfolios_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

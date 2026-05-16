@@ -15,6 +15,12 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | View property list | Properties sidebar | `list_properties` | ✅ |
 | View property detail | Property page | `get_property` | ✅ |
+| List portfolio groups | Portfolios (T2-2, UI pending) | `list_portfolios` | ✅ |
+| Create portfolio group | Portfolios → New (T2-2, UI pending) | `create_portfolio` | ✅ |
+| Rename / describe portfolio | Portfolio → Edit (T2-2, UI pending) | `update_portfolio` | ✅ |
+| Delete portfolio | Portfolio → Delete (T2-2, UI pending) | `delete_portfolio` | ✅ |
+| List properties in portfolio | Portfolio → Properties (T2-2, UI pending) | `list_portfolio_properties` | ✅ |
+| Assign property to portfolio | Property → Assign Portfolio (T2-2, UI pending) | `assign_property_portfolio` | ✅ |
 | Create property | Properties → New | `create_property` (deprecated — use create_property_record + seed_property_fees), `create_property_record` + `seed_property_fees` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
 | Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
