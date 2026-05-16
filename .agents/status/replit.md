@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T23:40:00Z
+Updated: 2026-05-16T23:55:00Z
 Status: idle
 
 ## Active Branch
@@ -17,12 +17,11 @@ feat(intelligence): move Animations to Knowledge & Resources — Rebecca + Analy
 
 ## What Replit Is Doing This Session
 
-Completed Plan 2026-05-16-003: Moved Animations from Admin BrandAssetsPage to AI Intelligence
-sidebar under Knowledge & Resources.
+Task #1684 complete: Re-enabled sign-ins (loginScreenEnabled flipped to true in DB via API).
 
 ## Files Replit Owns Right Now
 
-None — session complete.
+None (DB-only change).
 
 ## Handoff to CC
 
