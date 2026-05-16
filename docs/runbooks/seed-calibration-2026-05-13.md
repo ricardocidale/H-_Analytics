@@ -52,16 +52,23 @@ This gives the Duplex a modest cash-out refi 3 years post-operations-start (2028
 
 ## Verified IRR Outcomes
 
-Verified 2026-05-14 (session cc.md) after all migration guards applied. **Combined portfolio IRR target: 28–38%.**
+**Verified 2026-05-16** (CC session, full 7-property run via `POST /api/finance/compute`, global modelStartDate=2026-04-01, projectionYears=10).
 
-| Property | Verified Levered/Equity IRR | Notes |
-|---|---|---|
-| Jano Grande Ranch | 25.8% | LatAm rural; 12% exit cap + room-count correction |
-| Loch Sheldrake | 28.8% | US tertiary resort |
-| Belleayre Mountain | 25.9% | US tertiary resort |
-| Medellin Duplex | 12.2% | Intentionally below band; compressed exit + low occupancy by design |
+**Combined portfolio IRR: 35.55% ✓ PASS (target: 28–38%)**
 
-> **Note:** Jano (25.8%) and Belleayre (25.9%) sit slightly below the 28–38% floor. The target band is for the combined portfolio IRR, not per-property. Individual property IRRs may fall outside the band when strategic factors (occupancy, exit cap, country risk) dominate. A full re-run of `GET /api/finance/compute` against the demo company is the definitive verification — the per-property figures above are point-in-time snapshots from the 2026-05-14 session.
+| Property | Levered/Equity IRR | Equity Invested | Exit Value | Notes |
+|---|---|---|---|---|
+| San Diego (Cartagena) | **51.6%** | $1,950,000 | $16,044,525 | 60% LTV; prime urban boutique; 10.5% exit cap |
+| Scott's House | **42.6%** | $2,200,000 | $13,842,131 | 60% LTV; US tertiary resort |
+| Lakeview Haven Lodge | **37.7%** | $2,605,000 | $13,581,443 | 65% LTV; lodge; 9.75% exit cap |
+| Loch Sheldrake | **37.1%** | $4,550,000 | $7,668,765 | Full-equity + refi; US tertiary resort |
+| Belleayre Mountain | **30.4%** | $5,050,000 | $12,165,692 | Full-equity + refi; US tertiary resort |
+| Jano Grande Ranch | **29.8%** | $2,050,000 | $5,389,121 | Full-equity + refi; LatAm rural; 12% exit cap |
+| Medellin Duplex | **13.5%** | $1,025,000 | $835,067 | Intentionally below band — see §"Medellin Duplex Rationale" |
+
+**Portfolio totals:** Equity invested $19,430,000 · Exit value $69,526,743 · Equity multiple 6.12×
+
+> **Note:** Per-property IRRs above and below the 28–38% band are expected. The target is the combined portfolio IRR (35.55%). Medellin Duplex is intentionally below band by design (ultra-luxury $1,500 ADR, 30% max occupancy, compressed 7.5% exit cap for package-sale exit — do not change). San Diego and Scott's House are above band due to leverage and favorable market positioning — this is acceptable and investor-positive.
 
 ---
 

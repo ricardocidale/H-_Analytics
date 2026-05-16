@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import superjson from "superjson";
+import ExcelJS from "exceljs";
 import {
   recomputePortfolioWithAuditAndStamp,
   recomputeSinglePropertyAndStamp,
@@ -841,6 +842,171 @@ export function registerFinanceRoutes(router: Router): void {
       const message = err instanceof Error ? err.message : "Company computation failed";
       logger.error(`Company compute error: ${message}`, "finance");
       return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Company computation failed" : message });
+    }
+  });
+
+  // ── Raw Engine → XLSX Export ──────────────────────────────────────────────────
+  // GET /api/finance/compute/export?projectionYears=10
+  // Produces a clean Excel workbook from live engine output — no report compiler.
+  // One sheet per property (revenue, NOI, ANOI, debt service, cash flow, occ%, ADR)
+  // + a Portfolio Summary sheet (IRR, equity multiple, per-property table).
+  router.get("/api/finance/compute/export", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const rawYears = Number(req.query.projectionYears);
+      const projectionYears = Number.isFinite(rawYears) && rawYears >= 1 && rawYears <= 30 ? rawYears : 10;
+
+      const [rawProperties, rawGlobal] = await Promise.all([
+        storage.getAllProperties(userId),
+        storage.getGlobalAssumptions(userId),
+      ]);
+
+      if (!rawGlobal) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No global assumptions found", code: "FEXP-001" });
+      }
+
+      const activeProps = (rawProperties as unknown as (PropertyInput & { id?: number; isActive?: boolean; name?: string })[])
+        .filter(p => p.isActive !== false);
+
+      if (!activeProps.length) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties found", code: "FEXP-002" });
+      }
+
+      const globalAssumptions = await withModelConstants(rawGlobal as unknown as GlobalInput) as unknown as GlobalInput;
+      const allTemplates = await storage.getAllServiceTemplates();
+      const rawServiceTemplates = allTemplates.map(t => ({
+        id: t.id,
+        name: t.name,
+        defaultRate: (v => Number.isFinite(v) ? v : 0)(Number(t.defaultRate)),
+        serviceModel: t.serviceModel as "centralized" | "direct",
+        serviceMarkup: (v => Number.isFinite(v) ? v : 0)(Number(t.serviceMarkup)),
+        isActive: t.isActive,
+        sortOrder: t.sortOrder ?? 0,
+      }));
+      const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
+      const propertiesWithCostAnchors = await withFinancialHydration(
+        await withPropertyCostAnchors(activeProps as unknown as Record<string, unknown>[]),
+      );
+
+      // Resolve bracket mix (non-fatal)
+      let portfolioBracketMix: BracketMixEntry[] | undefined;
+      let portfolioBrackets: IcpBracketProfile[] | undefined;
+      try {
+        const ga = await storage.getGlobalAssumptions(userId);
+        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+        const normalized = normalizePersistedBracketMix(rawMix);
+        if (normalized) {
+          portfolioBracketMix = normalized.bracketMix;
+          if (normalized.brackets) portfolioBrackets = normalized.brackets;
+        }
+      } catch { /* non-fatal — runs without bracket scaling */ }
+
+      const { result } = await recomputePortfolioWithAuditAndStamp(
+        {
+          properties: propertiesWithCostAnchors as unknown as PropertyInput[],
+          globalAssumptions: globalAssumptions as GlobalInput,
+          projectionYears,
+          serviceTemplates,
+          bracketMix: portfolioBracketMix,
+          brackets: portfolioBrackets,
+        },
+        false,
+      );
+
+      const returnsSummary = computeReturnsSummary(
+        propertiesWithCostAnchors as unknown as PropertyInput[],
+        globalAssumptions as GlobalInput,
+        result.perPropertyMonthly,
+        result.projectionYears,
+      );
+
+      // ── Build workbook ──────────────────────────────────────────────────────
+      // Excel display layout constants (non-financial)
+      const XLSX_SHEET_NAME_MAX = 31;     // Excel sheet name character limit
+      const XLSX_COL_LABEL_W = 34;        // Summary sheet: label column width
+      const XLSX_COL_VALUE_W = 16;        // Summary sheet: value column width
+      const XLSX_COL_WIDE_W = 18;         // Summary sheet: wide value column width
+      const XLSX_COL_PROP_LABEL_W = 30;   // Property sheet: row-label column width
+      const XLSX_COL_PROP_DATA_W = 14;    // Property sheet: yearly data column width
+      const XLSX_FONT_TITLE_SIZE = 14;    // Title font size
+
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "H+ Analytics";
+
+      const yearLabels = Array.from({ length: result.projectionYears }, (_, i) => `Year ${i + 1}`);
+      const pct = (v: number | null) => (v != null ? `${(v * 100).toFixed(1)}%` : "N/A");
+      const usd = (v: number) => Math.round(v);
+
+      // --- Portfolio Summary sheet ---
+      const sumWs = wb.addWorksheet("Portfolio Summary");
+      sumWs.columns = [
+        { width: XLSX_COL_LABEL_W },
+        { width: XLSX_COL_VALUE_W },
+        { width: XLSX_COL_WIDE_W },
+        { width: XLSX_COL_VALUE_W },
+        { width: XLSX_COL_VALUE_W },
+      ];
+      sumWs.addRow(["H+ Analytics — Portfolio Export"]).font = { bold: true, size: XLSX_FONT_TITLE_SIZE };
+      sumWs.addRow(["Generated:", new Date().toISOString().slice(0, 10)]);
+      sumWs.addRow(["Projection Years:", result.projectionYears]);
+      sumWs.addRow([]);
+      const pf = returnsSummary.portfolio;
+      sumWs.addRow(["Portfolio IRR:", pct(pf.irr)]);
+      sumWs.addRow(["Equity Multiple:", `${pf.equityMultiple.toFixed(2)}x`]);
+      sumWs.addRow(["Total Equity Invested:", usd(pf.totalEquityInvested)]);
+      sumWs.addRow(["Total Exit Value:", usd(pf.totalExitValue)]);
+      sumWs.addRow([]);
+      const hdr = sumWs.addRow(["Property", "IRR", "Equity Invested", "Exit Value", "Equity Multiple"]);
+      hdr.font = { bold: true };
+      for (const pp of returnsSummary.properties) {
+        const propObj = activeProps.find(p => p.id === pp.propertyId);
+        const name = propObj?.name ?? `Property ${pp.propertyId}`;
+        sumWs.addRow([name, pct(pp.irr), usd(pp.equityInvested), usd(pp.exitValue), `${pp.equityMultiple.toFixed(2)}x`]);
+      }
+
+      // --- Per-property sheets ---
+      for (let i = 0; i < activeProps.length; i++) {
+        const prop = activeProps[i];
+        const key = buildPropertyKey(prop as unknown as PropertyInput, i);
+        const yearly = result.perPropertyYearly[key] ?? [];
+        const name = prop.name ?? `Property ${i + 1}`;
+        const ws = wb.addWorksheet(`${i + 1}. ${name}`.substring(0, XLSX_SHEET_NAME_MAX));
+
+        ws.columns = [{ width: XLSX_COL_PROP_LABEL_W }, ...yearLabels.map(() => ({ width: XLSX_COL_PROP_DATA_W }))];
+
+        const addHdr = (label: string) => {
+          const r = ws.addRow([label, ...yearLabels]);
+          r.font = { bold: true };
+          return r;
+        };
+        const addNumRow = (label: string, vals: number[]) => ws.addRow([label, ...vals.map(usd)]);
+        const addPctRow = (label: string, vals: number[]) => ws.addRow([label, ...vals.map(v => pct(v))]);
+
+        addHdr(name);
+        ws.addRow([]);
+        addNumRow("Revenue", yearly.map(y => y.revenueTotal ?? 0));
+        addNumRow("GOP (Gross Operating Income)", yearly.map(y => y.gop ?? 0));
+        addNumRow("NOI", yearly.map(y => y.noi ?? 0));
+        addNumRow("ANOI (after FFE reserve)", yearly.map(y => y.anoi ?? 0));
+        ws.addRow([]);
+        addNumRow("Debt Service", yearly.map(y => y.debtPayment ?? 0));
+        addNumRow("Cash Flow", yearly.map(y => y.cashFlow ?? 0));
+        ws.addRow([]);
+        addPctRow("Occupancy %", yearly.map(y => y.availableRooms > 0 ? y.soldRooms / y.availableRooms : 0));
+        addNumRow("ADR ($)", yearly.map(y => y.cleanAdr ?? 0));
+        addNumRow("Sold Rooms", yearly.map(y => Math.round(y.soldRooms ?? 0)));
+        addHdr(""); // spacer
+      }
+
+      const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", 'attachment; filename="hplus-portfolio-export.xlsx"');
+      return res.send(buffer);
+
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Export failed";
+      logger.error(`Finance export error: ${message}`, "finance");
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Export failed" : message });
     }
   });
 
