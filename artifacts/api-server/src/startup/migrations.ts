@@ -367,6 +367,27 @@ export async function runSchemaMigrations() {
     await runPropertyFeeMarkup001();
     await markMigrationApplied("property_fee_markup_001");
   }
+
+  // Factory v2 — add pdf_r2_key to slide_factory_runs.
+  // The original 0062 journal slot collided with 0068_property_fee_markup in the
+  // api-server migrations folder, so the Drizzle migrate() never applied it.
+  // This guard ensures the column on every environment.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("slide_factory_runs_pdf_r2_key_001"))) {
+    const { runSlideFactoryRunsPdfR2Key001 } = await import("../migrations/slide-factory-runs-pdf-r2-key-001");
+    await runSlideFactoryRunsPdfR2Key001();
+    await markMigrationApplied("slide_factory_runs_pdf_r2_key_001");
+  }
+
+  // Factory v2 — add slot_content_hashes to slide_factory_runs.
+  // Drizzle migration drift left this column absent on some environments.
+  // Belt-and-suspenders companion to 0047_enzo_slot_content_hashes.sql.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("slide_factory_runs_slot_content_hashes_001"))) {
+    const { runSlideFactoryRunsSlotContentHashes001 } = await import("../migrations/slide-factory-runs-slot-content-hashes-001");
+    await runSlideFactoryRunsSlotContentHashes001();
+    await markMigrationApplied("slide_factory_runs_slot_content_hashes_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

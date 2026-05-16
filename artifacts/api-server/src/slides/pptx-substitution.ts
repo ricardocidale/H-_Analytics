@@ -111,6 +111,27 @@ export interface SubstituteSlotsOptions {
    * on the fixture template's exact text. Default `false`.
    */
   skipShapeLookup?: boolean;
+
+  /**
+   * Slide numbers that must always appear in the output PPTX, even when no
+   * substitution entries address them. pptx-automizer with
+   * `removeExistingSlides: true` drops slides not explicitly added via
+   * `addSlide` — this option ensures all required slides are present.
+   *
+   * Slides are processed in sorted order, which controls the output slide
+   * ordering. Pass `[1, 2, 3, 4, 5, 6]` for a 6-slide v7 deck.
+   */
+  requiredSlideNumbers?: number[];
+
+  /**
+   * Skip the hard-overflow abort check for all text/table_cell entries.
+   *
+   * When `true`, entries that exceed the abort threshold are written anyway
+   * (pptx-automizer shrinks font size to compensate). Use only for
+   * re-assembly paths where the text has already been human-reviewed —
+   * never for first-pass LLM draft generation. Default `false`.
+   */
+  skipOverflowCheck?: boolean;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -258,7 +279,7 @@ export async function substituteSlots(
   //    overflow checking to the template-lookup loop below (which runs once
   //    pptx-automizer has resolved the slide manifest).
   const warnings: SlotOverflowWarning[] = [];
-  if (options.skipShapeLookup) {
+  if (options.skipShapeLookup && !options.skipOverflowCheck) {
     // skipShapeLookup → only `payload.originalText` is consulted.
     for (const entry of entries) {
       if (entry.op === "text" || entry.op === "table_cell") {
@@ -331,9 +352,14 @@ export async function substituteSlots(
     // when calling slide.modifyElement(). This decouples the public
     // shapeId (which may be a unique substring of the shape's text) from
     // pptx-automizer's internal addressable handle (the exact shape name).
-    const resolveShapeName = (entry: SubstitutionEntry): string => {
+    //
+    // Returns null when the shape cannot be resolved. Callers must guard
+    // against null and skip the entry rather than forwarding the raw shapeId
+    // to pptx-automizer, which would crash with an undefined.sourceElement
+    // access when the shape is not found.
+    const resolveShapeName = (entry: SubstitutionEntry): string | null => {
       const slideInfo = slideInfos.find((s) => s.number === entry.slideNumber);
-      if (!slideInfo) return entry.shapeId;
+      if (!slideInfo) return null;
       const byName = slideInfo.elements.find(
         (el) => el.name === entry.shapeId,
       );
@@ -343,14 +369,14 @@ export async function substituteSlots(
           el.hasTextBody && el.getText().some((t) => t.includes(entry.shapeId)),
       );
       if (byText) return byText.name;
-      return entry.shapeId;
+      return null;
     };
 
     // Pre-flight overflow check (with template lookup) — runs before any
     // mutation is queued so a hard-overflow on any entry aborts cleanly.
     // Skipped when the caller already exercised the deterministic pre-flight
-    // above; running it twice would double-emit soft-overflow warnings.
-    if (!options.skipShapeLookup) {
+    // above, or when skipOverflowCheck is set (re-assembly of pre-approved text).
+    if (!options.skipShapeLookup && !options.skipOverflowCheck) {
       for (const entry of entries) {
         if (entry.op === "text" || entry.op === "table_cell") {
           const originalLen = resolveOriginalLength(entry, lookupOriginal);
@@ -392,14 +418,60 @@ export async function substituteSlots(
       else bySlide.set(entry.slideNumber, [entry]);
     }
 
-    for (const [slideNumber, slideEntries] of bySlide) {
+    // Determine the slide numbers to process and their order.
+    // If requiredSlideNumbers is provided, the union of required slides and
+    // entry-addressed slides is processed in sorted order. This guarantees:
+    //   (a) all required slides appear in the output even with no entries,
+    //   (b) output slide ordering matches the sorted requiredSlideNumbers.
+    // With pptx-automizer's removeExistingSlides:true, addSlide call order
+    // is the output slide order, so deterministic sorting matters.
+    const slideNumbersToProcess: number[] = options.requiredSlideNumbers
+      ? [...new Set([...options.requiredSlideNumbers, ...bySlide.keys()])].sort(
+          (a, b) => a - b,
+        )
+      : [...bySlide.keys()];
+
+    for (const slideNumber of slideNumbersToProcess) {
+      const slideEntries = bySlide.get(slideNumber) ?? [];
       pres.addSlide("src", slideNumber, (slide) => {
+        // pptx-automizer's setTableData calls sliceRows()/sliceCols() which
+        // trims the table to exactly match data.body's row/col count. Calling
+        // setTableData once per cell (per the old per-cell path) would slice
+        // the table to 1 row after the first call, removing all subsequent
+        // rows before they can be written. Batch all table_cell entries for
+        // each table shape and issue one setTableData call per table.
+        const tableCellsByShape = new Map<
+          string,
+          { payloads: TableCellPayload[] }
+        >();
+
         for (const entry of slideEntries) {
           const shapeName = resolveShapeName(entry);
+          if (shapeName === null) {
+            // Shape not found in template — skip rather than forwarding the
+            // unresolved shapeId, which would crash pptx-automizer with an
+            // undefined.sourceElement access.
+            warnings.push({
+              slideNumber: entry.slideNumber,
+              shapeId: entry.shapeId,
+              slotKey: entry.slotKey ?? "",
+              originalLength: 0,
+              newLength: 0,
+              overshootPct: 0,
+            });
+            continue;
+          }
           if (entry.op === "text") {
             applyTextSubstitution(slide, shapeName, entry.payload);
           } else if (entry.op === "table_cell") {
-            applyTableCellSubstitution(slide, shapeName, entry.payload);
+            const bucket = tableCellsByShape.get(shapeName);
+            if (bucket) {
+              bucket.payloads.push(entry.payload as TableCellPayload);
+            } else {
+              tableCellsByShape.set(shapeName, {
+                payloads: [entry.payload as TableCellPayload],
+              });
+            }
           } else if (entry.op === "image") {
             applyImageSubstitution(
               slide,
@@ -409,6 +481,11 @@ export async function substituteSlots(
               imageEntryIndex++,
             );
           }
+        }
+
+        // One setTableData call per table shape on this slide.
+        for (const [shapeName, { payloads }] of tableCellsByShape) {
+          applyTableCellsBatched(slide, shapeName, payloads);
         }
       });
     }
@@ -444,30 +521,40 @@ function applyTextSubstitution(
 }
 
 /**
- * Apply a `table_cell` payload to the table-bearing shape on the slide.
+ * Apply all `table_cell` payloads for a single table shape in one
+ * `setTableData` call.
  *
- * pptx-automizer's `modify.setTableData` rewrites the whole table; here we
- * scope the rewrite to a single cell by passing a sparse `TableData` that
- * only mutates the addressed (row, col). The library merges sparse data
- * with the existing table at write time.
+ * pptx-automizer's `setTableData` calls `sliceRows()` and `sliceCols()`
+ * internally, which trim the table XML to match exactly the row/column
+ * count in `data.body`. Calling it once per cell (the naive approach)
+ * removes all other rows after the very first call — the body has 1 row,
+ * so `sliceRows(1)` destroys rows 1-N from the template. Batching all
+ * payloads for the same table into a single call avoids this: the body
+ * covers the full (maxRow × maxCol) grid, so `sliceRows` keeps every
+ * addressed row. Non-addressed cells use `undefined` so
+ * `ModifyTextHelper.content(undefined)` is a no-op and the template text
+ * stays intact in those positions.
  */
-function applyTableCellSubstitution(
+function applyTableCellsBatched(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   slide: any,
   shapeName: string,
-  payload: TableCellPayload,
+  payloads: TableCellPayload[],
 ): void {
-  // Build a sparse `TableData`-shaped object. Index `0`/`1` here are
-  // structural offsets (CLAUDE.md §1 exemption).
-  const rows: Array<Array<{ text: string } | null>> = [];
-  for (let r = 0; r <= payload.rowIndex; r++) {
-    const row: Array<{ text: string } | null> = [];
-    for (let c = 0; c <= payload.columnIndex; c++) {
-      row.push(r === payload.rowIndex && c === payload.columnIndex
-        ? { text: payload.text }
-        : null);
+  if (payloads.length === 0) return;
+  const maxRow = Math.max(...payloads.map((p) => p.rowIndex));
+  const maxCol = Math.max(...payloads.map((p) => p.columnIndex));
+  const cellMap = new Map<string, string>();
+  for (const p of payloads) {
+    cellMap.set(`${p.rowIndex},${p.columnIndex}`, p.text);
+  }
+  const rows: Array<{ values: (string | undefined)[] }> = [];
+  for (let r = 0; r <= maxRow; r++) {
+    const values: (string | undefined)[] = [];
+    for (let c = 0; c <= maxCol; c++) {
+      values.push(cellMap.get(`${r},${c}`));
     }
-    rows.push(row);
+    rows.push({ values });
   }
   slide.modifyElement(shapeName, [
     modify.setTableData({ body: rows } as unknown as Parameters<typeof modify.setTableData>[0]),

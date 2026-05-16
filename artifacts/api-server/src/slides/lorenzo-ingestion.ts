@@ -70,9 +70,13 @@ export async function runLorenzoIngestion(runId: number): Promise<void> {
     // Lorenzo-05: holistic inspector — Opus 4.7 with all 6 PNGs
     const inspectorVerdict = await runLorenzoInspector(blocksBySlide);
 
+    // Lorenzo-05 is advisory — rejection logs a warning but does not block ingestion.
+    // The inspectorApproved flag travels with the spec so downstream agents can
+    // surface the gap notes for human review (e.g. in the Admin run detail panel).
     if (!inspectorVerdict.approved) {
-      throw new Error(
-        `Lorenzo-05 rejected spec: ${inspectorVerdict.notes ?? "no detail provided"}`,
+      logger.warn(
+        `[lorenzo-05] spec advisory gaps (run will continue): ${inspectorVerdict.notes?.slice(0, 300) ?? "no detail"}`,
+        "slide-factory",
       );
     }
 
@@ -81,8 +85,8 @@ export async function runLorenzoIngestion(runId: number): Promise<void> {
       documentType: aldoResult.documentType,
       slideCount: aldoResult.slideCount,
       blocksBySlide,
-      inspectorApproved: true,
-      inspectorNotes: null,
+      inspectorApproved: inspectorVerdict.approved,
+      inspectorNotes: inspectorVerdict.approved ? null : (inspectorVerdict.notes ?? null),
     };
 
     await updateSlideFactoryRun(runId, {

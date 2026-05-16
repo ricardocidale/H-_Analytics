@@ -114,11 +114,14 @@ export async function runElisaInspector(
     system:
       "You are Elisa-03, the Slide 5 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
-      "presentation. Focus on editorial completeness and tone only — do NOT judge pixel " +
+      "presentation for the SUBJECT PROPERTY described in the payload. " +
+      "IMPORTANT: The reference image shows a DIFFERENT template property — use it for LAYOUT reference only. " +
+      "Do NOT compare property names, locations, or narrative from the image against the submitted copy. " +
+      "Focus on editorial completeness and tone only — do NOT judge pixel " +
       "layout or visual design (that is handled separately). Approve if the transformation " +
       "description and comparison rows are coherent, substantive, and fit a portfolio-level " +
-      "transformation plan context. " +
-      "Reject only if copy is missing, incoherent, or obviously inappropriate.",
+      "transformation plan context for the subject property. " +
+      "Reject only if copy is missing, incoherent, or obviously investor-inappropriate.",
     tools: [INSPECTOR_PASS2_TOOL],
     tool_choice: { type: "any" },
     messages: [
@@ -136,7 +139,8 @@ export async function runElisaInspector(
           {
             type: "text",
             text:
-              "Above is the canonical Slide 5 reference (960×540 px).\n\n" +
+              "Above is the canonical Slide 5 LAYOUT reference (960×540 px). " +
+              "This image shows a different demo property — use it only for visual structure/layout, NOT as a content benchmark.\n\n" +
               "Assembled editorial payload:\n" +
               payloadSummary +
               "\n\nCall report_inspection_verdict now.",

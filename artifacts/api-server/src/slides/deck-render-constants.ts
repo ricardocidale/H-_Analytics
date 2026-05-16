@@ -27,6 +27,8 @@ export const SLIDE_TEMP_UUID_PREFIX_LENGTH = 8;
 
 /** max_tokens for Lorenzo-03 per-slide enrichment call */
 export const LORENZO_03_MAX_TOKENS = 4096;
+/** Max line groups sent to the model per slide — prevents prompt overload on dense slides */
+export const LORENZO_03_MAX_LINE_GROUPS = 100;
 /** max_tokens for Lorenzo-05 holistic inspector call */
 export const LORENZO_05_MAX_TOKENS = 2048;
 /** Schema version tag written into LorenzoCanonicalSpec.schemaVersion */

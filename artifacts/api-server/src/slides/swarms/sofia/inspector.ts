@@ -109,10 +109,14 @@ export async function runSofiaInspector(
     system:
       "You are Sofia-03, the Slide 1 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
-      "presentation. Focus on editorial completeness and tone only — do NOT judge pixel " +
-      "layout or visual design (that is handled separately). Approve if the copy is " +
-      "coherent, substantive, and fits an investment spotlight context. " +
-      "Reject only if copy is missing, incoherent, or obviously inappropriate.",
+      "presentation for the SUBJECT PROPERTY described in the payload. " +
+      "IMPORTANT: The reference image shows a DIFFERENT template property used only for " +
+      "LAYOUT reference (visual hierarchy, section positions, text block locations). " +
+      "Do NOT compare property names, locations, financial figures, or narrative from the image " +
+      "against the submitted copy — the image is layout-only, not content-reference. " +
+      "Focus on editorial completeness and tone only. Approve if the copy is " +
+      "coherent, substantive, and fits an investment spotlight context for the subject property. " +
+      "Reject only if copy is missing, incoherent, or obviously investor-inappropriate.",
     tools: [INSPECTOR_PASS2_TOOL],
     tool_choice: { type: "any" },
     messages: [
@@ -130,10 +134,12 @@ export async function runSofiaInspector(
           {
             type: "text",
             text:
-              "Above is the canonical Slide 1 reference (960×540 px).\n\n" +
-              "Assembled editorial payload:\n" +
+              "Above is the canonical Slide 1 LAYOUT reference (960×540 px). " +
+              "This image shows a different demo property — use it only for visual structure/layout, " +
+              "NOT as a content benchmark.\n\n" +
+              "Assembled editorial payload for the subject property:\n" +
               payloadSummary +
-              "\n\nCall report_inspection_verdict now.",
+              "\n\nEvaluate the payload on its own merits for the subject property. Call report_inspection_verdict now.",
           },
         ],
       },

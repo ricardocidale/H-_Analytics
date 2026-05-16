@@ -22,6 +22,7 @@
  *   POST   /api/lb-slides/factory/runs/:id/trigger-build       Advance draft_review → building (Tab 4)
  *   GET    /api/lb-slides/factory/runs/:id/download            Stream completed deck PDF from R2 (Tab 6)
  *   GET    /api/lb-slides/factory/runs/:id/download/pptx      Stream completed deck PPTX from R2 (Tab 6)
+ *   POST   /api/lb-slides/factory/runs/:id/rebuild-pptx       Re-assemble PPTX+PDF from existing luccaDraft (no LLM)
  *
  * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
  * immediately starts Lucca. Both return 202 Accepted.
@@ -44,6 +45,42 @@ import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
 import { runFranco } from "../slides/minions/franco";
 import { runMayaForOverriddenSlides } from "../slides/rebuild-maya";
+import {
+  buildSlide1SubstitutionEntries,
+  buildSlide2SubstitutionEntries,
+  buildSlide3SubstitutionEntries,
+  buildSlide4SubstitutionEntries,
+  buildSlide5SubstitutionEntries,
+  buildSlide6SubstitutionEntries,
+} from "../slides/builder-substitution-entries";
+import { substituteSlotsFromAdminResource } from "../slides/pptx-substitution";
+import type { SubstitutionEntry } from "../slides/pptx-substitution-types";
+import {
+  buildSlide6ImageSubstitutionEntry,
+  DEFAULT_SLIDE6_ENTRY_DEPS,
+} from "../slides/slide-6-report-builder";
+import { collectFactoryPropertyIds } from "../slides/build-factory-payload";
+import { convertPptxToPdf } from "../slides/soffice-convert";
+import { uploadFactoryV2Deck, factoryV2DeckR2Key } from "../slides/factory-v2-upload";
+import {
+  FACTORY_V2_PPTX_TEMPLATE_KIND,
+  FACTORY_V2_PPTX_TEMPLATE_SLUG,
+  PPTX_CONTENT_TYPE,
+} from "../slides/factory-v2-constants";
+import { TOTAL_SLIDES } from "../slides/deck-render-constants";
+import type { LuccaSlotDraft } from "../storage/slide-factory-runs";
+import type {
+  Slide1Payload,
+  Slide2Payload,
+  Slide3Payload,
+  Slide4Payload,
+  Slide5Payload,
+  Slide6Payload,
+} from "@shared/deck-payload-v2";
+import {
+  LUCCA_PIPE_FORMAT_COLUMNS,
+  SLIDE5_TRANSFORMATION_ROWS_COUNT,
+} from "@shared/deck-payload-v2";
 import { validateIngestUrl } from "../ai/iris/tools";
 import { logger } from "../logger";
 import {
@@ -265,7 +302,8 @@ router.post(
       for (const [field, propId] of SLIDE_FIELDS) {
         if (propId == null) continue;
         const prop = await storage.getProperty(propId);
-        if (!prop || prop.userId !== user.id) {
+        const ownedOrShared = prop && (prop.userId === null || prop.userId === user.id || user.role === "super_admin");
+        if (!ownedOrShared) {
           return res.status(HTTP_400_BAD_REQUEST).json({
             error: `Property ID ${propId} for ${field} not found or not owned by you`,
           code: "SLDF-047" });
@@ -691,6 +729,216 @@ router.get(
       return res.send(buffer);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to download factory PPTX", err, "SLDF-060");
+    }
+  },
+);
+
+// ── luccaDraftToEntries ──────────────────────────────────────────────────────
+// Parses the luccaDraft JSONB record back into SubstitutionEntry[] without any
+// LLM calls. Used by the rebuild-pptx route to re-assemble from existing draft.
+
+const _REBUILD_PROV = { source: "llm" as const, updatedAt: "" };
+
+function _authored(text: string): { text: string; provenance: typeof _REBUILD_PROV } {
+  return { text, provenance: _REBUILD_PROV };
+}
+
+function luccaDraftToEntries(
+  luccaDraft: Record<string, LuccaSlotDraft>,
+): SubstitutionEntry[] {
+  const get = (key: string): string => luccaDraft[key]?.value ?? "";
+
+  // Parse "• text1\n• text2\n• text3" bullets
+  const visionBullets = get("slide1.visionBullets")
+    .split("\n")
+    .filter((l) => l.startsWith("• "))
+    .map((l) => _authored(l.slice(2).trim()));
+
+  // Parse "Label: detail\n\nLabel: detail" reasons
+  const reasons = get("slide3.reasons")
+    .split("\n\n")
+    .filter((r) => r.trim())
+    .map((r) => {
+      const colonIdx = r.indexOf(": ");
+      if (colonIdx === -1) return { label: _authored(r.trim()), detail: _authored("") };
+      return {
+        label: _authored(r.slice(0, colonIdx).trim()),
+        detail: _authored(r.slice(colonIdx + 2).trim()),
+      };
+    });
+
+  // Parse "feature | existing | proposed" rows — prefer per-index keys.
+  // Check key existence (not value truthiness) to distinguish "row not drafted"
+  // from "row drafted as empty string" — both return "" from get(), but only
+  // a missing key means there are no more rows.
+  const transformationRows: NonNullable<Slide5Payload["transformationRows"]> = [];
+  let hasAnyIndexKey = false;
+  for (let i = 0; i < SLIDE5_TRANSFORMATION_ROWS_COUNT; i++) {
+    const key = `slide5.transformationRows[${i}]`;
+    if (!(key in luccaDraft)) break;
+    hasAnyIndexKey = true;
+    const rowRaw = luccaDraft[key]?.value ?? "";
+    if (!rowRaw.trim()) continue;
+    const parts = rowRaw.split(" | ");
+    if (parts.length >= LUCCA_PIPE_FORMAT_COLUMNS) {
+      transformationRows.push({
+        feature: _authored(parts[0].trim()),
+        existing: _authored(parts[1].trim()),
+        proposed: _authored(parts.slice(2).join(" | ").trim()),
+      });
+    }
+  }
+  // Fallback to the aggregate key only when per-index keys were absent entirely
+  if (!hasAnyIndexKey) {
+    for (const rowRaw of get("slide5.transformationRows").split("\n")) {
+      if (!rowRaw.trim()) continue;
+      const parts = rowRaw.split(" | ");
+      if (parts.length >= LUCCA_PIPE_FORMAT_COLUMNS) {
+        transformationRows.push({
+          feature: _authored(parts[0].trim()),
+          existing: _authored(parts[1].trim()),
+          proposed: _authored(parts.slice(2).join(" | ").trim()),
+        });
+      }
+    }
+  }
+
+  const slide1: Slide1Payload = {
+    headerSubtitle: get("slide1.headerSubtitle") ? _authored(get("slide1.headerSubtitle")) : undefined,
+    visionBullets: visionBullets.length > 0 ? visionBullets : undefined,
+  };
+  const slide2: Slide2Payload = {
+    operationalModelText: get("slide2.operationalModelText") ? _authored(get("slide2.operationalModelText")) : undefined,
+    revenueBullet: get("slide2.revenueBullet") ? _authored(get("slide2.revenueBullet")) : undefined,
+    programmingBullet: get("slide2.programmingBullet") ? _authored(get("slide2.programmingBullet")) : undefined,
+  };
+  const slide3: Slide3Payload = {
+    conceptParagraph: get("slide3.conceptParagraph") ? _authored(get("slide3.conceptParagraph")) : undefined,
+    marketRationale: get("slide3.marketRationale") ? _authored(get("slide3.marketRationale")) : undefined,
+    reasons: reasons.length > 0 ? reasons : undefined,
+    closingLine: get("slide3.closingLine") ? _authored(get("slide3.closingLine")) : undefined,
+  };
+  const slide4: Slide4Payload = {};
+  const slide5: Slide5Payload = {
+    transformationDescription: get("slide5.transformationDescription") ? _authored(get("slide5.transformationDescription")) : undefined,
+    transformationRows: transformationRows.length > 0 ? transformationRows : undefined,
+  };
+  const slide6: Slide6Payload = {};
+
+  return [
+    ...buildSlide1SubstitutionEntries(slide1),
+    ...buildSlide2SubstitutionEntries(slide2),
+    ...buildSlide3SubstitutionEntries(slide3),
+    ...buildSlide4SubstitutionEntries(slide4),
+    ...buildSlide5SubstitutionEntries(slide5),
+    ...buildSlide6SubstitutionEntries(slide6),
+  ];
+}
+
+// ── POST /api/lb-slides/factory/runs/:id/rebuild-pptx ───────────────────────
+// Reassembles the PPTX+PDF for a completed run from existing luccaDraft state.
+// No LLM calls. Accepts run 10's pre-existing luccaDraft and corrects the
+// pptxR2Key=null that occurred when builder-substitution-entries had wrong
+// shape names. Returns 202 immediately; writes pptxR2Key + pdfR2Key on
+// completion.
+router.post(
+  "/api/lb-slides/factory/runs/:id/rebuild-pptx",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id)
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-065" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run)
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-066" });
+      if (run.status !== "complete")
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `rebuild-pptx requires status 'complete', current: '${run.status}'`,
+          code: "SLDF-067",
+        });
+      if (!run.luccaDraft)
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "No luccaDraft found for this run — cannot rebuild PPTX",
+          code: "SLDF-068",
+        });
+
+      res.status(HTTP_202_ACCEPTED).json({ ok: true, runId: id });
+
+      const reqLog = req.log ?? logger;
+      void (async () => {
+        try {
+          const entries = luccaDraftToEntries(run.luccaDraft as Record<string, LuccaSlotDraft>);
+
+          // Attempt slide-6 income-statement image entry
+          try {
+            const propertyIds = collectFactoryPropertyIds(run);
+            if (propertyIds.length > 0) {
+              const slide6Entry = await buildSlide6ImageSubstitutionEntry(
+                { propertyIds },
+                DEFAULT_SLIDE6_ENTRY_DEPS,
+              );
+              entries.push(slide6Entry);
+            }
+          } catch (s6Err: unknown) {
+            reqLog.warn(
+              `[rebuild-pptx] run ${id}: slide-6 image entry failed (proceeding without it): ${String(s6Err)}`,
+            );
+          }
+
+          const sp = await getStorageProviderAsync();
+          const { pptx } = await substituteSlotsFromAdminResource(
+            {
+              kind: FACTORY_V2_PPTX_TEMPLATE_KIND,
+              slug: FACTORY_V2_PPTX_TEMPLATE_SLUG,
+              map: entries,
+              options: {
+                requiredSlideNumbers: Array.from({ length: TOTAL_SLIDES }, (_, i) => i + 1),
+                skipOverflowCheck: true,
+              },
+            },
+            {
+              getAdminResourceBySlug: (kind, slug) =>
+                storage.getAdminResourceBySlug(kind as "source", slug),
+              downloadBuffer: (key) => sp.downloadBuffer(key),
+            },
+          );
+
+          let pdfBuffer: Buffer | null = null;
+          try {
+            const result = await convertPptxToPdf(pptx, { runId: String(id) });
+            pdfBuffer = result.pdfBuffer;
+          } catch (sofficeErr: unknown) {
+            // soffice is not installed in the Replit dev environment.
+            // PPTX upload still proceeds; PDF conversion is Railway-only.
+            reqLog.warn(
+              `[rebuild-pptx] run ${id}: soffice unavailable — PPTX only: ${String(sofficeErr)}`,
+            );
+          }
+
+          const { pptxR2Key, pdfR2Key } = pdfBuffer
+            ? await uploadFactoryV2Deck(String(id), pptx, pdfBuffer)
+            : await (async () => {
+                const sp2 = await getStorageProviderAsync();
+                const pptxKey = factoryV2DeckR2Key(String(id), "deck.pptx");
+                await sp2.uploadBuffer(pptxKey, pptx, PPTX_CONTENT_TYPE);
+                return { pptxR2Key: pptxKey, pdfR2Key: null as string | null };
+              })();
+
+          // Also write deckR2Key so GET /download (which checks deckR2Key) works.
+          // For runs where deckR2Key was previously null, alias the soffice PDF.
+          const updates: Record<string, string | null> = { pptxR2Key };
+          if (pdfR2Key) { updates.pdfR2Key = pdfR2Key; updates.deckR2Key = pdfR2Key; }
+          await updateSlideFactoryRun(id, updates);
+          reqLog.info(`[rebuild-pptx] run ${id}: PPTX uploaded — ${pptxR2Key}`);
+        } catch (err: unknown) {
+          reqLog.error(`[rebuild-pptx] run ${id} failed: ${String(err)}`);
+        }
+      })();
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to trigger rebuild-pptx", err, "SLDF-069");
     }
   },
 );

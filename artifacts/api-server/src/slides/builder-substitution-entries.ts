@@ -47,55 +47,78 @@ import type {
 import type { SubstitutionEntry } from "./pptx-substitution-types";
 
 // ── Slide-number constants (one per Builder) ────────────────────────────────
+// These are TEMPLATE slide numbers, not code/PDF slide numbers.
+// The v7 PPTX template slide order does not match the code's 1–6 ordering:
+//   Code slide 1 (Sofia / Investment Spotlight) → template slide 2
+//   Code slide 2 (Bianca / Hazelnis)            → template slide 4
+//   Code slide 3 (Chiara / Concept)             → template slide 5
+//   Code slide 4 (Dario / Pipeline Overview)    → template slide 1
+//   Code slide 5 (Elisa / Transformation Plan)  → template slide 3
+//   Code slide 6 (Felix / Pro Forma)            → template slide 6
 
-const SLIDE_1_NUMBER = 1;
-const SLIDE_2_NUMBER = 2;
-const SLIDE_3_NUMBER = 3;
-const SLIDE_4_NUMBER = 4;
-const SLIDE_5_NUMBER = 5;
-const SLIDE_6_NUMBER = 6;
+const SLIDE_1_NUMBER = 2; // Sofia → template slide 2
+const SLIDE_2_NUMBER = 4; // Bianca → template slide 4
+const SLIDE_3_NUMBER = 5; // Chiara → template slide 5
+const SLIDE_4_NUMBER = 1; // Dario → template slide 1
+const SLIDE_5_NUMBER = 3; // Elisa → template slide 3
+const SLIDE_6_NUMBER = 6; // Felix → template slide 6 (unchanged)
 
-// ── Canonical-table column indices (slide-3 reasons, slide-5 rows) ──────────
-// These reflect the v7 template's table layout per the canonical brief.
-// They live as named constants because numeric column indices in a row of
-// table_cell ops would otherwise trip the magic-number ratchet.
-
-/** Slide 3 reasons table: column 0 holds the bold label. */
-const SLIDE_3_REASONS_LABEL_COL = 0;
-/** Slide 3 reasons table: column 1 holds the supporting detail. */
-const SLIDE_3_REASONS_DETAIL_COL = 1;
+// ── Canonical-table column indices (slide-5 rows) ───────────────────────────
+// Template slide 3 (code slide 5 — Transformation Plan) has Table 4 (5r × 3c).
+// Slide 3 (code slide 3 — Concept) has NO table; reasons are individual text shapes.
 
 /** Slide 5 transformation table: column 0 = feature, 1 = existing, 2 = proposed. */
 const SLIDE_5_ROWS_FEATURE_COL = 0;
 const SLIDE_5_ROWS_EXISTING_COL = 1;
 const SLIDE_5_ROWS_PROPOSED_COL = 2;
 
+/** Number of reason text shapes available on template slide 5 (code slide 3). */
+const SLIDE_3_REASON_SHAPE_COUNT = 5;
+
 // ── Default shape names per slot (overridable) ──────────────────────────────
 
 /**
- * Default shape-name placeholders per slot. Builders translate slot keys
- * into these names; the substitution engine's `resolveShapeName` accepts
- * either the exact shape name (when known) or a unique substring of the
- * shape's text body (the U1 spike's pattern). Callers can override any of
- * these via `shapeNameOverrides`.
+ * Actual shape names in the v7 PPTX template, enumerated via python-pptx
+ * inspection of `canonical/lb-6-slide/templates/lb-v7-template.pptx`.
  *
- * The naming convention strips the dot and lowercases the first char so
- * the value reads as a "shape id" rather than a slot key.
+ * Shape names reference the TEMPLATE slide number (see SLIDE_N_NUMBER
+ * constants above for the code→template mapping).
+ *
+ * Slide 3 (code) / template slide 5 (Global Expansion): reasons are
+ * individual text shapes, NOT a table. Each reason gets its own shape.
+ *
+ * Slide 6 (code) / template slide 6 (Pro Forma): no disclaimer text shape
+ * exists; the slide carries only `Rectangle 1` (title) and picture shapes.
  */
 export const DEFAULT_SHAPE_NAMES = {
-  slide1HeaderSubtitle: "Slide1HeaderSubtitle",
-  slide1VisionBullets: "Slide1VisionBullets",
-  slide2OperationalModelText: "Slide2OperationalModelText",
-  slide2RevenueBullet: "Slide2RevenueBullet",
-  slide2ProgrammingBullet: "Slide2ProgrammingBullet",
-  slide3ConceptParagraph: "Slide3ConceptParagraph",
-  slide3MarketRationale: "Slide3MarketRationale",
-  slide3ReasonsTable: "Slide3ReasonsTable",
-  slide3ClosingLine: "Slide3ClosingLine",
-  slide4SectionSubtitle: "Slide4SectionSubtitle",
-  slide5TransformationDescription: "Slide5TransformationDescription",
-  slide5TransformationRowsTable: "Slide5TransformationRowsTable",
-  slide6Disclaimer: "Slide6Disclaimer",
+  // Template slide 2 — Investment Spotlight (code slide 1, Sofia)
+  slide1HeaderSubtitle:  "Text 1",
+  slide1VisionBullet1:   "Text 18",
+  slide1VisionBullet2:   "Text 19",
+  slide1VisionBullet3:   "Text 20",
+
+  // Template slide 4 — Hazelnis Spotlight (code slide 2, Bianca)
+  slide2OperationalModelText: "Text 18",
+  slide2RevenueBullet:        "Text 19",
+  slide2ProgrammingBullet:    "Text 20",
+
+  // Template slide 5 — Global Expansion / Concept (code slide 3, Chiara)
+  // Reasons are individual text shapes; no table on this slide.
+  slide3ConceptParagraph: "Text 7",
+  slide3MarketRationale:  "Text 8",
+  slide3Reason1:          "Text 18",
+  slide3Reason2:          "Text 19",
+  slide3Reason3:          "Text 20",
+  slide3Reason4:          "Text 22",
+  slide3Reason5:          "Text 23",
+  slide3ClosingLine:      "Text 24",
+
+  // Template slide 1 — Pipeline Overview (code slide 4, Dario)
+  slide4SectionSubtitle: "Text 34",
+
+  // Template slide 3 — Transformation Plan (code slide 5, Elisa)
+  slide5TransformationDescription: "TextBox 2",
+  slide5TransformationRowsTable:   "Table 4",
 } as const;
 
 export type ShapeNameKey = keyof typeof DEFAULT_SHAPE_NAMES;
@@ -112,10 +135,8 @@ function resolveShape(
 
 /**
  * Build Slide 1 substitution entries from Sofia's payload. Header subtitle
- * → single text op; vision bullets → single text op (the v7 template's
- * bullet block is one shape; pptx-automizer's `setText` overwrites the
- * whole text body, mirroring how the existing build-lb-payload joins
- * bullets with newlines).
+ * → single text op; vision bullets → one text op per bullet shape
+ * (template slide 2 has Text 18 / Text 19 / Text 20 as separate shapes).
  */
 export function buildSlide1SubstitutionEntries(
   payload: Slide1Payload,
@@ -134,18 +155,22 @@ export function buildSlide1SubstitutionEntries(
   }
 
   if (payload.visionBullets && payload.visionBullets.length > 0) {
-    // Join with newlines — the v7 template renders each line as a bullet
-    // (the bullet style is baked into the shape's paragraph properties).
-    const text = payload.visionBullets.map((b) => b.text).join("\n");
-    if (text.length > 0) {
-      entries.push({
-        slideNumber: SLIDE_1_NUMBER,
-        shapeId: resolveShape("slide1VisionBullets", overrides),
-        op: "text",
-        slotKey: "slide1.visionBullets",
-        payload: { text },
-      });
-    }
+    const bulletShapeKeys = [
+      "slide1VisionBullet1",
+      "slide1VisionBullet2",
+      "slide1VisionBullet3",
+    ] as const;
+    payload.visionBullets.forEach((bullet, idx) => {
+      if (idx < bulletShapeKeys.length && bullet.text) {
+        entries.push({
+          slideNumber: SLIDE_1_NUMBER,
+          shapeId: resolveShape(bulletShapeKeys[idx], overrides),
+          op: "text",
+          slotKey: `slide1.visionBullet${idx + 1}`,
+          payload: { text: bullet.text },
+        });
+      }
+    });
   }
 
   return entries;
@@ -195,8 +220,9 @@ export function buildSlide2SubstitutionEntries(
 /**
  * Build Slide 3 substitution entries from Chiara's payload. Concept,
  * market rationale, and closing line → single text ops. Reasons →
- * per-cell `table_cell` ops addressing the canonical 2-column table
- * (column 0 label, column 1 detail) one row per reason.
+ * individual text ops (template slide 5 has no table; reasons occupy
+ * separate Text N shapes: Text 18–20 + Text 22–23, up to 5 reasons).
+ * Each reason's label and detail are combined into one string.
  */
 export function buildSlide3SubstitutionEntries(
   payload: Slide3Payload,
@@ -225,35 +251,29 @@ export function buildSlide3SubstitutionEntries(
   }
 
   if (payload.reasons && payload.reasons.length > 0) {
-    const tableShape = resolveShape("slide3ReasonsTable", overrides);
-    payload.reasons.forEach((reason, rowIndex) => {
-      if (reason.label?.text) {
+    const reasonShapeKeys = [
+      "slide3Reason1",
+      "slide3Reason2",
+      "slide3Reason3",
+      "slide3Reason4",
+      "slide3Reason5",
+    ] as const;
+    const count = Math.min(payload.reasons.length, SLIDE_3_REASON_SHAPE_COUNT);
+    for (let i = 0; i < count; i++) {
+      const reason = payload.reasons[i];
+      const label = reason.label?.text ?? "";
+      const detail = reason.detail?.text ?? "";
+      const combined = detail ? `${label}: ${detail}` : label;
+      if (combined.trim()) {
         entries.push({
           slideNumber: SLIDE_3_NUMBER,
-          shapeId: tableShape,
-          op: "table_cell",
-          slotKey: `slide3.reasons.row${rowIndex}.label`,
-          payload: {
-            rowIndex,
-            columnIndex: SLIDE_3_REASONS_LABEL_COL,
-            text: reason.label.text,
-          },
+          shapeId: resolveShape(reasonShapeKeys[i], overrides),
+          op: "text",
+          slotKey: `slide3.reason${i + 1}`,
+          payload: { text: combined },
         });
       }
-      if (reason.detail?.text) {
-        entries.push({
-          slideNumber: SLIDE_3_NUMBER,
-          shapeId: tableShape,
-          op: "table_cell",
-          slotKey: `slide3.reasons.row${rowIndex}.detail`,
-          payload: {
-            rowIndex,
-            columnIndex: SLIDE_3_REASONS_DETAIL_COL,
-            text: reason.detail.text,
-          },
-        });
-      }
-    });
+    }
   }
 
   if (payload.closingLine?.text) {
@@ -367,23 +387,14 @@ export function buildSlide5SubstitutionEntries(
  * Build Slide 6 substitution entries from Felix's payload. The income-
  * statement image is composed separately by `buildSlide6ImageSubstitutionEntry`
  * (U6) and concatenated into the final map at Marco's assembly step.
- * Felix's only LLM-authored slot is the optional disclaimer.
+ *
+ * Template slide 6 (Pro Forma) has no disclaimer text shape — only
+ * `Rectangle 1` (title) and picture shapes. The disclaimer slot is not
+ * substituted; Felix's payload is accepted for editorial inspection only.
  */
 export function buildSlide6SubstitutionEntries(
-  payload: Slide6Payload,
-  overrides?: ShapeNameOverrides,
+  _payload: Slide6Payload,
+  _overrides?: ShapeNameOverrides,
 ): SubstitutionEntry[] {
-  const entries: SubstitutionEntry[] = [];
-
-  if (payload.disclaimer?.text) {
-    entries.push({
-      slideNumber: SLIDE_6_NUMBER,
-      shapeId: resolveShape("slide6Disclaimer", overrides),
-      op: "text",
-      slotKey: "slide6.disclaimer",
-      payload: { text: payload.disclaimer.text },
-    });
-  }
-
-  return entries;
+  return [];
 }

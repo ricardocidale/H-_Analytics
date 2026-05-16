@@ -208,7 +208,12 @@ export async function runMarco(runId: number): Promise<void> {
       try {
         const sp = await getStorageProviderAsync();
         const { pptx } = await substituteSlotsFromAdminResource(
-          { kind: FACTORY_V2_PPTX_TEMPLATE_KIND, slug: FACTORY_V2_PPTX_TEMPLATE_SLUG, map: u7Map },
+          {
+            kind: FACTORY_V2_PPTX_TEMPLATE_KIND,
+            slug: FACTORY_V2_PPTX_TEMPLATE_SLUG,
+            map: u7Map,
+            options: { requiredSlideNumbers: Array.from({ length: TOTAL_SLIDES }, (_, i) => i + 1) },
+          },
           { getAdminResourceBySlug: (kind, slug) => storage.getAdminResourceBySlug(kind as ResourceKind, slug), downloadBuffer: (key) => sp.downloadBuffer(key) },
         );
         const { pdfBuffer } = await convertPptxToPdf(pptx, { runId: String(runId) });

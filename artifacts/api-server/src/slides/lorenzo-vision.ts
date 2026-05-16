@@ -20,6 +20,7 @@ import type { LorenzoTextBlock } from "./canonical-spec-types";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import {
   LORENZO_03_MAX_TOKENS,
+  LORENZO_03_MAX_LINE_GROUPS,
   ALDO_LINE_GROUP_Y_THRESHOLD_PX,
   ALDO_CANVAS_WIDTH,
   ALDO_CANVAS_HEIGHT,
@@ -181,9 +182,16 @@ async function enrichSlide(
 ): Promise<LorenzoTextBlock[]> {
   const lines = groupWordsIntoLines(words);
 
-  const wordSummary = lines
-    .map((g, i) => `${i}: "${g.text}" x=${g.x} y=${g.y} w=${g.w} h=${g.h}`)
-    .join("\n");
+  const truncatedLines = lines.slice(0, LORENZO_03_MAX_LINE_GROUPS);
+  const truncationNote =
+    lines.length > LORENZO_03_MAX_LINE_GROUPS
+      ? `\n[${lines.length - LORENZO_03_MAX_LINE_GROUPS} additional groups omitted — focus on the visible groups above]`
+      : "";
+
+  const wordSummary =
+    truncatedLines
+      .map((g, i) => `${i}: "${g.text}" x=${g.x} y=${g.y} w=${g.w} h=${g.h}`)
+      .join("\n") + truncationNote;
 
   const userMessage: Anthropic.MessageParam = {
     role: "user",
@@ -237,6 +245,15 @@ async function enrichSlide(
 
   const { blocks } = toolBlock.input as ReportBlocksInput;
 
+  if (!Array.isArray(blocks)) {
+    // Model returned empty tool input — treat as "no visible text blocks on this slide"
+    logger.warn(
+      `[lorenzo-03] slide ${slideNumber}: tool input missing blocks array (input: ${JSON.stringify(toolBlock.input).slice(0, 120)}) — treating as empty`,
+      "slide-factory",
+    );
+    return [];
+  }
+
   return blocks.map((b) => ({
     text: b.text,
     x: b.x,
@@ -282,7 +299,17 @@ export async function runLorenzoVision(aldoResult: AldoResult): Promise<LorenzoT
       CANONICAL_ASSETS.slide(slideNumber, "png"),
     );
 
-    const blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic, modelId);
+    let blocks: LorenzoTextBlock[];
+    try {
+      blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic, modelId);
+    } catch (firstErr) {
+      // One retry on tool-format failures (LLM occasionally omits the blocks array)
+      logger.warn(
+        `[lorenzo-03] slide ${slideNumber} first attempt failed (${String(firstErr).slice(0, 120)}) — retrying`,
+        "slide-factory",
+      );
+      blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic, modelId);
+    }
     blocksBySlide.push(blocks);
 
     logger.info(

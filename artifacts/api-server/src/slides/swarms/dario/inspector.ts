@@ -109,6 +109,7 @@ export async function runDarioInspector(
       "You are Dario-02, the Slide 4 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
       "presentation. Slide 4 is the Portfolio Overview — content is mostly deterministic. " +
+      "IMPORTANT: The reference image shows a DIFFERENT template property — use it for LAYOUT reference only. " +
       "Focus on editorial completeness and tone only — do NOT judge pixel " +
       "layout or visual design (that is handled separately). Approve if the optional " +
       "sectionSubtitle (if present) is coherent and professional. " +

@@ -446,6 +446,17 @@ async function handleInvokeMaya(runId: number, slideNumber: SlideNumber) {
     Object.entries(luccaDraft).filter(([k]) => k.startsWith(slidePrefix)),
   );
 
+  // Slides with no Lucca editorial slots (e.g. slide 4 financial grid, slide 6 pro forma)
+  // have nothing for Maya to judge. Auto-approve rather than letting Maya block on
+  // empty input — the swarm inspector already validated the structural payload.
+  if (Object.keys(slotDrafts).length === 0) {
+    logger.info(
+      `[maya] slide ${slideNumber} — no editorial slots, auto-approved`,
+      "slide-factory",
+    );
+    return { verdict: "ok", headline: "No editorial slots — auto-approved", notes: null };
+  }
+
   const output = await runMaya(slideNumber, payloadV2, slotDrafts as Record<string, LuccaSlotDraft>);
 
   // Write content hash after a successful Maya verdict so Enzo can detect
