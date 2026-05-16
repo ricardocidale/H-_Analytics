@@ -281,6 +281,10 @@
       "status": "guarded",
       "guard": "users-assigned-scenario-001.ts",
       "reason": "T1-3 \u2014 adds nullable integer column assigned_scenario_id to users with FK REFERENCES scenarios(id) ON DELETE SET NULL. Column + FK applied idempotently at boot by users-assigned-scenario-001.ts. Allows admin to pre-assign a default scenario to a user so ensureDefaultScenario skips auto-creation on login."
+    },
+    "0071_properties_brand_id_fk_restrict": {
+      "status": "self-idempotent",
+      "reason": "T1-5 \u2014 fixes brand_id FK constraint to explicitly declare ON DELETE RESTRICT, matching the Drizzle schema declaration. Migration 0065 added the FK without ON DELETE clause (PostgreSQL defaults to NO ACTION, functionally identical for non-deferred constraints). No data changes; only drops and recreates the same FK constraint with the explicit action."
     }
   }
 }
