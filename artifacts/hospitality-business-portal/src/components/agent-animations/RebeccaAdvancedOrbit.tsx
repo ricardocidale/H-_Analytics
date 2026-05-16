@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { motion } from 'framer-motion';
+import type { TargetAndTransition, Transition } from 'framer-motion';
 
 export const REBECCA_ORBIT_ADVANCED_META = {
   agent: 'Rebecca',
@@ -209,8 +210,8 @@ export function RebeccaOrbitAdvanced({ size = 112, className = "" }: { size?: nu
                 let bgStyle = `radial-gradient(circle at 32% 28%, #ffffff, ${bg} 55%, #1c1917 130%)`;
                 let shadowStyle = 'none';
 
-                let animateObj: Record<string, unknown> = { x: baseX, y: baseY, scale: 1, opacity: 1, borderRadius: '50%', rotateZ: 0 };
-                let transitionObj: Record<string, unknown> = { duration: 0.4, ease: 'easeOut' };
+                let animateObj: TargetAndTransition = { x: baseX, y: baseY, scale: 1, opacity: 1, borderRadius: '50%', rotateZ: 0 };
+                let transitionObj: Transition = { duration: 0.4, ease: 'easeOut' };
                 let drawsTrail = false;
 
                 if (isSpark) {
