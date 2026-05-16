@@ -1,4 +1,4 @@
-import { getGeminiClient, getExaClient, getOpenAIClient, getAnthropicClient, normalizeModelId } from "../ai/clients";
+import { getGeminiClient, getExaClient, getOpenAIClient, getAnthropicClient, normalizeModelId, getDeepSeekClient, getMistralClient } from "../ai/clients";
 import { storage } from "../storage";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
@@ -226,6 +226,59 @@ export async function callLlm(
     return { text, stopReason: "end_turn" };
   }
 
+  if (provider === "deepseek") {
+    // Conditional spread for temperature/topP prevents 400s from vendor APIs
+    // that reject unsupported sampling params. See:
+    // docs/solutions/integration-issues/iris-llm-temperature-top-p-conflict-2026-05-08.md
+    const client = await getDeepSeekClient();
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...history.map((m) => m as any),
+      ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
+    ];
+    const completion = await Promise.race([
+      client.chat.completions.create({
+        model,
+        messages,
+        max_tokens: sampling.maxOutputTokens,
+        ...(sampling.temperature !== undefined ? { temperature: sampling.temperature } : {}),
+        ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
+      } as any),
+      timeoutP,
+    ]) as any;
+    const text = completion.choices?.[0]?.message?.content?.toString() || "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = completion.usage?.prompt_tokens ?? Math.round(userMessage.length / 4);
+    const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "deepseek", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("deepseek", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    return { text, stopReason: "end_turn" };
+  }
+
+  if (provider === "mistral") {
+    // Conditional spread for temperature/topP — see Iris LLM bug learning above.
+    const client = getMistralClient();
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...history.map((m) => m as any),
+      ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
+    ];
+    const completion = await Promise.race([
+      client.chat.complete({
+        model,
+        messages,
+        maxTokens: sampling.maxOutputTokens,
+        ...(sampling.temperature !== undefined ? { temperature: sampling.temperature } : {}),
+        ...(sampling.topP !== undefined ? { topP: sampling.topP } : {}),
+      } as any),
+      timeoutP,
+    ]) as any;
+    const rawContent = completion.choices?.[0]?.message?.content;
+    const text = (typeof rawContent === "string" ? rawContent : "") || "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = completion.usage?.promptTokens ?? Math.round(userMessage.length / 4);
+    const outTok = completion.usage?.completionTokens ?? Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "mistral", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("mistral", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    return { text, stopReason: "end_turn" };
+  }
+
   // gemini default
   const gemini = getGeminiClient();
   // Entries that already have `parts` (tool call/result turns appended by
@@ -371,6 +424,61 @@ export async function callLlmStream(
     const inTok = Math.round(userMessage.length / 4);
     const outTok = Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    return { text, stopReason: "end_turn" };
+  }
+
+  if (provider === "deepseek") {
+    // Conditional spread for temperature/topP — see Iris LLM bug learning above.
+    const client = await getDeepSeekClient();
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...history.map((m) => m as any),
+      { role: "user" as const, content: wrappedUser },
+    ];
+    const stream = client.chat.completions.stream({
+      model,
+      messages,
+      max_tokens: sampling.maxOutputTokens,
+      ...(sampling.temperature !== undefined ? { temperature: sampling.temperature } : {}),
+      ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
+    } as any);
+    let text = "";
+    for await (const chunk of stream) {
+      const token = chunk.choices?.[0]?.delta?.content ?? "";
+      if (token) { text += token; onToken(token); }
+    }
+    if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = Math.round(userMessage.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "deepseek", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("deepseek", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    return { text, stopReason: "end_turn" };
+  }
+
+  if (provider === "mistral") {
+    // Conditional spread for temperature/topP — see Iris LLM bug learning above.
+    const client = getMistralClient();
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...history.map((m) => m as any),
+      { role: "user" as const, content: wrappedUser },
+    ];
+    const stream = await client.chat.stream({
+      model,
+      messages,
+      maxTokens: sampling.maxOutputTokens,
+      ...(sampling.temperature !== undefined ? { temperature: sampling.temperature } : {}),
+      ...(sampling.topP !== undefined ? { topP: sampling.topP } : {}),
+    } as any);
+    let text = "";
+    for await (const event of stream) {
+      const rawContent = (event as any).data?.choices?.[0]?.delta?.content;
+      const token = typeof rawContent === "string" ? rawContent : "";
+      if (token) { text += token; onToken(token); }
+    }
+    if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = Math.round(userMessage.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "mistral", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("mistral", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
     return { text, stopReason: "end_turn" };
   }
 
