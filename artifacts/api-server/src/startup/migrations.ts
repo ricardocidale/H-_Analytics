@@ -388,6 +388,15 @@ export async function runSchemaMigrations() {
     await runSlideFactoryRunsSlotContentHashes001();
     await markMigrationApplied("slide_factory_runs_slot_content_hashes_001");
   }
+
+  // T1-3 — admin-assigned default scenario per user.
+  // Adds users.assigned_scenario_id (nullable FK → scenarios.id ON DELETE SET NULL).
+  // Idempotent: column ADD COLUMN IF NOT EXISTS + DO $$ constraint guard.
+  if (!(await isMigrationApplied("users_assigned_scenario_001"))) {
+    const { runUsersAssignedScenario001 } = await import("../migrations/users-assigned-scenario-001");
+    await runUsersAssignedScenario001();
+    await markMigrationApplied("users_assigned_scenario_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

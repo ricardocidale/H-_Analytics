@@ -456,6 +456,13 @@
       "when": 1779408000000,
       "tag": "0069_slide_factory_runs_pdf_r2_key",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1779494400000,
+      "tag": "0070_users_assigned_scenario_id",
+      "breakpoints": true
     }
   ]
 }

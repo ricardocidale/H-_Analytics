@@ -93,6 +93,9 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
   const user = await storage.getUserById(userId);
   if (!user) return;
 
+  // Admin pre-assigned a scenario for this user — skip auto-creation.
+  if (user.assignedScenarioId != null) return;
+
   const fi = (user.firstName || "")[0]?.toUpperCase() || "";
   const li = (user.lastName || "")[0]?.toUpperCase() || "";
   const initials = (fi + li) || user.email.split("@")[0].slice(0, 2).toUpperCase();

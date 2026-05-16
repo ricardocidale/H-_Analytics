@@ -72,6 +72,7 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     role: u.role,
     hideTourPrompt: u.hideTourPrompt ?? false,
     canManageScenarios: u.canManageScenarios ?? true,
+    assignedScenarioId: u.assignedScenarioId ?? null,
     rebeccaOptOut: u.rebeccaOptOut ?? false,
     rebeccaRailOpen: u.rebeccaRailOpen ?? false,
     colorMode: u.colorMode ?? null,

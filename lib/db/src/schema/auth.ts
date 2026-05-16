@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   googleAccessToken: text("google_access_token"),
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),
+  assignedScenarioId: integer("assigned_scenario_id"),
   hideTourPrompt: boolean("hide_tour_prompt").default(false).notNull(),
   canManageScenarios: boolean("can_manage_scenarios").default(true).notNull(),
   rebeccaOptOut: boolean("rebecca_opt_out").default(false).notNull(),

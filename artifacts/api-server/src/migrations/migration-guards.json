@@ -236,7 +236,7 @@
     "0058_self_test_logs": {
       "status": "guarded",
       "guard": "self-test-logs-001.ts",
-      "reason": "Task #1647 / Task #1403 — the original SQL had a type mismatch: finding_id was typed as integer referencing costantino_findings('id'), but the actual PK is uuid named finding_id. The corrected SQL uses uuid. The runtime guard (self-test-logs-001.ts) applies the correct DDL idempotently on every boot, ensuring self_test_interval_days and self_test_logs exist on all environments regardless of whether the journal was applied with the old or new SQL hash."
+      "reason": "Task #1647 / Task #1403 \u2014 the original SQL had a type mismatch: finding_id was typed as integer referencing costantino_findings('id'), but the actual PK is uuid named finding_id. The corrected SQL uses uuid. The runtime guard (self-test-logs-001.ts) applies the correct DDL idempotently on every boot, ensuring self_test_interval_days and self_test_logs exist on all environments regardless of whether the journal was applied with the old or new SQL hash."
     },
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
@@ -271,6 +271,16 @@
       "status": "guarded",
       "guard": "property-fee-markup-001.ts",
       "reason": "Task #1677 \u2014 adds nullable real column service_markup to property_fee_categories. When NULL, the financial engine falls back to the company service template markup. When set, it overrides the template markup for that property/category pair. Guarded by property-fee-markup-001.ts which re-applies the same ALTER at boot via ADD COLUMN IF NOT EXISTS to handle dev DBs whose journal has drifted. Renumbered from 0064 \u2192 0068 to avoid slot collision with main's 0064 (properties_refi_ltv_cap) during the 2026-05-15 merge of main into chore/replit-steady-state-rename."
+    },
+    "0069_slide_factory_runs_pdf_r2_key": {
+      "status": "guarded",
+      "guard": "slide-factory-runs-pdf-r2-key-001.ts",
+      "reason": "Factory v2 \u2014 adds pptx_r2_key and pdf_r2_key text columns to slide_factory_runs. Guarded by slide-factory-runs-pdf-r2-key-001.ts which re-applies ADD COLUMN IF NOT EXISTS at boot to handle any DB whose journal has drifted past 0069."
+    },
+    "0070_users_assigned_scenario_id": {
+      "status": "guarded",
+      "guard": "users-assigned-scenario-001.ts",
+      "reason": "T1-3 \u2014 adds nullable integer column assigned_scenario_id to users with FK REFERENCES scenarios(id) ON DELETE SET NULL. Column + FK applied idempotently at boot by users-assigned-scenario-001.ts. Allows admin to pre-assign a default scenario to a user so ensureDefaultScenario skips auto-creation on login."
     }
   }
 }

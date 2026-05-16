@@ -109,6 +109,10 @@ export class UserStorage {
     await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id));
   }
 
+  async updateUserAssignedScenario(id: number, scenarioId: number | null): Promise<void> {
+    await db.update(users).set({ assignedScenarioId: scenarioId, updatedAt: new Date() }).where(eq(users.id, id));
+  }
+
   async updateUserGoogleId(id: number, googleId: string): Promise<void> {
     await db.update(users).set({ googleId, updatedAt: new Date() }).where(eq(users.id, id));
   }
@@ -179,6 +183,7 @@ export class UserStorage {
           googleAccessToken: users.googleAccessToken,
           googleRefreshToken: users.googleRefreshToken,
           googleTokenExpiry: users.googleTokenExpiry,
+          assignedScenarioId: users.assignedScenarioId,
           hideTourPrompt: users.hideTourPrompt,
           canManageScenarios: users.canManageScenarios,
           rebeccaOptOut: users.rebeccaOptOut,

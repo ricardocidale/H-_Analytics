@@ -174,6 +174,31 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/admin/users/:id/assigned-scenario", requireAdmin, async (req, res) => {
+    try {
+      const id = parseParamId(req.params.id, res, "user ID");
+      if (id === null) return;
+
+      const { scenarioId } = req.body as { scenarioId: number | null };
+      if (scenarioId !== null && (typeof scenarioId !== "number" || !Number.isInteger(scenarioId) || scenarioId < 1)) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "scenarioId must be a positive integer or null", code: "AUSR-020" });
+      }
+
+      if (scenarioId !== null) {
+        const scenario = await storage.getScenario(scenarioId);
+        if (!scenario) {
+          return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "AUSR-021" });
+        }
+      }
+
+      await storage.updateUserAssignedScenario(id, scenarioId ?? null);
+      logActivity(req, "assign-scenario", "user", id, null, { scenarioId });
+      res.json({ success: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to assign scenario to user", error, "AUSR-022");
+    }
+  });
+
   app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseParamId(req.params.id, res, "user ID");
