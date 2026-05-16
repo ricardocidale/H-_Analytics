@@ -22,11 +22,11 @@ export interface ResearchEventConfig {
 export interface AiModelEntry {
   id: string;
   label: string;
-  provider: "openai" | "anthropic" | "google" | "xai" | "tesla" | "microsoft" | "meta" | "deepseek";
+  provider: "openai" | "anthropic" | "google" | "xai" | "tesla" | "microsoft" | "meta" | "deepseek" | "mistral";
 }
 
 export type LlmMode = "dual" | "primary-only";
-export type LlmVendor = "openai" | "anthropic" | "google" | "xai" | "tesla" | "microsoft" | "meta" | "deepseek";
+export type LlmVendor = "openai" | "anthropic" | "google" | "xai" | "tesla" | "microsoft" | "meta" | "deepseek" | "mistral";
 
 export interface ContextLlmConfig {
   llmVendor?: LlmVendor;

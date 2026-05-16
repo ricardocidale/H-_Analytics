@@ -26,7 +26,7 @@ import type { ResourcePublicView } from "@shared/schema";
 import type { LlmRegistryState } from "@/lib/api/admin";
 import { SLOT_GROUPS, SLOT_GROUP_CATEGORY_MAP, type LlmCategory } from "../constants";
 import { SlotCard } from "../SlotCard";
-import type { SlotSelection } from "../useSlotAssignments";
+import type { SlotSelection, SlotCostSummary } from "../useSlotAssignments";
 
 export interface SlotAccordionProps {
   slotResources: ResourcePublicView[];
@@ -37,6 +37,7 @@ export interface SlotAccordionProps {
   originalSlugs: Record<number, string | null>;
   modelsByVendor: Record<string, ResourcePublicView[]>;
   registry: LlmRegistryState | undefined;
+  costBySlot?: Record<string, SlotCostSummary>;
   category?: LlmCategory;
 }
 
@@ -47,6 +48,7 @@ export function SlotAccordion({
   originalSlugs,
   modelsByVendor,
   registry,
+  costBySlot,
   category,
 }: SlotAccordionProps) {
   const visibleGroups = category
@@ -125,6 +127,7 @@ export function SlotAccordion({
                           originalSlug={originalSlugs[slot.id] ?? null}
                           modelsByVendor={modelsByVendor}
                           vendorStatuses={registry?.vendorStatuses ?? []}
+                          costSummary={costBySlot?.[slot.slug]}
                           onVendorChange={(vendor) => {
                             setSelections((prev) => ({
                               ...prev,

@@ -86,6 +86,8 @@ export const LLM_VENDORS: { value: LlmVendor; label: string }[] = [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai",    label: "OpenAI" },
   { value: "google",    label: "Google" },
+  { value: "deepseek",  label: "DeepSeek" },
+  { value: "mistral",   label: "Mistral" },
   { value: "xai",       label: "xAI" },
 ];
 
