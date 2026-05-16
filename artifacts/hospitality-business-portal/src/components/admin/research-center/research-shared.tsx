@@ -95,6 +95,7 @@ export const RESEARCH_LLM_VENDORS: { value: LlmVendor; label: string }[] = [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "google", label: "Google (Gemini)" },
+  { value: "mistral", label: "Mistral" },
   { value: "xai", label: "xAI (Grok)" },
   { value: "meta", label: "Meta (Llama)" },
   { value: "deepseek", label: "DeepSeek" },

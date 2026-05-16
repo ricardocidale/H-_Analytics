@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const COST_SUMMARY_STALE_MS = 5 * 60 * 1000;
+const COST_WINDOW_DAYS = 30;
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -89,7 +90,7 @@ export function useSlotAssignments(
   const { data: costSummaryData } = useQuery<{
     perSlot: SlotCostSummary[];
   }>({
-    queryKey: ["/api/admin/llm-cost-summary?windowDays=30"],
+    queryKey: [`/api/admin/llm-cost-summary?windowDays=${COST_WINDOW_DAYS}`],
     staleTime: COST_SUMMARY_STALE_MS,
   });
 

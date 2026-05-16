@@ -54,8 +54,8 @@ export interface GenerateTextResult {
 }
 
 /**
- * Map a vendor string to a cost-logger service tag. New vendors map to themselves;
- * unknown vendors fall back to "openai" (legacy behavior, kept for compat).
+ * Map a vendor string to a cost-logger service tag. Special cases (e.g., google → gemini)
+ * are mapped explicitly; all other vendors pass through unchanged.
  */
 export function dispatchService(vendor: string): string {
   const map: Record<string, string> = {

@@ -24,6 +24,7 @@ import { GoogleGenAI } from "@google/genai";
 import { Perplexity } from "@perplexity-ai/perplexity_ai";
 import Exa from "exa-js";
 import { Mistral } from "@mistralai/mistralai";
+import { logger } from "../logger";
 
 // ── Shared key check ────────────────────────────────────
 
@@ -163,7 +164,7 @@ export function getDeepSeekClient(): Promise<OpenAI> {
     const baseURL = await resolveDeepSeekBaseUrl();
     // Explicit baseURL prevents OPENAI_BASE_URL env var from bleeding into DeepSeek calls.
     _deepseek = new OpenAI({ apiKey, baseURL });
-    console.info(`[matteo:deepseek:init] baseURL=${baseURL}`);
+    logger.info(`[matteo:deepseek:init] baseURL=${baseURL}`, "clients");
     return _deepseek;
   })();
   return _deepseekInitPromise;
@@ -180,7 +181,7 @@ export function getMistralClient(): Mistral {
   if (_mistral) return _mistral;
   const apiKey = requireApiKey("Mistral", ["MISTRAL_API_KEY"]);
   _mistral = new Mistral({ apiKey });
-  console.info("[matteo:mistral:init] client initialized");
+  logger.info("[matteo:mistral:init] client initialized", "clients");
   return _mistral;
 }
 
@@ -197,8 +198,12 @@ export interface MistralOcrClient {
   }): Promise<{ pages: Array<{ index: number; markdown: string }> }>;
 }
 
-async function getMistralOcrEndpoint(): Promise<string> {
-  if (process.env.MISTRAL_OCR_ENDPOINT) return process.env.MISTRAL_OCR_ENDPOINT;
+const MISTRAL_OCR_MODEL_FALLBACK = "mistral-ocr-latest";
+
+async function getMistralOcrConfig(): Promise<{ endpoint: string; model: string }> {
+  if (process.env.MISTRAL_OCR_ENDPOINT) {
+    return { endpoint: process.env.MISTRAL_OCR_ENDPOINT, model: MISTRAL_OCR_MODEL_FALLBACK };
+  }
   const { storage } = await import("../storage");
   const row = await storage.getAdminResourceBySlug?.("api", "mistral-ocr-3");
   const endpoint = row?.config?.endpoint as string | undefined;
@@ -207,13 +212,14 @@ async function getMistralOcrEndpoint(): Promise<string> {
       "[matteo:mistral-ocr:init] mistral-ocr-3 api row missing config.endpoint — set MISTRAL_OCR_ENDPOINT or re-run admin-resources-006-matteo-router migration",
     );
   }
-  return endpoint;
+  const model = (row?.config?.model as string | undefined) ?? MISTRAL_OCR_MODEL_FALLBACK;
+  return { endpoint, model };
 }
 
 export async function getMistralOcrClient(): Promise<MistralOcrClient> {
   const apiKey = requireApiKey("Mistral OCR", ["MISTRAL_API_KEY"]);
-  const endpoint = await getMistralOcrEndpoint();
-  console.info(`[matteo:mistral-ocr:init] endpoint=${endpoint}`);
+  const { endpoint, model } = await getMistralOcrConfig();
+  logger.info(`[matteo:mistral-ocr:init] endpoint=${endpoint}`, "clients");
   return {
     async extractText({ pdfBase64, documentName }) {
       const response = await fetch(endpoint, {
@@ -223,7 +229,7 @@ export async function getMistralOcrClient(): Promise<MistralOcrClient> {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistral-ocr-latest",
+          model,
           document: {
             type: "document_url",
             ...(documentName ? { document_name: documentName } : {}),
