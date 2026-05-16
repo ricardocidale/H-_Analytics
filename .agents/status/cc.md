@@ -13,7 +13,7 @@ main
 
 ## Last Commit on Branch
 
-8bc3824fc  feat(T1-3): admin-assigned default scenario per user
+43b620fb3  refactor(T1-4): migrate DEFAULT_FIXED_COST_ESCALATION_RATE to DB
 
 ## What CC Did This Session
 
@@ -38,7 +38,7 @@ T1-3 Replit scope still needed:
 
 - T1-2: Property soft-delete UI toggle — Replit-safe
 - T1-3 Replit UI: admin dropdown to assign a scenario to a user
-- T1-4: DEFAULT_* constants → model_defaults DB rows (one per session)
+- T1-4: DEFAULT_* constants → model_defaults DB rows (3 done this session: DEFAULT_STABILIZATION_MONTHS, DEFAULT_OCCUPANCY_RAMP_MONTHS ?? fallbacks, DEFAULT_FIXED_COST_ESCALATION_RATE)
 - T1-5: CodeRabbit deferred findings from PR #147 (advisory):
   - `brandId` FK `onDelete: "restrict"` needs migration (lib/db/src/schema/properties.ts)
   - `analyst-admin-runners-mgmt.ts` double-cast
