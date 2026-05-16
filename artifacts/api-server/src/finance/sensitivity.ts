@@ -23,7 +23,6 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_FIXED_COST_ESCALATION_RATE,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
   MONTHS_PER_YEAR,
@@ -121,7 +120,7 @@ function runScenario(
       inflationRate: Math.max(0, global.inflationRate + (overrides.inflation ?? 0) / 100),
       fixedCostEscalationRate: Math.max(
         0,
-        (global.fixedCostEscalationRate ?? DEFAULT_FIXED_COST_ESCALATION_RATE) +
+        (global.fixedCostEscalationRate ?? global.inflationRate) +
           (overrides.expenseGrowth ?? 0) / 100,
       ),
     };

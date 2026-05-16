@@ -229,7 +229,6 @@ export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
  */
 // FEEDS_DEFAULT: inflationRate
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
-export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
 // ──────────────────────────────────────────────────────────────────────────────
 // COMPANY-LEVEL INCOME TAX — DECISION RECORDED (Task #403, follow-up to #406)
 // ──────────────────────────────────────────────────────────────────────────────

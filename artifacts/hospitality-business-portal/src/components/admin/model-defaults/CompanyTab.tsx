@@ -9,7 +9,6 @@ import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_FIXED_COST_ESCALATION_RATE,
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_MARKETING_RATE,
 } from "@shared/constants";
@@ -471,7 +470,7 @@ export function CompanyTab(props: CompanyTabProps) {
                 label="Fixed Cost Escalation Rate"
                 tooltip="Annual inflation factor applied to all fixed overhead costs (office lease, professional services, tech). Compounds each year — a 3% rate means costs grow ~34% over 10 years."
                 value={draft.fixedCostEscalationRate}
-                fallback={DEFAULT_FIXED_COST_ESCALATION_RATE}
+                fallback={0.03}
                 onChange={(_, v) => onChange("fixedCostEscalationRate", v)}
                 min={0}
                 max={0.10}
