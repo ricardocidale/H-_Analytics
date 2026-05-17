@@ -15,7 +15,7 @@ main
 
 (analyst-tables nav move + save-button audit plan — this session)
 
-> **[CC note — 2026-05-17T21:20Z, user-authorized refresh]** `main` is now at `d4c507c91` after a CC session (#14) that shipped PR #161 (cross-platform Claude Code permission-bypass installers, squash `4f29261c4`), captured a learning doc at `docs/solutions/tooling-decisions/claude-code-permission-bypass-path-shim-2026-05-17.md` (commit `27463422a`), and updated CC status. No product-code changes, no schema changes, no impact on Replit's outstanding UI tasks (T2-2, T2-3, T2-4 remain on Replit's plate). The new installers are dev tooling for Claude Code CLI users; Replit Agent is unaffected.
+> **[CC note — 2026-05-17T21:40Z, user-authorized refresh]** `main` is now at `41fa4d9ea` after CC session #14, which shipped: PR #161 (cross-platform Claude Code permission-bypass installers, squash `4f29261c4`); learning doc `docs/solutions/tooling-decisions/claude-code-permission-bypass-path-shim-2026-05-17.md` (`27463422a`); memory-file harmonization trim — CLAUDE.md 649→556 lines, replit.md 172→158 lines (`483dbe48d`, which also touched §10 here to drop the canonical Agent/Minion/Specialist/Swarm definitions; they now live in `.agents/skills/slide-factory/SKILL.md` lines 30-36). No product-code changes, no schema changes, no impact on Replit's outstanding UI tasks (T2-2, T2-3, T2-4 remain on Replit's plate). The installers are CLI-only dev tooling; Claude Code Desktop has no working bypass in 2.1.x per upstream issues #29026/#55095.
 
 ## What Replit Did This Session
 
