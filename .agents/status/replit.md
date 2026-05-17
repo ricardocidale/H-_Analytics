@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T11:10:00Z
-Status: idle
+Updated: 2026-05-17T11:30:00Z
+Status: active
 
 ## Active Branch
 
@@ -13,24 +13,18 @@ main
 
 ## Last Commit on Branch
 
-`27dfa12d` — Move ICP mix definition to admin section
+`b20c23bf` — Improve layout alignment for pending server update banner
 
 ## What Replit Did This Session
 
-**ICP Mix moved to Admin → Management Co.:**
-- `CompanyBracketMix.tsx` refactored to export `IcpMixContent` (inner content) + simplified default export
-- New `IcpMixTab.tsx` created at `components/admin/model-defaults/IcpMixTab.tsx`
-- `ModelDefaultsTab.tsx` gains "ICP Mix" tab between "Company" and "Capital Stack Discipline"
-- `Admin.tsx` `MODEL_DEFAULTS_VISIBLE_TABS` updated for `defaults-management-company`
-- `IcpMixSummary` removed from `CompanyAssumptions.tsx`
+**Agent Roster pills redesign:**
+- `AgentRosterAccordion.tsx` rebuilt — Radix Accordion replaced with shadcn Collapsible per-row
+- Collapsed state: compact pill (rounded-full, single line: dot · name · role · description)
+- Expanded state: pill top becomes card header; CollapsibleContent renders full card body below (rounded-b-xl, border continuation)
+- Icon import corrected to `@/components/icons/themed-icons` (Phosphor via themed-icons — app standard)
+- All three roster pages (Agents, Specialists, Minions) pick up the change automatically
 
-**Breadcrumbs fixed + skill created:**
-- `Breadcrumbs.tsx` fully audited against `App.tsx` route table
-- Added: `/company/guidance`, `/company/icp-definition`, `/intelligence`, `/lb-slides`, `/structures` (no-id), `photos` + `criteria` property sub-pages
-- Removed stale redirect entries: `/voice`, `/compare`, `/timeline`, `/sensitivity`, `/financing`, `/global/research`, `/admin/logos`, `/methodology`, `/research`, `/analysis` (dupe)
-- Created `.agents/skills/breadcrumbs/SKILL.md` — canonical breadcrumb map + full update protocol for future route changes
-
-**Gates:** typecheck ✅ production-image ✅
+**Gates:** vite compile ✅ lint ✅
 
 **Pre-existing failures (CC-owned, not introduced):**
 - check:lint → no-shadow in `api-server/src/chat/rebecca-tool-impls-slide-factory.ts`
@@ -38,7 +32,7 @@ main
 
 ## Files Replit Owns Right Now
 
-None — session complete, all committed.
+- `artifacts/hospitality-business-portal/src/components/intelligence/agent-roster/AgentRosterAccordion.tsx`
 
 ## Handoff to CC
 
