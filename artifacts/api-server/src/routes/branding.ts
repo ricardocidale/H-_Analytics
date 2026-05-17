@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireAdmin , getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, requireSuperAdmin, getAuthUser } from "../auth";
 import { insertLogoSchema, insertDesignThemeSchema } from "@workspace/db";
 import { logger } from "../logger";
 import { fullName, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
@@ -175,7 +175,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/app-branding", requireAdmin, async (req, res) => {
+  app.patch("/api/app-branding", requireSuperAdmin, async (req, res) => {
     try {
       const schema = z.object({
         appLogoId: z.number().optional(),

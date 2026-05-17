@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T12:55:00Z
+Updated: 2026-05-17T13:18:00Z
 Status: idle
 
 ## Active Branch
@@ -16,6 +16,18 @@ main
 (taxonomy registry phase 1+2 — this session)
 
 ## What Replit Did This Session
+
+**Brand Assets admin restructure (4-tab layout + super-admin App Logo gate):**
+
+- SECURITY: `PATCH /api/app-branding` in `branding.ts` — `requireAdmin` → `requireSuperAdmin`
+- NEW: `components/admin/brand-assets/animationCatalog.tsx` — shared REBECCA_CARDS (7) + ANALYST_CARDS (8); single source of truth for both Brand Assets and Intelligence
+- NEW: `components/admin/brand-assets/AnimationFamilyCollapsible.tsx` — Card + Collapsible per-family widget with per-card Play/Pause toggle
+- NEW: `components/admin/brand-assets/AnimationsTab.tsx` — two families (Rebecca + The Analyst), both defaultOpen
+- NEW: `components/admin/brand-assets/AppLogoTab.tsx` — upload + auto-assign app logo; super-admin only (hidden at parent level for non-super-admins)
+- UPDATED: `components/admin/BrandAssetsPage.tsx` — 4-tab structure: App Logo (super-admin only) | Logos | Animations | Other Graphics
+- UPDATED: `pages/intelligence/AnimationsPage.tsx` — imports from shared animationCatalog; no duplicate card definitions
+
+**Gates:** typecheck ✅ portal lint ✅ magic-numbers ✅ replit-independence ✅
 
 **Agent taxonomy registry (plan 2026-05-17-005, Phases 1 & 2):**
 

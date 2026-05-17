@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { CurrentThemeTab } from "@/components/ui/tabs";
-import type { CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { ChevronRight, ChevronDown } from "@/components/icons/themed-icons";
 import { IconPlay, IconPause } from "@/components/icons";
-import { REBECCA_CARDS, ANALYST_CARDS } from "@/components/admin/brand-assets/animationCatalog";
-import type { AnimCard } from "@/components/admin/brand-assets/animationCatalog";
-
-type AnimTab = "rebecca" | "analyst";
-
-const TABS: CurrentThemeTabItem[] = [
-  { value: "rebecca", label: "Rebecca" },
-  { value: "analyst", label: "The Analyst" },
-];
+import type { AnimCard } from "./animationCatalog";
 
 function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
   const [playingIds, setPlayingIds] = useState<Set<string>>(new Set());
@@ -20,17 +12,14 @@ function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
   function togglePlaying(id: string) {
     setPlayingIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
       {cards.map((card) => {
         const isPlaying = playingIds.has(card.id);
         return (
@@ -76,25 +65,46 @@ function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
   );
 }
 
-export default function AnimationsPage() {
-  const [activeTab, setActiveTab] = useState<AnimTab>("rebecca");
+interface AnimationFamilyCollapsibleProps {
+  title: string;
+  count: number;
+  cards: AnimCard[];
+  defaultOpen?: boolean;
+}
+
+export function AnimationFamilyCollapsible({
+  title,
+  count,
+  cards,
+  defaultOpen = false,
+}: AnimationFamilyCollapsibleProps) {
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div>
-      <p className="text-sm text-muted-foreground mb-6">
-        Motion and animation assets for agent personas. Press play to preview each animation.
-      </p>
-
-      <div className="mb-6">
-        <CurrentThemeTab
-          tabs={TABS}
-          activeTab={activeTab}
-          onTabChange={(v) => setActiveTab(v as AnimTab)}
-        />
-      </div>
-
-      {activeTab === "rebecca" && <AnimationCardGrid cards={REBECCA_CARDS} />}
-      {activeTab === "analyst" && <AnimationCardGrid cards={ANALYST_CARDS} />}
-    </div>
+    <Card className="overflow-hidden">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+            aria-expanded={open}
+          >
+            {open ? (
+              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            )}
+            <span className="text-sm font-semibold text-foreground">{title}</span>
+            <span className="text-xs text-muted-foreground ml-auto">
+              {count} animation{count !== 1 ? "s" : ""}
+            </span>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-4 pb-4 border-t border-border/40">
+            <AnimationCardGrid cards={cards} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
