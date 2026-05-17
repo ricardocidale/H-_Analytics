@@ -1,4 +1,4 @@
-﻿# Claude Code Context: H-Analytics
+# Claude Code Context: H-Analytics
 
 This repo follows the Norfolk Agent-Native Project Standard.
 
@@ -19,12 +19,12 @@ This repo follows the Norfolk Agent-Native Project Standard.
 
 ## Safe starting commands
 
-`powershell
+```powershell
 Get-Location
 Get-ChildItem
 if (Test-Path package.json) { npm test }
 if (Test-Path pyproject.toml) { python -m pytest }
-`
+```
 
 ## Approval required
 
@@ -36,3 +36,4 @@ Ask before running commands that delete files, move .git, rewrite history, force
 - .claude\commands - approved project command wrappers
 - .claude\skills - repo-local skills and reusable workflows
 - .claude\mcp - MCP setup notes and server references
+
