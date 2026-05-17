@@ -25,6 +25,7 @@ import {
 import { idParamSchema, toConfigView } from "./_shared";
 import { HTTP_405_METHOD_NOT_ALLOWED } from "../../../constants";
 import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
+import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 
 export function registerRuntimeRoutes(app: Express) {
   // Disabled: RuntimeTab JSON editor is read-only per specialists-are-dev-defined-only.md §3.
@@ -74,6 +75,24 @@ export function registerRuntimeRoutes(app: Express) {
   app.post("/api/admin/specialists/:id/probe", requireAdmin, async (req, res) => {
     try {
       const { id } = idParamSchema.parse(req.params);
+
+      // Gustavo (Analyst Orchestrator) is not in SPECIALIST_CATALOG — he is an
+      // in-process router. If this endpoint responds he is reachable by definition.
+      if (id === ORCHESTRATOR_SPECIALIST_ID) {
+        return res.json({
+          specialistId: id,
+          ranAt: new Date().toISOString(),
+          steps: [
+            {
+              name: "Orchestrator availability",
+              description: "Gustavo (Analyst Orchestrator) is an in-process router.",
+              status: "pass",
+              message: "Orchestrator is reachable.",
+            },
+          ],
+        });
+      }
+
       const def = getSpecialistById(id);
       if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASRT-005" });
 

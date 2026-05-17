@@ -33,6 +33,7 @@ import { ChevronDown } from "@/components/icons/themed-icons";
 import { cn } from "@/lib/utils";
 import type {
   MinionSelfTestHistoryItem,
+  RosterClass,
   RosterEntry,
   RosterHealth,
   RosterHealthResponse,
@@ -54,6 +55,39 @@ interface RowState {
 }
 
 const HISTORY_STRIP_MAX = 10;
+
+const CLASS_LABEL: Record<RosterClass, string> = {
+  agent: "Agent",
+  specialist: "Specialist",
+  minion: "Helper",
+};
+
+/**
+ * Converts raw server/network error messages into plain language suitable
+ * for display to a non-technical admin. Strips HTTP status codes, internal
+ * error codes, and translates technical phrases using the entity's class label.
+ */
+function humanizeProbeMessage(message: string, entryClass: RosterClass): string {
+  const label = CLASS_LABEL[entryClass];
+  const cleaned = message
+    .replace(/^\d{3}\s+/, "")
+    .replace(/\s*\[[A-Z]{4}-\d{3,5}\]$/, "")
+    .trim();
+  const lower = cleaned.toLowerCase();
+  if (lower.includes("not found")) {
+    return `${label} isn't registered in the system — try redeploying.`;
+  }
+  if (lower.includes("no probe defined")) {
+    return `${label} doesn't have a reachability check configured.`;
+  }
+  if (lower.includes("fetch") || lower.includes("network") || lower.includes("econnrefused")) {
+    return `${label} couldn't be reached — the service may be down.`;
+  }
+  if (lower === "probe failed" || lower === "") {
+    return `${label} check failed.`;
+  }
+  return cleaned;
+}
 
 const HISTORY_DOT_CLASS: Record<string, string> = {
   pass: "bg-emerald-500",
@@ -313,7 +347,7 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
                   }
                   data-testid={`roster-row-message-${entry.id}`}
                 >
-                  {state.outcome.message}
+                  {humanizeProbeMessage(state.outcome.message, entry.class)}
                 </p>
               )}
             </div>
@@ -446,8 +480,10 @@ export function AgentRosterAccordion({
         if (outcome.status === "error") {
           toast({
             variant: "destructive",
-            title: `${entry.humanName} probe failed`,
-            description: outcome.message ?? "The entity did not respond.",
+            title: `${entry.humanName} check failed`,
+            description: outcome.message
+              ? humanizeProbeMessage(outcome.message, entry.class)
+              : `${CLASS_LABEL[entry.class]} did not respond.`,
           });
         }
       } catch (err) {
@@ -469,8 +505,8 @@ export function AgentRosterAccordion({
         }));
         toast({
           variant: "destructive",
-          title: `${entry.humanName} probe failed`,
-          description: message,
+          title: `${entry.humanName} check failed`,
+          description: humanizeProbeMessage(message, entry.class),
         });
       }
     },
