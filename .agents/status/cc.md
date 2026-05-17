@@ -4,16 +4,16 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T21:15:00Z
+Updated: 2026-05-17T21:35:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `27463422a`, synced with `origin/main`.
+`main` at `483dbe48d`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-`27463422a` — `docs(tooling): document Claude Code permission-bypass PATH-shim pattern`.
+`483dbe48d` — `chore(docs): trim CLAUDE.md bloat + harmonize replit.md`.
 
 ## What CC Did This Session (2026-05-17 session 14)
 
@@ -46,6 +46,10 @@ Diagnosed and worked around three open Anthropic bugs that make permission-promp
 **Protocol override (one-time, user-authorized):** Edited `.agents/status/replit.md` to mark Replit's Phase 3 handoff to CC as resolved (Phase 3 = `gaspar → gustavo` rename, shipped in PR #160). The protocol says Replit is the sole writer of that file; the override was scoped to a single targeted edit and clearly labeled in-file with a `[CC note — user-authorized]` block. Original handoff text preserved (struck-through) for session-log continuity. Commit `40bcf3ca3`.
 
 **Compound documentation captured (`/ce-compound` full mode, commit `27463422a`):** `docs/solutions/tooling-decisions/claude-code-permission-bypass-path-shim-2026-05-17.md` — knowledge-track learning that documents the cross-platform CLI permission-bypass strategy, the three upstream bugs that necessitate it (#34923, #29026, #55095), the Windows PATHEXT collision pitfall, the `setx` truncation gotcha, the `claude -p` smoke-test pattern, and the explicit "Desktop has no working bypass in 2.1.x" guidance. Discoverability check passed (CLAUDE.md §6 already surfaces `docs/solutions/`). Phase 2.5 refresh skipped (no stale candidates).
+
+**Memory-file maintenance (commit `483dbe48d`):** CLAUDE.md trimmed from 649 → 556 lines (-14%); replit.md from 172 → 158 lines (-8%). Cuts: redundant code examples now restated by their skill files (§2 violations, §3 seed violations, §10 canonical Agent/Minion/Specialist/Swarm definitions in slide-factory SKILL.md, §13 one of three TSX examples), Architecture Notes "Number taxonomy" restatement of §2 collapsed to pointer, several 3-4-line skill-pointer subsections tightened. NOT touched: inviolable login/auth rules (verbatim), §13 base rule + 2 examples (gate shipped 2026-05-17), import-discipline + Zod gotchas (short, valuable inline). All 13 numbered sections preserved; all 9 named-subsection refs from replit.md still resolve. Harmonization gate per CLAUDE.md "Memory-file harmonization" rule — both files shipped in single commit.
+
+**CodeRabbit review (post-trim):** user invoked, loop stood down — working tree clean (everything pushed) and loop toggle OFF. No state files written. Run `/coderabbit-loop-on` then `/coderabbit-loop-review` when there are working-tree changes to review.
 
 **Memory captured (saved to `~/.claude/projects/.../memory/`):**
 - `feedback_powershell_repo_path.md` — don't assume the user is in the H-Analytics repo when issuing PowerShell commands on Windows; their clone is not in any common location.
