@@ -62,8 +62,8 @@ import {
 import {
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
+  CurrentThemeTab,
+  type CurrentThemeTabItem,
 } from "@/components/ui/tabs"
 
 import { schema } from "./schema"
@@ -138,51 +138,50 @@ export function DataTable({
     }
   }
 
+  const [activeView, setActiveView] = React.useState("outline");
   return (
     <Tabs
-      defaultValue="outline"
+      value={activeView}
+      onValueChange={setActiveView}
       className="flex w-full flex-col justify-start gap-6"
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
         <Label htmlFor="view-selector" className="sr-only">
           View
         </Label>
-        <Select defaultValue="outline">
-          <SelectTrigger
-            className="@4xl/main:hidden flex w-fit"
-            id="view-selector"
-          >
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="outline">Outline</SelectItem>
-            <SelectItem value="past-performance">Past Performance</SelectItem>
-            <SelectItem value="key-personnel">Key Personnel</SelectItem>
-            <SelectItem value="focus-documents">Focus Documents</SelectItem>
-          </SelectContent>
-        </Select>
-        <TabsList className="@4xl/main:flex hidden">
-          <TabsTrigger value="outline">Outline</TabsTrigger>
-          <TabsTrigger value="past-performance" className="gap-1">
-            Past Performance{" "}
-            <Badge
-              variant="secondary"
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-            >
-              3
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="key-personnel" className="gap-1">
-            Key Personnel{" "}
-            <Badge
-              variant="secondary"
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-            >
-              2
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="focus-documents">Focus Documents</TabsTrigger>
-        </TabsList>
+        <CurrentThemeTab
+          tabs={[
+            { value: "outline", label: "Outline" },
+            {
+              value: "past-performance",
+              label: "Past Performance",
+              suffix: (
+                <Badge
+                  variant="secondary"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+                >
+                  3
+                </Badge>
+              ),
+            },
+            {
+              value: "key-personnel",
+              label: "Key Personnel",
+              suffix: (
+                <Badge
+                  variant="secondary"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+                >
+                  2
+                </Badge>
+              ),
+            },
+            { value: "focus-documents", label: "Focus Documents" },
+          ] satisfies CurrentThemeTabItem[]}
+          activeTab={activeView}
+          onTabChange={setActiveView}
+          responsive={{ fallback: "select" }}
+        />
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

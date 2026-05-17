@@ -6,7 +6,7 @@ import { useProperty, useMarketResearch, useGlobalAssumptions } from "@/lib/api"
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { ExportToolbar } from "@/components/ui/export-toolbar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconRefreshCw, IconMapPin, IconBookOpen,
@@ -206,32 +206,20 @@ export default function PropertyMarketResearch() {
               }}
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="justify-start bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-primary/10 p-1 rounded-xl">
-                <TabsTrigger value="market" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconMapPin className="w-3.5 h-3.5" /> Market
-                </TabsTrigger>
-                <TabsTrigger value="revenue" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconTrendingUp className="w-3.5 h-3.5" /> Revenue
-                </TabsTrigger>
-                <TabsTrigger value="financial" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconDollarSign className="w-3.5 h-3.5" /> Financial
-                </TabsTrigger>
-                <TabsTrigger value="operating" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconBarChart3 className="w-3.5 h-3.5" /> Operating
-                </TabsTrigger>
-                <TabsTrigger value="rates" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconDollarSign className="w-3.5 h-3.5" /> Rates
-                </TabsTrigger>
-                <TabsTrigger value="sources" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconBookOpen className="w-3.5 h-3.5" /> Sources
-                </TabsTrigger>
-                <TabsTrigger value="pipeline-str" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs" data-testid="tab-pipeline-str">
-                  <IconBuilding className="w-3.5 h-3.5" /> Pipeline & STR
-                </TabsTrigger>
-                <TabsTrigger value="criteria" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
-                  <IconPieChart className="w-3.5 h-3.5" /> Criteria
-                </TabsTrigger>
-              </TabsList>
+              <CurrentThemeTab
+                tabs={[
+                  { value: "market", label: "Market", icon: IconMapPin },
+                  { value: "revenue", label: "Revenue", icon: IconTrendingUp },
+                  { value: "financial", label: "Financial", icon: IconDollarSign },
+                  { value: "operating", label: "Operating", icon: IconBarChart3 },
+                  { value: "rates", label: "Rates", icon: IconDollarSign },
+                  { value: "sources", label: "Sources", icon: IconBookOpen },
+                  { value: "pipeline-str", label: "Pipeline & STR", icon: IconBuilding },
+                  { value: "criteria", label: "Criteria", icon: IconPieChart },
+                ] satisfies CurrentThemeTabItem[]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
 
               <TabsContent value="market"><MarketTab content={content as Parameters<typeof MarketTab>[0]['content']} propertyLocation={property.location} /></TabsContent>
               <TabsContent value="revenue"><RevenueTab content={content as Parameters<typeof RevenueTab>[0]['content']} /></TabsContent>

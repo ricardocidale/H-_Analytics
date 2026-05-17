@@ -5,7 +5,7 @@ import { ContentPanel } from "@/components/ui/content-panel";
 import { IconCalculator, IconTrending, IconAnalysis, IconShield } from "@/components/icons";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { DSCRTab, DebtYieldTab, StressTestTab, PrepaymentTab } from "@/components/financing";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { ExportMenu, pngAction } from "@/components/ui/export-toolbar";
 
 type TabId = "dscr" | "debt-yield" | "sensitivity" | "prepayment";
@@ -74,31 +74,18 @@ export default function FinancingAnalysis({ embedded }: { embedded?: boolean }) 
           )}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="w-full">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-              <TabsList className="grid w-full grid-cols-2 md:flex md:w-auto h-auto p-1 bg-muted/50 rounded-xl gap-1">
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      data-testid={`tab-${tab.id}`}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-              {!embedded && (
-                <div className="flex justify-end">
+            <CurrentThemeTab
+              tabs={TABS.map((t) => ({ value: t.id, label: t.label, icon: t.icon })) satisfies CurrentThemeTabItem[]}
+              activeTab={activeTab}
+              onTabChange={(v) => setActiveTab(v as TabId)}
+              rightContent={
+                !embedded ? (
                   <ExportMenu
                     actions={[pngAction(handleExportPNG, "button-financing-export-png")]}
                   />
-                </div>
-              )}
-            </div>
+                ) : undefined
+              }
+            />
 
             <div ref={tabContentRef}>
               <ScrollReveal>

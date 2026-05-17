@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { PageErrorState } from "@/components/ui/page-error-state";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { useMarketResearch, useGlobalAssumptions } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExportToolbar } from "@/components/ui/export-toolbar";
@@ -67,6 +67,14 @@ export default function CompanyResearch() {
   const { data: globalRes, isLoading: loadingGlobal } = useMarketResearch("global");
   const { data: globalAssumptions } = useGlobalAssumptions();
   const [activeGroup, setActiveGroup] = useState<GroupKey>("operations");
+  const [subTabByGroup, setSubTabByGroup] = useState<Record<GroupKey, string>>({
+    operations: SUB_TABS.operations[0].value,
+    marketing: SUB_TABS.marketing[0].value,
+    industry: SUB_TABS.industry[0].value,
+  });
+  const subTab = subTabByGroup[activeGroup];
+  const setSubTab = (v: string) =>
+    setSubTabByGroup((prev) => ({ ...prev, [activeGroup]: v }));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
   const { requestSave, SaveDialog } = useExportSave();
@@ -201,19 +209,12 @@ export default function CompanyResearch() {
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <Tabs defaultValue={SUB_TABS[activeGroup][0].value} className="w-full">
-                    <TabsList className="flex flex-wrap justify-start h-auto gap-1 bg-card/60 backdrop-blur border border-border rounded-lg p-1">
-                      {SUB_TABS[activeGroup].map(tab => (
-                        <TabsTrigger
-                          key={tab.value}
-                          value={tab.value}
-                          className="flex items-center gap-1.5 text-xs data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg px-3 py-1.5 transition-colors"
-                        >
-                          <tab.icon className="w-3.5 h-3.5" />
-                          {tab.label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+                  <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
+                    <CurrentThemeTab
+                      tabs={SUB_TABS[activeGroup].map((t) => ({ value: t.value, label: t.label, icon: t.icon })) satisfies CurrentThemeTabItem[]}
+                      activeTab={subTab}
+                      onTabChange={setSubTab}
+                    />
 
                     <TabsContent value="revenue-fees" className="mt-4">
                       <RevenueFees content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />

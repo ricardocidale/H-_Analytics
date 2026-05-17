@@ -27,7 +27,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { RUN_TYPE_LABELS, ANALYST_BRAND, AGENTS, ORCHESTRATORS, type RunType } from "@/lib/agent-taxonomy";
 import { IconList, IconBot, IconBrain, IconWand2, IconActivity } from "@/components/icons";
@@ -496,19 +496,15 @@ function RunsTab() {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function UnifiedLogsPage() {
+  const [activeTab, setActiveTab] = useState("runs");
+  const tabs: CurrentThemeTabItem[] = [
+    { value: "runs", label: "Runs", icon: IconList },
+    { value: "self-tests", label: "Self-tests", icon: IconActivity },
+  ];
   return (
     <div className="space-y-4" data-testid="unified-logs-page">
-      <Tabs defaultValue="runs">
-        <TabsList className="h-8">
-          <TabsTrigger value="runs" className="text-xs h-7 px-3">
-            <IconList className="w-3.5 h-3.5 mr-1.5" />
-            Runs
-          </TabsTrigger>
-          <TabsTrigger value="self-tests" className="text-xs h-7 px-3">
-            <IconActivity className="w-3.5 h-3.5 mr-1.5" />
-            Self-tests
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <CurrentThemeTab tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
         <TabsContent value="runs" className="mt-4">
           <RunsTab />

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet, IconBuilding } from "@/components/icons";
 import type { ComponentType } from "react";
 import type { IconProps } from "@/components/icons";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import SensitivityAnalysis from "./analysis/SensitivityAnalysis";
 import FinancingAnalysis from "./analysis/FinancingAnalysis";
@@ -38,22 +38,11 @@ export default function Analysis() {
         />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as AnalysisTab)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:w-max">
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              return (
-                <TabsTrigger
-                  key={t.id}
-                  value={t.id}
-                  className="flex items-center gap-2"
-                  data-testid={`tab-trigger-${t.id}`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {t.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <CurrentThemeTab
+            tabs={tabs.map((t) => ({ value: t.id, label: t.label, icon: t.icon })) satisfies CurrentThemeTabItem[]}
+            activeTab={tab}
+            onTabChange={(v) => setTab(v as AnalysisTab)}
+          />
 
           <div className="mt-6">
             <AnimatePresence mode="wait">

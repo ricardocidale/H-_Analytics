@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { usePanelManager } from "@/lib/panel-manager";
 import { RelaxationTrailStepper, type RelaxationStep } from "./RelaxationTrailStepper";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ function GuidanceSideSheet() {
   const { activePanel, guidanceContext, closeAll } = usePanelManager();
   const queryClient = useQueryClient();
   const isOpen = activePanel === "guidance" && !!guidanceContext;
+  const [activeTab, setActiveTab] = React.useState("recommendation");
 
   const { data: guidanceRecord, isLoading } = useQuery<GuidanceRecord | null>({
     queryKey: [
@@ -164,21 +165,19 @@ function GuidanceSideSheet() {
           </div>
         ) : (
           <>
-            <Tabs defaultValue="recommendation" className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="shrink-0 mx-5 mt-3 bg-muted/40 p-0.5 h-9" data-testid="guidance-tabs">
-                <TabsTrigger value="recommendation" className="text-xs h-8" data-testid="tab-recommendation">
-                  Range
-                </TabsTrigger>
-                <TabsTrigger value="peers" className="text-xs h-8" data-testid="tab-peers">
-                  Peers
-                </TabsTrigger>
-                <TabsTrigger value="provenance" className="text-xs h-8" data-testid="tab-provenance">
-                  Trail
-                </TabsTrigger>
-                <TabsTrigger value="impact" className="text-xs h-8" data-testid="tab-impact">
-                  Impact
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+              <div className="shrink-0 mx-5 mt-3" data-testid="guidance-tabs">
+                <CurrentThemeTab
+                  tabs={[
+                    { value: "recommendation", label: "Range" },
+                    { value: "peers", label: "Peers" },
+                    { value: "provenance", label: "Trail" },
+                    { value: "impact", label: "Impact" },
+                  ] satisfies CurrentThemeTabItem[]}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                />
+              </div>
 
               <div className="flex-1 overflow-y-auto px-5 py-4">
                 <TabsContent value="recommendation" className="mt-0 space-y-4" data-testid="panel-recommendation">

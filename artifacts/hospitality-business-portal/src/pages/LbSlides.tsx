@@ -19,7 +19,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -380,27 +380,19 @@ export default function LbSlides() {
           </div>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SlideTab)}>
-            <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-              <TabsTrigger value="config" className="text-xs">Setup</TabsTrigger>
-              <TabsTrigger value="s1" className="text-xs">
-                1 · Spotlight
-                <ReadinessTabBadge staleMissingCount={r1?.staleMissingCount} />
-              </TabsTrigger>
-              <TabsTrigger value="s2" className="text-xs">
-                2 · Gallery
-                <ReadinessTabBadge staleMissingCount={r2?.staleMissingCount} />
-              </TabsTrigger>
-              <TabsTrigger value="s3" className="text-xs">
-                3 · Investment
-                <ReadinessTabBadge staleMissingCount={r3?.staleMissingCount} />
-              </TabsTrigger>
-              <TabsTrigger value="s4" className="text-xs">4 · Portfolio</TabsTrigger>
-              <TabsTrigger value="s5" className="text-xs">
-                5 · Financials
-                <ReadinessTabBadge staleMissingCount={r5?.staleMissingCount} />
-              </TabsTrigger>
-              <TabsTrigger value="s6" className="text-xs">6 · Statement</TabsTrigger>
-            </TabsList>
+            <CurrentThemeTab
+              tabs={[
+                { value: "config", label: "Setup" },
+                { value: "s1", label: "1 · Spotlight", suffix: <ReadinessTabBadge staleMissingCount={r1?.staleMissingCount} /> },
+                { value: "s2", label: "2 · Gallery", suffix: <ReadinessTabBadge staleMissingCount={r2?.staleMissingCount} /> },
+                { value: "s3", label: "3 · Investment", suffix: <ReadinessTabBadge staleMissingCount={r3?.staleMissingCount} /> },
+                { value: "s4", label: "4 · Portfolio" },
+                { value: "s5", label: "5 · Financials", suffix: <ReadinessTabBadge staleMissingCount={r5?.staleMissingCount} /> },
+                { value: "s6", label: "6 · Statement" },
+              ] satisfies CurrentThemeTabItem[]}
+              activeTab={activeTab}
+              onTabChange={(v) => setActiveTab(v as SlideTab)}
+            />
 
             {/* ── Config & Render tab ─────────────────────────────────── */}
             <TabsContent value="config" className="mt-4 space-y-4">

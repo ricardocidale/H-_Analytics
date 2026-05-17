@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -243,11 +243,11 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
         <Card><CardContent className="py-8 text-sm text-muted-foreground">This Specialist declares no capability tabs.</CardContent></Card>
       ) : (
         <Tabs value={current} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <TabsList>
-            {tabsList.map((t) => (
-              <TabsTrigger key={t.value} value={t.value} data-testid={`tab-${t.value}`}>{t.label}</TabsTrigger>
-            ))}
-          </TabsList>
+          <CurrentThemeTab
+            tabs={tabsList.map((t) => ({ value: t.value, label: t.label })) satisfies CurrentThemeTabItem[]}
+            activeTab={current}
+            onTabChange={(v) => setActiveTab(v as TabValue)}
+          />
 
           <TabsContent value="workflow">
             <WorkflowTab

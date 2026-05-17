@@ -16,7 +16,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { FACTORY_TABS } from "./SlideFactoryConstants";
@@ -78,19 +78,16 @@ export function SlideFactoryPanel() {
       </div>
 
       <Tabs value={activeTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-          {FACTORY_TABS.map(({ value, label }) => (
-            <TabsTrigger
-              key={value}
-              value={value}
-              disabled={value !== activeTab}
-              className="text-xs"
-              title={value !== activeTab ? "Complete the previous step to unlock" : undefined}
-            >
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <CurrentThemeTab
+          tabs={FACTORY_TABS.map(({ value, label }) => ({
+            value,
+            label,
+            disabled: value !== activeTab,
+            tooltipTitle: value !== activeTab ? "Complete the previous step to unlock" : undefined,
+          })) satisfies CurrentThemeTabItem[]}
+          activeTab={activeTab}
+          onTabChange={() => {}}
+        />
 
         <TabsContent value="f-brief" className="mt-4">
           <FactoryBriefTab run={run} onRunUpdate={handleRunUpdate} />
