@@ -7,7 +7,7 @@
  *   2. The map in this file (staticRoutes or the dynamic match blocks)
  * See the `breadcrumbs` agent skill for the full update protocol.
  */
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useStore } from "@/lib/store";
 import { useProperty } from "@/lib/api";
 import {
@@ -147,11 +147,12 @@ export default function Breadcrumbs() {
                 <BreadcrumbPage className="text-foreground">
                   {item.label}
                 </BreadcrumbPage>
+              ) : item.href ? (
+                <BreadcrumbLink asChild className="text-muted-foreground">
+                  <Link href={item.href}>{item.label}</Link>
+                </BreadcrumbLink>
               ) : (
-                <BreadcrumbLink
-                  href={item.href}
-                  className="text-muted-foreground"
-                >
+                <BreadcrumbLink className="text-muted-foreground cursor-default">
                   {item.label}
                 </BreadcrumbLink>
               )}
