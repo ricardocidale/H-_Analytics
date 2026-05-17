@@ -1,7 +1,7 @@
 /**
  * AnalystButton.tsx — The single, canonical "Analyst" CTA used across the app.
  *
- * Vocabulary rule (`.claude/skills/vocabulary/SKILL.md` §2):
+ * Vocabulary rule (`.agents/skills/analyst-research-buttons/SKILL.md`):
  *   Label is always "Analyst" with `IconSparkles`. Per-context variant adds
  *   a suffix: e.g. "Analyst — Setup". Loading state shows OrbitalDots and
  *   the label "Studying…" (the canonical wait verb from the brand-voice
@@ -103,7 +103,7 @@ export function AnalystButton({
         {/* Sparkle is themed with the brand's intelligence accent (accent-pop,
             amber/gold) so it pops on dark default-variant buttons and reads
             as the canonical "AI / Analyst" cue. See
-            .claude/skills/ui/analyst-sparkle.md for the rule. */}
+            .agents/skills/analyst-research-buttons/SKILL.md for the rule. */}
         {isRunning ? <OrbitalDots size={cfg.loader} /> : <IconSparkles className={cn(cfg.icon, "text-accent-pop")} />}
         {!isRunning && freshnessStatus && FRESHNESS_DOT[freshnessStatus] && (
           <span

@@ -156,6 +156,7 @@ Every implementation unit's Verification section must include:
 
 - [ ] `pnpm run typecheck` (or scoped `tsc --noEmit`) — clean
 - [ ] `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
+- [ ] `scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts` — PASS (frontend units only; see §13)
 - [ ] Relevant test suite — PASS
 
 Units that modify DB schema or seed files also need:
@@ -271,6 +272,57 @@ Every frontend unit (any `.tsx`, `.jsx`, `.ts`/`.js` that renders UI, `.css`, `.
 ## 12. Model Cost Optimization — PRE-CODING SUGGESTION
 
 Suggest a model switch before starting work when there's a cost win without quality loss. **Haiku** — single-file/mechanical. **Sonnet** — multi-file feature work. **Opus** — financial engine (§9), cross-cutting refactors, deep debugging. Never switch silently — the user controls the model.
+
+---
+
+## 13. UI Canonical Enforcement — MANDATORY GATE
+
+**Every frontend unit (any `.tsx`/`.jsx` in `artifacts/hospitality-business-portal/src/`) MUST run:**
+
+```
+scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts
+```
+
+This is the hard gate. It must PASS before the unit is considered done. Zero tolerance — no baseline file.
+
+**Rule A — canonical "Analyst" CTA (one sentence):** Every Analyst call-to-action in the portal reads exactly `Analyst` (or canonical suffix variant `Analyst — <Tab>`, or running-state `Studying…`); variants like `Ask Analyst` / `Ask The Analyst` / `onAskAnalyst` / `askAnalyst` / `askTheAnalyst` / `ASK_ANALYST_*` / `button-ask-analyst-*` are forbidden, and `<AnalystActionButton label="X">` where X ≠ `"Analyst"` is forbidden.
+
+**Rule B — canonical horizontal tabs (one sentence):** Every horizontal menu in the portal renders through the canonical `<CurrentThemeTab>` wrapper from `@/components/ui/tabs`; direct imports of `TabsList` / `TabsTrigger` from `@/components/ui/tabs` outside `tabs.tsx` itself are forbidden, and hand-rolled `<button>` rows with `activeTab` toggle styling are forbidden.
+
+**Canonical components:**
+- Analyst CTAs: `AnalystButton` (`@/components/intelligence/AnalystButton`) — page headers, status bars, full-width primary CTAs.
+- Analyst CTAs: `AnalystActionButton` (`@/components/analyst/AnalystActionButton`) — header/save-row/modal variants with cooldown support. Either is acceptable; the checker accepts both imports.
+- Horizontal tabs: `CurrentThemeTab` (`@/components/ui/tabs`) — Radix-backed wrapper with `suffix`, `trailingIcon`, `disabled` + `tooltipTitle`, `responsive: { fallback: "select" }`, and `variant: "default" | "drawer"`. `TabsContent` for panel content remains permitted.
+
+**Three violation examples with correct fixes:**
+```tsx
+// VIOLATION 1 — Rule A masking-literal anti-pattern
+export const ASK_ANALYST_CTA = "Ask The Analyst"; // BANNED
+
+// CORRECT 1 — use the canonical component
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+<AnalystButton onClick={onAnalystClick} />
+
+// VIOLATION 2 — Rule B import of bare primitives outside tabs.tsx
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"; // BANNED
+
+// CORRECT 2 — use the wrapper
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
+<CurrentThemeTab tabs={items} activeTab={tab} onTabChange={setTab} />
+
+// VIOLATION 3 — Rule B hand-rolled tab row
+<div className="flex">
+  {items.map(t => <button className={activeTab === t.value ? "on" : "off"} />)}
+</div>
+
+// CORRECT 3 — same wrapper; styling stays consistent across the portal.
+```
+
+**When to include in a plan's verification section:** Every frontend unit. If the unit adds no UI surface, the gate still runs to catch regressions. There are no exceptions.
+
+**Relationship to §1 and §11:** §13 is mechanical (CI-enforced, no judgment), §11 is qualitative (`/post-coding-design-review` design pass), §1 is structural (numeric / integration identifiers). They run independently and do not substitute for each other.
+
+**Skills for full detail:** `.agents/skills/analyst-research-buttons/SKILL.md` (Rule A), `.agents/skills/ui-page-patterns/SKILL.md` (Rule B). Convention doc with mechanical-enforcement section: `docs/solutions/conventions/currentthemetab-migration-convention-2026-05-16.md`.
 
 ---
 
@@ -592,6 +644,6 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
+| 2026-05-17 | **UI canonical enforcement gate shipped (Plan 2026-05-16-004; CLAUDE.md §13).** Zero-tolerance mechanical gate at `scripts/src/check-ui-canonical.ts` covering Rule A (canonical `Analyst` CTA — banned `Ask (the) Analyst` text, banned `onAskAnalyst`/`askTheAnalyst`/`ASK_ANALYST_*`/`button-ask-analyst-*` identifiers, banned `<AnalystActionButton label="X">` where X ≠ `"Analyst"` with multi-line JSX buffer) and Rule B (canonical `<CurrentThemeTab>` wrapper — bare `TabsList`/`TabsTrigger` imports outside `tabs.tsx` forbidden, hand-rolled `<button>+activeTab===` heuristic). Cleanup: 5 Rule A files + 12 Rule B files. `CurrentThemeTab` rebuilt on Radix internals — gains `role="tab"`/`aria-selected`/arrow-key nav plus new affordances (`suffix`, `trailingIcon`, `disabled`+`tooltipTitle`, `responsive: { fallback: "select" }`, `variant: "default" \| "drawer"`). Meta-checker `check:gate-health` asserts file-exists / CI-wired / effective per registered gate. CI wired in `.github/workflows/ci.yml`. |
 | 2026-05-15 | **Norfolk AI attribution memorialized + Minion Otavio (PDF pagination) shipped.** Norfolk AI (software company) / H+ Analytics (product) distinction formally established in CLAUDE.md, replit.md, README.md, `hbg-product-vision`, and `hbg-business-model` skills. Minion Otavio added (`report/minions/otavio-pagination.ts`): deterministic PDF pagination pre-pass wired into `compileReport()` — pre-splits flat `ReportSection[]` into page-safe chunks (LANDSCAPE_TABLE_ROW_CAP = 21, PORTRAIT_TABLE_ROW_CAP = 16) before HTML generation; includes header orphan prevention and cont'd N/M title suffixes. PDF path only; xlsx/pptx/docx unaffected. Otavio registered in `slide-factory` SKILL.md roster. Both memory files harmonized. |
 | 2026-05-13 | **Financial defaults integrity + IRR calibration shipped (Plan 2026-05-13-003, Phases 1–5).** Five root causes of broken IRR fixed: (1) exit cap rate 0.062→0.085 for luxury tier (`SEED_EXIT_CAP_RATE_LUXURY`); (2) `refinanceLtv`→`refinanceLTV` casing bug fixed on 3 SYNC properties; (3) `refiMaxLtvToOriginal` cap wired in both engine refi paths (`refinance-pass.ts` + `loanCalculations.ts`) to prevent equity stripping; (4) null assertions added for fail-fast behavior (Phase 4); (5) `withFinancialHydration` wired at all compute routes (Phase 2). DB migration adds `refi_max_ltv_to_original` column to `properties` (Drizzle 0058/0064, runtime guard `properties-refi-ltv-cap-001.ts`). Startup guard `assertRequiredModelDefaults()` fails boot if model_defaults seed rows are missing. |
-| 2026-05-12 | **Factory v2 PPTX-as-truth pipeline shipped (Phases A–D).** Slide factory render path pivoted from React+Playwright HTML→PDF to PPTX template substitution (`pptx-automizer`) → LibreOffice headless export. Output is dual-format (PPTX + PDF). The v7 reconstruction package PPTX is the structural template; Builders emit substitution maps; Marco assembles and applies via `substituteSlots`. Wish-list slide appended post-run. Admin UI updated: PPTX + PDF download buttons in FactoryDownloadTab; all factory mutations migrated to `apiRequest()` (CSRF-compliant). Rebecca `download_factory_v2_deck` tool added for agent-native parity. Franco (Playwright→PDF render minion) added to SKILL.md roster. Decision-reversal doc (`slide-deck-generation-decision-reversal-2026-05-03.md`) marked superseded. |

@@ -62,16 +62,31 @@ import { Sparkles } from "lucide-react"; // or IconSparkles from "@/components/i
 </Button>;
 ```
 
-## Forbidden patterns (the guard catches these)
+## Forbidden patterns
 
-A guard test — `tests/audit/analyst-button-convention.test.ts` — fails the build if any of these appear in `client/src/`:
+The following patterns are forbidden in `artifacts/hospitality-business-portal/src/`:
 
 - A button containing `>Refresh research<` / `>Refresh Research<`
 - A button labeled `>Refresh<` / `>Run<` / `>Run now<` / `>Re-fetch<` paired with a `RefreshCw` / `Play` icon next to a research mutation hook
 - A `data-testid="button-refresh-research-…"` on a research-trigger button (use `button-analyst-…`)
 - A research-trigger button using `RefreshCw` instead of `Sparkles` as the lead icon
+- "Ask Analyst" / "Ask The Analyst" copy on any CTA (use the canonical `Analyst` label)
+- `onAskAnalyst` / `askAnalyst` / `askTheAnalyst` identifiers (use `onAnalystClick` / `runAnalyst`)
+- `ASK_ANALYST_*` masking-literal constants (the name doesn't fix the literal)
+- `button-ask-analyst-*` data-testid values (use `button-analyst-*`)
+- `<AnalystActionButton label="X">` where X is anything other than `"Analyst"` (omit the prop or pass `"Analyst"`)
 
-If your surface legitimately needs a non-Analyst refresh (e.g. a pure cache-bust that does NOT call into The Analyst or a specialist), add the file to the allowlist at the top of the guard test with a one-line justification.
+### Mechanical enforcement (CLAUDE.md §13 Rule A)
+
+The above patterns are zero-tolerance gated by `scripts/src/check-ui-canonical.ts`. Run before declaring any frontend unit done:
+
+```
+scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts
+```
+
+The checker uses regex + a multi-line JSX buffer with brace-depth tracking, so it catches single-line, multi-line, and "masking-literal" violations alike. **Known limitation:** expression-resolved labels (`<AnalystActionButton label={ctaLabel} />`, template literals, i18n keys) are not caught — those remain enforced by code review until the deferred ESLint-AST follow-up ships. Companion gate `check:gate-health` asserts the checker stays wired in CI. See CLAUDE.md §13 for the full rule statement and `docs/solutions/conventions/currentthemetab-migration-convention-2026-05-16.md` for the sibling Rule B (canonical horizontal tabs).
+
+If your surface legitimately needs a non-Analyst refresh (e.g. a pure cache-bust that does NOT call into The Analyst or a specialist), open a PR adding the file to `ALLOWED_FILES` in `scripts/src/check-ui-canonical.ts` with a one-line justification naming the canonical it cites.
 
 ## Wait copy — what the user sees while The Analyst studies
 
@@ -148,4 +163,4 @@ If the surface is one-off and unlikely to be reused, pass a bespoke `lines={[…
 4. `data-testid` starts with `button-analyst-`. ✅
 5. Header text on the surface reads `Analyst — …`, not `Refresh research — …`. ✅
 6. **Wait sub-line uses an approved verb (`studying`, `reviewing`, `cross-referencing`, `checking`, `weighing`, `forming a view`) and names a specific artifact.** ✅
-7. The guard test passes (`npx vitest run tests/audit/analyst-button-convention.test.ts`). ✅
+7. The canonical gate passes (`scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts`). ✅

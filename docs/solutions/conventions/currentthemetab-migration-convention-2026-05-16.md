@@ -162,6 +162,36 @@ pnpm --filter @workspace/scripts run check:flex-label-overflow:init
 ```
 to tighten the baseline. Six violations were fixed during the May 2026 sweep (baseline: 177).
 
+## Mechanical Enforcement (shipped 2026-05-17, Plan 2026-05-16-004)
+
+CLAUDE.md §13 codifies this convention at the same severity as §1 (no-hardcoded-values). The gate is:
+
+```
+scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts
+```
+
+**What it catches (Rule B in the checker):**
+
+- Direct imports of `TabsList` or `TabsTrigger` from `@/components/ui/tabs` outside `tabs.tsx` itself.
+- Hand-rolled `<button>` rows paired with `activeTab === ` toggle styling within five lines (heuristic — flags the canonical pattern Replit Agent re-creates).
+- `TabsContent` imports remain permitted (panel content wrapper, not the tab strip).
+
+The checker also covers Rule A (canonical "Analyst" CTA — text, identifiers, and `<AnalystActionButton label="X">` JSX prop with a multi-line buffer). See CLAUDE.md §13 for the combined rule statement and `.agents/skills/analyst-research-buttons/SKILL.md` for Rule A details.
+
+**Companion gate:** `check:gate-health` (`scripts/src/check-gate-health.ts`) asserts that the UI canonical gate remains FILE-EXISTS / CI-WIRED / EFFECTIVE on every CI build — prevents the silent-disablement failure mode documented at `docs/solutions/documentation-gaps/agent-memory-file-divergence-2026-05-04.md`.
+
+**Known limitations of the regex approach:**
+
+| Bypass pattern | Example | Status |
+|---|---|---|
+| Variable-resolved label | `<AnalystActionButton label={ctaLabel} />` | Not caught — code review |
+| Template literal | `` <Button>{`Ask${" "}Analyst`}</Button> `` | Not caught — code review |
+| i18n key | `<Button>{t('cta.ask_analyst')}</Button>` | Not caught — code review |
+
+Closing these requires either (a) removing the `label?` prop entirely (32-file caller sweep — deferred) or (b) migrating Rule A enforcement to a TypeScript-AST tool (ESLint plugin — deferred). Plan 2026-05-16-004 §"Known Limitations of the Regex Approach" carries the full enumeration.
+
+**Adding a new affordance:** if a migration target reveals a need not met by `suffix` / `trailingIcon` / `disabled` + `tooltipTitle` / `responsive` / `variant`, extend `CurrentThemeTab` in `components/ui/tabs.tsx` per the additive-prop pattern in `docs/solutions/architecture-patterns/variant-graduation-shared-component-pattern-2026-05-11.md`. **Do not allow-list at the checker level** — that re-creates the prose-rule-drift failure mode the gate was built to prevent.
+
 ## Why This Matters
 
 1. **Single theming point** — All tab styling (accent colors, focus rings, dark mode, active indicator) lives in `tabs.tsx`. No scattered Radix overrides.
