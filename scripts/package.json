@@ -19,6 +19,7 @@
     "check:typecheck": "tsx ./src/check-typecheck.ts",
     "check:schema-drift": "tsx ./src/check-schema-drift.ts",
     "check:analyst-copy": "tsx ./src/check-analyst-copy.ts",
+    "check:ui-canonical": "tsx ./src/check-ui-canonical.ts",
     "check:canonical-schema": "tsx ./src/check-canonical-schema.ts",
     "check:direct-run-guards": "tsx ./src/check-direct-run-guards.ts",
     "check:flex-label-overflow": "tsx ./src/check-flex-label-overflow.ts",
