@@ -293,6 +293,18 @@ export default function Admin() {
     setSaveState(state);
   }, []);
 
+  // Intercept section changes from within the content area so tabs that have
+  // unsaved changes (e.g. ModelDefaults) can confirm before navigation. Note:
+  // sidebar-initiated section changes go through Layout.tsx and bypass this
+  // guard — that is a known limitation (follow-up: extend useAdminSection).
+  const handleNavigate = useCallback((section: typeof activeSection) => {
+    if (saveState?.confirmNavigation) {
+      saveState.confirmNavigation(() => setActiveSection(section));
+    } else {
+      setActiveSection(section);
+    }
+  }, [saveState, setActiveSection]);
+
   // Pull the live Specialist list so the page header for any Specialist
   // section tracks an Identity-tab rename (including a future Gustavo
   // override) without a reload. The IdentityTab already invalidates this
@@ -342,7 +354,7 @@ export default function Admin() {
 
           <div className="space-y-6" data-testid={`admin-content-${resolved}`}>
             <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
-              <SectionContent section={activeSection} onNavigate={setActiveSection} onSaveStateChange={handleSaveStateChange} />
+              <SectionContent section={activeSection} onNavigate={handleNavigate} onSaveStateChange={handleSaveStateChange} />
             </Suspense>
           </div>
         </div>

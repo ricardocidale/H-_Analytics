@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useUnsavedExitGuard } from "@/hooks/useUnsavedExitGuard";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import superjson from "superjson";
 import Layout from "@/components/Layout";
@@ -516,6 +517,21 @@ function BracketMixTab() {
     }
     setInitialized(true);
   }, [savedMix, mixLoading, initialized]);
+
+  const isDirtyBrackets = useMemo(() => {
+    if (!initialized) return false;
+    const savedKey = (savedMix ?? [])
+      .map((e) => `${e.bracketSlug}:${Math.round(e.weight * 10000)}`)
+      .sort()
+      .join(",");
+    const currentKey = Array.from(selectedSlugs)
+      .map((slug) => `${slug}:${Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000)}`)
+      .sort()
+      .join(",");
+    return savedKey !== currentKey;
+  }, [initialized, savedMix, selectedSlugs, weights]);
+
+  useUnsavedExitGuard({ isDirty: isDirtyBrackets, onSave: () => {} });
 
   const weightSum = Array.from(selectedSlugs).reduce((sum, slug) => {
     const pct = parseFloat(weights[slug] ?? "0");

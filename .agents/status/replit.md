@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T14:40:00Z
+Updated: 2026-05-17T14:57:00Z
 Status: idle
 
 ## Active Branch
@@ -16,6 +16,39 @@ main
 (analyst-tables nav move + save-button audit plan — this session)
 
 ## What Replit Did This Session
+
+**Save-button audit — UnsavedExitDialog infrastructure + wiring (plan 2026-05-17):**
+
+- NEW: `artifacts/hospitality-business-portal/src/components/ui/unsaved-exit-dialog.tsx`
+  — 2-button modal: "Save" + "Leave without saving"; renders `isSaving` spinner on Save button
+- NEW: `artifacts/hospitality-business-portal/src/hooks/useUnsavedExitGuard.ts`
+  — Hook: `{ isDirty, onSave }` → `{ dialogOpen, isSaving, confirmLeave, handleSave, handleLeave, handleCancel }`
+  — Registers `beforeunload` listener while dirty; exposes `confirmLeave(cb)` for in-app nav interception
+- UPDATED: `artifacts/hospitality-business-portal/src/components/admin/save-state.ts`
+  — Added optional `confirmNavigation?: (proceed: () => void) => void` to `AdminSaveState`
+- UPDATED: `artifacts/hospitality-business-portal/src/pages/PropertyEdit.tsx`
+  — Replace raw `beforeunload` useEffect → `useUnsavedExitGuard`
+  — Remove `setLocation(...)` from `finishSave` (stays on page after save)
+  — Remove Analyst CTA from header group; reorder header to Cancel | Save (alwaysActive)
+  — Reorder sticky footer to Analyst | Cancel | Save (alwaysActive)
+  — Render `<UnsavedExitDialog>` wired to `exitGuard`
+- UPDATED: `artifacts/hospitality-business-portal/src/components/admin/ModelDefaultsTab.tsx`
+  — `useUnsavedExitGuard` wired; tab-change intercepted with `exitGuard.confirmLeave`
+  — `<UnsavedExitDialog>` rendered; `confirmNavigation: exitGuard.confirmLeave` passed via `onSaveStateChange`
+- UPDATED: `artifacts/hospitality-business-portal/src/hooks/useCompanyAssumptionsForm.ts`
+  — Raw `beforeunload` useEffect replaced with `useUnsavedExitGuard({ isDirty, onSave: () => {} })`
+- UPDATED: `artifacts/hospitality-business-portal/src/pages/CompanyBracketMix.tsx`
+  — `isDirtyBrackets` useMemo computed from `savedMix` vs `selectedSlugs + weights`
+  — `useUnsavedExitGuard` wired for `beforeunload` protection (no nav dialog — Save is validation-gated)
+- UPDATED: `artifacts/hospitality-business-portal/src/pages/Admin.tsx`
+  — `handleNavigate` wraps `setActiveSection`: calls `saveState.confirmNavigation` if set, else navigates directly
+  — `SectionContent` now uses `handleNavigate` instead of raw `setActiveSection`
+
+**Gates:** typecheck ✅ portal lint ✅
+
+**Pre-existing failures (CC-owned, not introduced):**
+- check:lint → no-shadow in `api-server/src/chat/rebecca-tool-impls-slide-factory.ts`
+- test:api-server → dispatch, pptx-substitution, marco, slide-6-embed-flow
 
 **Users page split into Main / Admin sections + role-change super-admin gate:**
 

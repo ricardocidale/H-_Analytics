@@ -41,8 +41,10 @@ import { Loader2, ChevronUp } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
+import { UnsavedExitDialog } from "@/components/ui/unsaved-exit-dialog";
+import { useUnsavedExitGuard } from "@/hooks/useUnsavedExitGuard";
 import { PageHeader } from "@/components/ui/page-header";
-import { Link, useRoute, useLocation } from "wouter";
+import { Link, useRoute } from "wouter";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
@@ -74,7 +76,6 @@ import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDispla
 
 export default function PropertyEdit() {
   const [, params] = useRoute("/property/:id/edit");
-  const [, setLocation] = useLocation();
   const propertyId = params?.id ? parseInt(params.id) : 0;
 
   // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
@@ -103,6 +104,7 @@ export default function PropertyEdit() {
   
   const [draft, setDraft] = useState<any>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const handleSaveRef = useRef<() => void>(() => {});
   const [feeDraft, setFeeDraft] = useState<FeeCategoryResponse[] | null>(null);
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const [showApplyDialog, setShowApplyDialog] = useState(false);
@@ -413,14 +415,10 @@ export default function PropertyEdit() {
     }
   }, [property]);
 
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
+  const exitGuard = useUnsavedExitGuard({
+    isDirty,
+    onSave: () => handleSaveRef.current(),
+  });
 
   const projectionYears = globalAssumptions?.projectionYears ?? PROJECTION_YEARS;
   const modelStartYear = globalAssumptions?.modelStartDate 
@@ -503,7 +501,6 @@ export default function PropertyEdit() {
       // Log so we still surface fetch/parse problems in dev tools.
       console.warn("Post-save validation alerts fetch failed:", err);
     }
-    setLocation(`/property/${propertyId}`);
   };
 
   const handleSave = () => {
@@ -560,6 +557,8 @@ export default function PropertyEdit() {
     });
   };
 
+  handleSaveRef.current = handleSave;
+
   const sectionProps = { draft, onChange: handleChange, onNumberChange: handleNumberChange, globalAssumptions, researchValues, guidance };
 
   const handleAcceptRange = (key: string, value: number) => {
@@ -602,42 +601,19 @@ export default function PropertyEdit() {
                   Apply
                 </Button>
               )}
-              {/* Primary action group: Save | Cancel | Analyst */}
-              <SaveButton
-                onClick={handleSave}
-                isPending={updateProperty.isPending}
-                hasChanges={isDirty}
-              />
+              {/* Primary action group: Cancel | Save */}
               <CancelButton
                 size="sm"
                 onClick={handleCancel}
                 disabled={updateProperty.isPending}
                 data-testid="button-cancel-property-edit"
               />
-              {(() => {
-                const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
-                const lastResearched = researchUpdatedAt
-                  ? `Last researched ${(() => {
-                      const ms = Date.now() - new Date(researchUpdatedAt).getTime();
-                      const mins = Math.floor(ms / 60000);
-                      if (mins < 1) return "just now";
-                      if (mins < 60) return `${mins}m ago`;
-                      const hrs = Math.floor(mins / 60);
-                      if (hrs < 24) return `${hrs}h ago`;
-                      return `${Math.floor(hrs / 24)}d ago`;
-                    })()} · `
-                  : "";
-                return (
-                  <AnalystButton
-                    onClick={() => { setIntelligenceClicked(true); generateResearch(); }}
-                    isRunning={isGenerating}
-                    freshnessStatus={status}
-                    pulse={!intelligenceClicked && status !== "current"}
-                    tooltip={`${lastResearched}Run AI research to get market-backed ranges for all assumptions.`}
-                    dataTestId="button-regenerate-intelligence"
-                  />
-                );
-              })()}
+              <SaveButton
+                onClick={handleSave}
+                isPending={updateProperty.isPending}
+                hasChanges={isDirty}
+                alwaysActive
+              />
             </div>
           }
         />
@@ -710,20 +686,8 @@ export default function PropertyEdit() {
           </>
         )}
 
-        {/* Sticky bottom action bar: Save | Cancel | Analyst */}
+        {/* Sticky bottom action bar: Analyst | Cancel | Save */}
         <div className="sticky bottom-0 z-30 flex justify-end gap-2 py-3 px-4 bg-background/95 backdrop-blur border-t border-border flex-wrap">
-          <SaveButton
-            onClick={handleSave}
-            isPending={updateProperty.isPending}
-            hasChanges={isDirty}
-          >
-            Save
-          </SaveButton>
-          <CancelButton
-            onClick={handleCancel}
-            disabled={updateProperty.isPending}
-            data-testid="button-cancel-property-edit-footer"
-          />
           {(() => {
             const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
             return (
@@ -737,6 +701,19 @@ export default function PropertyEdit() {
               />
             );
           })()}
+          <CancelButton
+            onClick={handleCancel}
+            disabled={updateProperty.isPending}
+            data-testid="button-cancel-property-edit-footer"
+          />
+          <SaveButton
+            onClick={handleSave}
+            isPending={updateProperty.isPending}
+            hasChanges={isDirty}
+            alwaysActive
+          >
+            Save
+          </SaveButton>
         </div>
 
         {/* Back-to-top floating button */}
@@ -802,6 +779,13 @@ export default function PropertyEdit() {
         specialistLabel="Property Intelligence"
         missingFields={missingFieldsPrompt.missingFields}
         navContext={{ propertyId }}
+      />
+      <UnsavedExitDialog
+        open={exitGuard.dialogOpen}
+        onSave={exitGuard.handleSave}
+        onLeave={exitGuard.handleLeave}
+        onCancel={exitGuard.handleCancel}
+        isSaving={exitGuard.isSaving}
       />
       </AnimatedPage>
     </Layout>
