@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T14:30:00Z
-Status: handoff-pending
+Updated: 2026-05-17T12:55:00Z
+Status: idle
 
 ## Active Branch
 
