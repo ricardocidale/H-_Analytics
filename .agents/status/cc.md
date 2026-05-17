@@ -4,83 +4,70 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T15:00:00Z
-Status: active
+Updated: 2026-05-17T20:45:00Z
+Status: idle
 
 ## Active Branch
 
-feat/ui-canonical-enforcement-gate
+`main` at `4f29261c4`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-2b8f89f7c (Replit) Update documentation and status to reflect recent changes and handoff
+`4f29261c4` — `chore(dev): cross-platform Claude Code permission-bypass installers (#161)` (squash merge).
 
-## What CC Is Doing This Session (2026-05-17 session 11)
+## What CC Did This Session (2026-05-17 session 14)
 
-**Executing Phase 3** of plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`:
-Rename `ORCHESTRATOR_SPECIALIST_ID` `"gaspar"` → `"gustavo"` in `lib/engine/src/analyst/identity.ts`.
-Added `LEGACY_ORCHESTRATOR_ID = "gaspar"` alias (remove in Phase 4).
-Updated all live string literals + JSDoc references across portal + api-server.
-**All gates pass. Committed f93cd76e8.**
+**Shipped cross-platform Claude Code permission-bypass installers — PR #161 squash-merged to main as `4f29261c4`.**
 
-Replit is concurrently working on Save button work (modified files in working tree,
-2 untracked files) — **not staged, not touched by CC**.
+Diagnosed and worked around three open Anthropic bugs that make permission-prompt suppression unreliable in Claude Code 2.1.x:
+- [anthropics/claude-code#34923](https://github.com/anthropics/claude-code/issues/34923) — `permissions.defaultMode: "bypassPermissions"` in settings.json is silently broken.
+- [anthropics/claude-code#29026](https://github.com/anthropics/claude-code/issues/29026) — Desktop app ignores both `permissions.allow` and `defaultMode` bypass.
+- [anthropics/claude-code#55095](https://github.com/anthropics/claude-code/issues/55095) — Desktop's in-app bypass toggle is a no-op.
 
-Branch: `feat/ui-canonical-enforcement-gate`.
+**Shipped (now on main):**
+- `scripts/install-claude-wrapper.sh` — Linux/Mac installer. Drops a portable shim at `~/.local/bin/claude` that resolves the real claude binary by skipping itself on PATH and exec's it with `--dangerously-skip-permissions`. Includes a size-based safety check that refuses to overwrite a native install (>100 KB at target path).
+- `scripts/install-claude-wrapper.ps1` — Windows PowerShell installer. Drops `claude.cmd` at `%USERPROFILE%\.claude-bypass\bin\` (separate directory, prepended to user PATH) to avoid the PATHEXT collision where `.exe` beats `.cmd` in the same directory. Includes OneDrive/Dropbox hazard detection. Uses `[Environment]::SetEnvironmentVariable(..., 'User')` to dodge `setx` 1024-char truncation.
+
+**Verification:**
+- Linux: removed `~/.local/bin/claude` → fell back to npm binary → ran installer → wrapper restored → bash trace confirmed `exec real-claude --dangerously-skip-permissions --version`. Real-tool-call smoke test via `claude -p` Bash invocation echoed the marker through the wrapper.
+- Windows: verified end-to-end on the repo owner's native Claude Code 2.1.133 at `C:\Users\ricar\.local\bin\claude.exe` (225 MB compiled binary). `where.exe claude` showed `.claude-bypass\bin\claude.cmd` first, real `.exe` second. `claude --model haiku -p` echoed the marker through the shim — bypass confirmed active.
+- Desktop (Mac & Windows): 🔴 no working bypass in 2.1.x. Use CLI for unattended workflows until fixed upstream.
+
+**Per-machine setup also done on this Replit (not committed, gitignored):**
+- `~/.local/bin/claude` wrapper installed and live.
+- `~/.claude/settings.json`: dead `skipDangerousModePermissionPrompt: true` key removed.
+- `.claude/settings.local.json` allowlist expanded to broad `[Bash, Edit, Write, WebFetch, WebSearch]` as a wrapper-less fallback for this box only.
+
+**Branch hygiene:**
+- Worked on `chore/claude-wrapper` (off main) for the PR.
+- Deleted `feat/portal-followups` (post-merge stub from PR #160 with no unique work) — deletion authorized by user; recovery via reflog if needed (`d11cb426e`).
+- Pruned 17 stale remote-tracking refs as a side effect of `git remote prune origin`.
+
+**Memory captured (saved to `~/.claude/projects/.../memory/`):**
+- `feedback_powershell_repo_path.md` — don't assume the user is in the H-Analytics repo when issuing PowerShell commands on Windows; their clone is not in any common location.
+- `feedback_windows_native_claude_install.md` — user's Windows runs Anthropic native `claude.exe` at `~/.local/bin\`, not npm; sibling `.cmd` shims won't shadow it because of PATHEXT.
 
 ## Files CC Owns Right Now
 
-Branch is unmerged; surfaces in scope per plan:
-- `artifacts/hospitality-business-portal/src/components/admin/intelligence/reference-ranges/FilterBar.tsx`
-- `artifacts/hospitality-business-portal/src/components/admin/intelligence/ReferenceRangesTab.tsx`
-- `artifacts/hospitality-business-portal/src/components/property-finder/PropertyDetailDrawer.tsx`
-- `artifacts/hospitality-business-portal/src/components/ui/tabs.tsx`
-- 11 gray-zone migration files (see plan U3)
-- `scripts/src/check-ui-canonical.ts`, `scripts/src/check-gate-health.ts`
-- `CLAUDE.md`, `replit.md`, `.agents/skills/ui-page-patterns/SKILL.md`,
-  `.agents/skills/analyst-research-buttons/SKILL.md`
-
-## What CC Did This Session (2026-05-16 session 9 — prior)
-
-Resumed from prior session (T3-1 already merged as PR #158). This session:
-
-**ce-compound documentation** (COMPLETE):
-- New: `architecture-patterns/matteo-multi-vendor-llm-slot-routing-2026-05-16.md`
-  — 4-layer admin-editable LLM slot routing via admin_resources; resolveLlmFor + generateText
-  dispatch; feature flags; no model names in TS (CLAUDE.md §1)
-- New: `security-issues/auth-before-write-portfolio-assignment-2026-05-16.md`
-  — IDOR fix in PUT /api/properties/:id/portfolio; ownership check before updateProperty
-  mutation; applies to both HTTP route + Rebecca tool implementations
-- New: `best-practices/coderabbit-false-positive-engine-null-fallbacks-2026-05-16.md`
-  — three-layer resolver guarantees non-null; ?? 0 fallbacks are Category 2 taxonomy violations;
-  reply template for CodeRabbit false positives on engine fields
-- Updated: `workflow-issues/cc-replit-branch-hygiene-2026-05-10.md`
-  — added reset+force-with-lease sub-pattern for all-worthless-Replit-commits case
-
-**Replit handoff push:**
-- Pushed 4 Replit commits (tab standardization, sidebar restructure, flex-label-overflow fixes,
-  handoff doc) from local main to origin/main per Replit's handoff request
+None — work is on main, working tree clean.
 
 ## What's Pending
 
-Nothing from CC for this session.
+- Open TODO carried from prior sessions (CLAUDE.md):
+  - Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up)
 
 ## Handoff to Replit
 
-All clean on main. No CC-specific work outstanding.
+All clean on `main`. No CC-specific work outstanding.
 
 Outstanding Replit UI tasks (still on Replit's plate, unchanged from prior handoff):
-- T2-4 UI: "Verify deck" button in Slide Factory Tab 6
-  POST /api/slide-factory-runs/:id/verify → GET /api/slide-factory-runs/:id/verification
-  Severity: ok=emerald, advisory=sky, warning=amber, block=red
-- T2-3 UI: "Improve with AI" button on descriptionImproved textarea in BasicInfoSection.tsx
-  POST /api/properties/:id/rewrite-description { text: string }
-- T2-2 UI: Portfolio selector on property list
-  GET /api/portfolios, PUT /api/properties/:id/portfolio { portfolioId: N | null }
+- T2-4 UI: "Verify deck" button in Slide Factory Tab 6 — `POST /api/slide-factory-runs/:id/verify` → `GET /api/slide-factory-runs/:id/verification`. Severity: ok=emerald, advisory=sky, warning=amber, block=red.
+- T2-3 UI: "Improve with AI" button on `descriptionImproved` textarea in `BasicInfoSection.tsx` — `POST /api/properties/:id/rewrite-description { text: string }`.
+- T2-2 UI: Portfolio selector on property list — `GET /api/portfolios`, `PUT /api/properties/:id/portfolio { portfolioId: N | null }`.
 
 Pre-existing test failures (not introduced this session, not CC-owned):
-- check:lint → no-shadow in api-server/src/chat/rebecca-tool-impls-slide-factory.ts
-- test:api-server → marco, builder-substitution-map, pptx-substitution, dispatch, slide-6-embed-flow
+- `check:lint` — no-shadow in `api-server/src/chat/rebecca-tool-impls-slide-factory.ts`
+- `test:api-server` — marco, builder-substitution-map, pptx-substitution, dispatch, slide-6-embed-flow
 
 ## Do Not Touch
 
