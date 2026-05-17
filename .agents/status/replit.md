@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T11:50:00Z
+Updated: 2026-05-17T13:30:00Z
 Status: idle
 
 ## Active Branch
@@ -27,6 +27,14 @@ main
 - Toast title changed "probe failed" → "check failed"
 - Solution doc: `docs/solutions/ui-patterns/agent-roster-probe-messages-2026-05-17.md`
 - replit.md updated with probe rules + Recent Changes
+
+**Agent taxonomy plan (ce-plan):**
+- Plan written: `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`
+- Architect subagent consulted for deep structural analysis
+- 4-phase plan: Phases 1–2 Replit-owned; Phases 3–4 CC-owned
+- Defines `entityCode` convention (`orch.gustavo`, `spec.A`, `agent.rebecca`, `minion.aldo`)
+- Designs centralized `intelligence-entity-registry.ts` for portal layer
+- Covers new class-aware probe route, terminology fixes, and `gaspar`→`gustavo` rename
 
 **Gates:** typecheck ✅ vite compile ✅
 
