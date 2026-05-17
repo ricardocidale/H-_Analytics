@@ -28,6 +28,7 @@
     "check:schema-drift": "pnpm --filter @workspace/scripts run check:schema-drift",
     "check:analyst-copy": "pnpm --filter @workspace/scripts run check:analyst-copy",
     "check:ui-canonical": "pnpm --filter @workspace/scripts run check:ui-canonical",
+    "check:gate-health": "pnpm --filter @workspace/scripts run check:gate-health",
     "check:direct-run-guards": "pnpm --filter @workspace/scripts run check:direct-run-guards",
     "check:flex-label-overflow": "pnpm --filter @workspace/scripts run check:flex-label-overflow",
     "check:flex-label-overflow:init": "pnpm --filter @workspace/scripts run check:flex-label-overflow:init",
