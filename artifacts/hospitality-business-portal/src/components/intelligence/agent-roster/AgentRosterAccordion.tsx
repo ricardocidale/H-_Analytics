@@ -241,6 +241,7 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
   const probeApplies = entry.initialHealth !== "not-applicable";
 
   return (
+    <Card className="overflow-hidden">
     <Collapsible open={open} onOpenChange={setOpen}>
       {/* ── Row trigger (matches Knowledge Registry AssetPanel style) ── */}
       <CollapsibleTrigger asChild>
@@ -368,6 +369,7 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
         </div>
       </CollapsibleContent>
     </Collapsible>
+    </Card>
   );
 }
 
@@ -549,8 +551,8 @@ export function AgentRosterAccordion({
           )}
         </div>
       </CardHeader>
-      <CardContent className="px-0 pb-0 pt-0">
-        <div className="divide-y divide-border/40" data-testid={testId}>
+      <CardContent className="px-4 pb-4 pt-0">
+        <div className="space-y-2" data-testid={testId}>
           {entries.map((entry) => (
             <RosterRow
               key={entry.id}
