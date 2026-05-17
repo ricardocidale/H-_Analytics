@@ -81,3 +81,4 @@ artifacts/api-server/iris/health.md
 .claude/**/*.log
 .claude/**/artifacts/
 .claude/**/.slide-thumbnails/
+.claude/scheduled_tasks.lock
