@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useUnsavedExitGuard } from "@/hooks/useUnsavedExitGuard";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import superjson from "superjson";
 import Layout from "@/components/Layout";
@@ -517,6 +518,21 @@ function BracketMixTab() {
     setInitialized(true);
   }, [savedMix, mixLoading, initialized]);
 
+  const isDirtyBrackets = useMemo(() => {
+    if (!initialized) return false;
+    const savedKey = (savedMix ?? [])
+      .map((e) => `${e.bracketSlug}:${Math.round(e.weight * 10000)}`)
+      .sort()
+      .join(",");
+    const currentKey = Array.from(selectedSlugs)
+      .map((slug) => `${slug}:${Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000)}`)
+      .sort()
+      .join(",");
+    return savedKey !== currentKey;
+  }, [initialized, savedMix, selectedSlugs, weights]);
+
+  useUnsavedExitGuard({ isDirty: isDirtyBrackets, onSave: () => {} });
+
   const weightSum = Array.from(selectedSlugs).reduce((sum, slug) => {
     const pct = parseFloat(weights[slug] ?? "0");
     return sum + (isNaN(pct) ? 0 : pct);
@@ -959,7 +975,7 @@ function DataSourcesTab() {
               className="rounded-lg border border-border bg-muted/20 px-4 py-3 space-y-1.5"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-sm font-medium text-foreground min-w-0 truncate">{item.label}</p>
                 <IconExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </div>
               <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -1131,7 +1147,7 @@ function LegacyIcpTab({
   );
 }
 
-export default function CompanyBracketMix() {
+export function IcpMixContent() {
   const { data: global, isLoading } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
   const [activeTab, setActiveTab] = useState("bracket-mix");
@@ -1166,7 +1182,26 @@ export default function CompanyBracketMix() {
     return <PageErrorState message="Failed to load company data" />;
   }
 
-  const companyName = global.companyName ?? "Hospitality Business";
+  return (
+    <div className="space-y-6">
+      <CurrentThemeTab tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      <div>
+        {activeTab === "bracket-mix" && <BracketMixTab />}
+        {activeTab === "market-evidence" && (
+          <MarketEvidenceTab global={global} properties={properties} />
+        )}
+        {activeTab === "data-sources" && <DataSourcesTab />}
+        {activeTab === "legacy-icp" && (
+          <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CompanyBracketMix() {
+  const { data: global } = useGlobalAssumptions();
+  const companyName = global?.companyName ?? "Hospitality Business";
 
   return (
     <Layout>
@@ -1179,18 +1214,7 @@ export default function CompanyBracketMix() {
           />
 
           <AnimatedSection delay={0.1}>
-            <CurrentThemeTab tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-
-            <div className="mt-6">
-              {activeTab === "bracket-mix" && <BracketMixTab />}
-              {activeTab === "market-evidence" && (
-                <MarketEvidenceTab global={global} properties={properties} />
-              )}
-              {activeTab === "data-sources" && <DataSourcesTab />}
-              {activeTab === "legacy-icp" && (
-                <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />
-              )}
-            </div>
+            <IcpMixContent />
           </AnimatedSection>
         </div>
       </AnimatedPage>

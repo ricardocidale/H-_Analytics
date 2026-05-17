@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2, Lock, Star } from "@/components/icons/themed-icons";
 import { IconPlus, IconTrash, IconPencil, IconPalette } from "@/components/icons";
 import { useDesignThemes, useCreateTheme, useUpdateTheme, useDeleteTheme } from "./useDesignThemes";
@@ -50,6 +50,12 @@ export function ThemeManager() {
   });
 
   const defaultTab = activeTheme ? String(activeTheme.id) : sortedThemes[0] ? String(sortedThemes[0].id) : "";
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  useEffect(() => {
+    if (defaultTab && !sortedThemes.find((t) => String(t.id) === activeTab)) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab, sortedThemes, activeTab]);
 
   const themeForForm = editingTheme ?? newTheme;
   const setThemeForForm = (val: typeof themeForForm) => {
@@ -179,21 +185,23 @@ export function ThemeManager() {
             <Loader2 className="w-8 h-8 mx-auto text-accent-pop animate-spin" />
           </div>
         ) : sortedThemes.length > 0 ? (
-          <Tabs defaultValue={defaultTab}>
-            <TabsList className="flex w-full h-auto flex-wrap gap-1 bg-muted/50 p-1.5 mb-6 rounded-xl">
-              {sortedThemes.map(theme => (
-                <TabsTrigger
-                  key={theme.id}
-                  value={String(theme.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                  data-testid={`tab-theme-${theme.id}`}
-                >
-                  <span className="truncate max-w-[120px]">{theme.name}</span>
-                  {theme.isDefault && <Star className="w-3 h-3 text-primary shrink-0" />}
-                  {theme.isSystem && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="mb-6">
+              <CurrentThemeTab
+                tabs={sortedThemes.map((theme) => ({
+                  value: String(theme.id),
+                  label: theme.name,
+                  trailingIcon: (
+                    <>
+                      {theme.isDefault && <Star className="w-3 h-3 text-primary shrink-0" />}
+                      {theme.isSystem && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                    </>
+                  ),
+                })) satisfies CurrentThemeTabItem[]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
+            </div>
 
             {sortedThemes.map(theme => (
               <TabsContent key={theme.id} value={String(theme.id)} className="mt-0">

@@ -4,18 +4,43 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-16T23:00:00Z
-Status: idle
+Updated: 2026-05-17T15:00:00Z
+Status: active
 
 ## Active Branch
 
-main
+feat/ui-canonical-enforcement-gate
 
 ## Last Commit on Branch
 
-a7b29ff0a  docs(solutions): compound T3-1 Matteo router, auth-before-write, engine null fallbacks
+2b8f89f7c (Replit) Update documentation and status to reflect recent changes and handoff
 
-## What CC Did This Session (2026-05-16 session 9)
+## What CC Is Doing This Session (2026-05-17 session 11)
+
+**Executing Phase 3** of plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`:
+Rename `ORCHESTRATOR_SPECIALIST_ID` `"gaspar"` → `"gustavo"` in `lib/engine/src/analyst/identity.ts`.
+Added `LEGACY_ORCHESTRATOR_ID = "gaspar"` alias (remove in Phase 4).
+Updated all live string literals + JSDoc references across portal + api-server.
+**All gates pass. Committed f93cd76e8.**
+
+Replit is concurrently working on Save button work (modified files in working tree,
+2 untracked files) — **not staged, not touched by CC**.
+
+Branch: `feat/ui-canonical-enforcement-gate`.
+
+## Files CC Owns Right Now
+
+Branch is unmerged; surfaces in scope per plan:
+- `artifacts/hospitality-business-portal/src/components/admin/intelligence/reference-ranges/FilterBar.tsx`
+- `artifacts/hospitality-business-portal/src/components/admin/intelligence/ReferenceRangesTab.tsx`
+- `artifacts/hospitality-business-portal/src/components/property-finder/PropertyDetailDrawer.tsx`
+- `artifacts/hospitality-business-portal/src/components/ui/tabs.tsx`
+- 11 gray-zone migration files (see plan U3)
+- `scripts/src/check-ui-canonical.ts`, `scripts/src/check-gate-health.ts`
+- `CLAUDE.md`, `replit.md`, `.agents/skills/ui-page-patterns/SKILL.md`,
+  `.agents/skills/analyst-research-buttons/SKILL.md`
+
+## What CC Did This Session (2026-05-16 session 9 — prior)
 
 Resumed from prior session (T3-1 already merged as PR #158). This session:
 
@@ -56,10 +81,6 @@ Outstanding Replit UI tasks (still on Replit's plate, unchanged from prior hando
 Pre-existing test failures (not introduced this session, not CC-owned):
 - check:lint → no-shadow in api-server/src/chat/rebecca-tool-impls-slide-factory.ts
 - test:api-server → marco, builder-substitution-map, pptx-substitution, dispatch, slide-6-embed-flow
-
-## Files CC Owns Right Now
-
-None — all committed.
 
 ## Do Not Touch
 

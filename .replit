@@ -315,3 +315,14 @@ CI = "true"
 [nix]
 channel = "stable-25_05"
 packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+
+[[workflows.workflow]]
+name = "Bootstrap CodeRabbit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm run replit:coderabbit:bootstrap"
+
+[workflows.workflow.metadata]
+outputType = "console"

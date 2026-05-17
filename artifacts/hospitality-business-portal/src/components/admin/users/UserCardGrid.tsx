@@ -24,6 +24,7 @@ interface UserCardGridProps {
   sortDir: SortDir;
   toggleSort: (field: SortField) => void;
   currentUserRole?: string;
+  showSortControls?: boolean;
   onEditUser: (user: User) => void;
   onPasswordUser: (user: User) => void;
   onDeleteUser: (id: number) => void;
@@ -88,7 +89,8 @@ export default function UserCardGrid({
   sortField,
   sortDir,
   toggleSort,
-  
+  currentUserRole,
+  showSortControls = true,
   onEditUser,
   onPasswordUser,
   onDeleteUser,
@@ -99,19 +101,22 @@ export default function UserCardGrid({
     if (user.role === UserRole.SUPER_ADMIN) return false;
     return true;
   };
+
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex items-center gap-4 mb-4 px-1">
-        <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("name")} data-testid="sort-user-name">
-          <IconPeople className="w-4 h-4" />User <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
-        </Button>
-        <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("role")} data-testid="sort-user-role">
-          <IconBuilding2 className="w-4 h-4" />Role <SortIcon field="role" sortField={sortField} sortDir={sortDir} />
-        </Button>
-        <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("company")} data-testid="sort-user-company">
-          <IconBuilding2 className="w-4 h-4" />Company <SortIcon field="company" sortField={sortField} sortDir={sortDir} />
-        </Button>
-      </div>
+      {showSortControls && (
+        <div className="flex items-center gap-4 mb-4 px-1">
+          <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("name")} data-testid="sort-user-name">
+            <IconPeople className="w-4 h-4" />User <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+          </Button>
+          <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("role")} data-testid="sort-user-role">
+            <IconBuilding2 className="w-4 h-4" />Role <SortIcon field="role" sortField={sortField} sortDir={sortDir} />
+          </Button>
+          <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("company")} data-testid="sort-user-company">
+            <IconBuilding2 className="w-4 h-4" />Company <SortIcon field="company" sortField={sortField} sortDir={sortDir} />
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
         {sortedUsers.map((user, idx, arr) => {
@@ -163,12 +168,12 @@ export default function UserCardGrid({
                 </div>
 
                 <div className="px-4 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge variant={roleBadgeVariant(user.role)} className="text-[11px] px-2 py-0 cursor-help"
                           data-testid={`badge-role-${user.id}`}>
-                          {user.role}
+                          {user.role === UserRole.SUPER_ADMIN ? "Super Admin" : user.role === UserRole.ADMIN ? "Admin" : "User"}
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="text-xs max-w-[220px]">
@@ -179,7 +184,7 @@ export default function UserCardGrid({
                       <span className="text-[11px] text-accent">{companyName}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] text-muted-foreground">Scenarios</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -223,7 +228,36 @@ export default function UserCardGrid({
                         testId={`button-defaults-user-${user.id}`}
                       />
                     )}
-                    {!isAdminRole(user.role) && (
+                    {!isAdminRole(user.role) && currentUserRole !== UserRole.SUPER_ADMIN && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            data-testid={`button-delete-user-${user.id}`}
+                            aria-label={`Delete ${user.name || user.email}`}
+                          >
+                            <IconTrash className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{user.email}"? This will permanently remove the user and all their data, including any scenarios they own and all associated access grants. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteUser(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    {!isAdminRole(user.role) && currentUserRole === UserRole.SUPER_ADMIN && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button

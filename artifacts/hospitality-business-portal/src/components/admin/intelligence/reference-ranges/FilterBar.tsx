@@ -1,12 +1,11 @@
 /**
- * FilterBar — top Card with header copy, action buttons (New Range,
- * Ask The Analyst), analyst status/error banners, filter selects
- * (domain, country, year), metric-key search input, show-archived
- * switch, and the Clear button.
+ * FilterBar — top Card with header copy, action buttons (New Range, Analyst),
+ * analyst status/error banners, filter selects (domain, country, year),
+ * metric-key search input, show-archived switch, and the Clear button.
  *
- * Extracted from `../ReferenceRangesTab.tsx` (task-1360). The markup is
- * byte-identical to the original; the only difference is that the state
- * and handlers are received as props from the page shell.
+ * Extracted from `../ReferenceRangesTab.tsx` (task-1360). The Analyst CTA
+ * uses the canonical `<AnalystButton>` from `@/components/intelligence/AnalystButton`
+ * per CLAUDE.md §13 / `.agents/skills/analyst-research-buttons/SKILL.md`.
  */
 import { IconPlus, IconSparkles } from "@/components/icons";
 import { Card } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { ANALYST_STEPS, ANY } from "./constants";
 import type { FacetsResponse } from "./types";
 
@@ -41,7 +41,7 @@ type Props = {
   setMetricSearch: (v: string) => void;
   setShowArchived: (v: boolean) => void;
   onOpenCreate: () => void;
-  onAskAnalyst: () => void;
+  onAnalystClick: () => void;
   onClearFilters: () => void;
 };
 
@@ -62,7 +62,7 @@ export function FilterBar({
   setMetricSearch,
   setShowArchived,
   onOpenCreate,
-  onAskAnalyst,
+  onAnalystClick,
   onClearFilters,
 }: Props) {
   return (
@@ -88,16 +88,12 @@ export function FilterBar({
                 <IconPlus className="h-3.5 w-3.5 mr-1.5" />
                 New Range
               </Button>
-              <Button
+              <AnalystButton
+                onClick={onAnalystClick}
+                isRunning={analystStep !== null}
                 size="sm"
-                variant="default"
-                onClick={onAskAnalyst}
-                disabled={analystStep !== null}
-                data-testid="button-ask-analyst"
-              >
-                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />
-                Ask The Analyst
-              </Button>
+                dataTestId="button-analyst-reference-ranges"
+              />
             </div>
             {facets && (
               <div className="text-right text-xs text-muted-foreground whitespace-nowrap">

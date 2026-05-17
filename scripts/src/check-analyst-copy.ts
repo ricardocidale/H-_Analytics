@@ -375,7 +375,13 @@ interface Violation {
 
 function scanCodeFile(absolutePath: string): Violation[] {
   const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
-  const source = fs.readFileSync(absolutePath, "utf8");
+  let source: string;
+  try {
+    source = fs.readFileSync(absolutePath, "utf8");
+  } catch {
+    // File disappeared between readdir and readFileSync (test-fixture race). Skip it.
+    return [];
+  }
   const stripped = stripComments(source);
   const lines = stripped.split("\n");
   const originalLines = source.split("\n");

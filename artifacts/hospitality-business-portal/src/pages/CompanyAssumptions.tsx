@@ -69,7 +69,6 @@ import {
   CompanyAssumptionsHeaderBar,
   CompanyAssumptionsTabsView,
   CompanyAnalystOverlay,
-  IcpMixSummary,
 } from "@/components/company-assumptions";
 import {
   useCompanyAssumptionsForm,
@@ -393,8 +392,8 @@ export default function CompanyAssumptions() {
               data-testid="banner-pending-server-update"
               className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100"
             >
-              <div className="flex items-center gap-2">
-                <IconRefreshCw className="h-4 w-4" />
+              <div className="flex items-center gap-2 min-w-0">
+                <IconRefreshCw className="h-4 w-4 shrink-0" />
                 <span>
                   New server values are available. Discard your unsaved edits to refresh from the latest data.
                 </span>
@@ -402,6 +401,7 @@ export default function CompanyAssumptions() {
               <Button
                 size="sm"
                 variant="outline"
+                className="shrink-0"
                 data-testid="button-discard-edits-and-refresh"
                 onClick={formApi.discardEditsAndRefresh}
               >
@@ -526,8 +526,6 @@ export default function CompanyAssumptions() {
               </div>
             </div>
           )}
-
-          <IcpMixSummary />
 
           <SummaryFooter
             formData={formApi.formData}

@@ -1,25 +1,20 @@
 /**
- * AgentRosterAccordion — shared single-column accordion list used by the
+ * AgentRosterAccordion — shared collapsible-pill roster used by the
  * three Agent Roster pages (Agents / Specialists / Minions). Task #1389.
  *
- * Each row shows: status icon · human name · role · brief description.
- * Expanding reveals: full description, where-used list, and an Analyst
- * action button that runs a lightweight liveness probe against the
- * specific entity. Probe behavior follows `analyst-research-buttons`
- * (loading state, toast on error, no silent failures); the badge
- * rendering follows `analyst-intelligence-display`.
+ * Each row is a compact pill. Clicking it expands into a card showing:
+ * full description, where-used list, probe status, and an Analyst button.
  *
- * Initial status comes from the bulk health endpoint, which reads the
- * most recent already-tracked signal for each entity (specialist
- * resource health, Iris last-run, Rebecca KB stats). The Analyst button
- * then re-runs an on-demand probe per class:
+ * Probe behavior follows `analyst-research-buttons` (loading state, toast
+ * on error, no silent failures). Badge rendering follows
+ * `analyst-intelligence-display`.
  *
- *   agent · gaspar (Gustavo)  → POST /api/admin/specialists/gaspar/probe
- *   agent · iris              → GET  /api/admin/iris/status (200 = healthy)
- *   agent · rebecca           → GET  /api/rebecca/kb/stats (200 = healthy)
- *   specialist · :id          → POST /api/admin/specialists/:id/probe
- *   minion · :id              → POST /api/admin/minions/:id/self-test
- *                               (Task #1392 — deterministic fixture-based check)
+ * Probe endpoints (Phase 2 routing — uses entityCode from RosterEntry):
+ *   orch.gustavo              → POST /api/admin/intelligence/orch.gustavo/probe
+ *   agent.iris                → GET  /api/admin/iris/status (200 = healthy)
+ *   agent.rebecca             → GET  /api/rebecca/kb/stats (200 = healthy)
+ *   spec.<letter>             → POST /api/admin/specialists/:backendId/probe
+ *   minion.<id>               → POST /api/admin/minions/:id/self-test
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -27,16 +22,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiError } from "@/lib/queryClient";
+import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import type {
   MinionSelfTestHistoryItem,
+  RosterClass,
   RosterEntry,
   RosterHealth,
   RosterHealthResponse,
@@ -54,17 +50,43 @@ interface RowState {
   health: RosterHealth;
   outcome: ProbeOutcome | null;
   running: boolean;
-  /**
-   * Per-minion append-only self-test history (Task #1396). Most-recent first.
-   * Empty for non-minion rows. Seeded from the bulk health response and
-   * appended to in-memory each time the admin clicks the Analyst button so
-   * the strip updates without waiting for the next 30s poll.
-   */
   history: MinionSelfTestHistoryItem[];
 }
 
-/** Hard cap on dots rendered per row. Matches the server's strip limit. */
 const HISTORY_STRIP_MAX = 10;
+
+const CLASS_LABEL: Record<RosterClass, string> = {
+  agent: "Agent",
+  specialist: "Specialist",
+  minion: "Minion",
+};
+
+/**
+ * Converts raw server/network error messages into plain language suitable
+ * for display to a non-technical admin. Strips HTTP status codes, internal
+ * error codes, and translates technical phrases using the entity's class label.
+ */
+function humanizeProbeMessage(message: string, entryClass: RosterClass): string {
+  const label = CLASS_LABEL[entryClass];
+  const cleaned = message
+    .replace(/^\d{3}\s+/, "")
+    .replace(/\s*\[[A-Z]{4}-\d{3,5}\]$/, "")
+    .trim();
+  const lower = cleaned.toLowerCase();
+  if (lower.includes("not found")) {
+    return `${label} isn't registered in the system — try redeploying.`;
+  }
+  if (lower.includes("no probe defined")) {
+    return `${label} doesn't have a reachability check configured.`;
+  }
+  if (lower.includes("fetch") || lower.includes("network") || lower.includes("econnrefused")) {
+    return `${label} couldn't be reached — the service may be down.`;
+  }
+  if (lower === "probe failed" || lower === "") {
+    return `${label} check failed.`;
+  }
+  return cleaned;
+}
 
 const HISTORY_DOT_CLASS: Record<string, string> = {
   pass: "bg-emerald-500",
@@ -74,8 +96,6 @@ const HISTORY_DOT_CLASS: Record<string, string> = {
 
 function HistoryStrip({ items }: { items: MinionSelfTestHistoryItem[] }) {
   if (items.length === 0) return null;
-  // Render oldest → newest left-to-right so the most recent run is on the
-  // right edge (matches the scheduler-runs Observability strip pattern).
   const ordered = [...items].slice(0, HISTORY_STRIP_MAX).reverse();
   return (
     <div
@@ -125,26 +145,21 @@ function StatusDot({ health }: { health: RosterHealth }) {
 
 async function runProbe(entry: RosterEntry): Promise<ProbeOutcome> {
   const startedAt = performance.now();
-  // All admin write methods require the CSRF token cookie/header pair —
-  // route every probe through `apiRequest` so the helper handles it.
-  // `apiRequest` throws `ApiError` on non-2xx; catch it to render a
-  // structured error outcome instead of letting it bubble.
   try {
     let res: Response;
     if (entry.class === "minion") {
-      // Minions run a deterministic in-process self-test against a known
-      // fixture (Task #1392). The body carries the verdict; HTTP status
-      // is reserved for transport errors only.
       res = await apiRequest("POST", `/api/admin/minions/${encodeURIComponent(entry.id)}/self-test`);
-    } else if (entry.class === "specialist" || (entry.class === "agent" && entry.id !== "rebecca" && entry.id !== "iris")) {
-      // Specialists and Gustavo share the same admin probe endpoint.
+    } else if (entry.class === "specialist") {
       res = await apiRequest("POST", `/api/admin/specialists/${encodeURIComponent(entry.id)}/probe`);
-    } else if (entry.id === "iris") {
+    } else if (entry.entityCode?.startsWith("orch.")) {
+      // Orchestrator — class-aware intelligence entities route (Phase 2)
+      res = await apiRequest("POST", `/api/admin/intelligence/${encodeURIComponent(entry.entityCode)}/probe`);
+    } else if (entry.entityCode === "agent.iris") {
       res = await apiRequest("GET", "/api/admin/iris/status");
-    } else if (entry.id === "rebecca") {
+    } else if (entry.entityCode === "agent.rebecca") {
       res = await apiRequest("GET", "/api/rebecca/kb/stats");
     } else {
-      throw new Error(`No probe defined for ${entry.class} · ${entry.id}`);
+      throw new Error(`No probe defined for ${entry.class} · ${entry.entityCode ?? entry.id}`);
     }
 
     const latencyMs = Math.round(performance.now() - startedAt);
@@ -168,9 +183,6 @@ async function runProbe(entry: RosterEntry): Promise<ProbeOutcome> {
       };
     }
 
-    // For the specialist probe endpoint we get a `steps[]` payload — any
-    // failed step degrades the overall result so admins see something more
-    // honest than a blanket green.
     let degradedReason: string | undefined;
     try {
       const body = (await res.json()) as { steps?: Array<{ status: string; name: string; message: string }> };
@@ -225,48 +237,65 @@ interface RosterRowProps {
 }
 
 function RosterRow({ entry, state, onProbe }: RosterRowProps) {
+  const [open, setOpen] = useState(false);
   const probeApplies = entry.initialHealth !== "not-applicable";
 
   return (
-    <AccordionItem value={entry.id} className="border-border/60">
-      <AccordionTrigger
-        className="hover:no-underline px-4 py-3 [&>svg]:hidden"
-        data-testid={`roster-row-trigger-${entry.id}`}
-      >
-        <div className="flex items-center gap-3 w-full min-w-0">
+    <Card className="overflow-hidden">
+    <Collapsible open={open} onOpenChange={setOpen}>
+      {/* ── Row trigger (matches Knowledge Registry AssetPanel style) ── */}
+      <CollapsibleTrigger asChild>
+        <button
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+          data-testid={`roster-row-trigger-${entry.id}`}
+          aria-expanded={open}
+        >
+          {open
+            ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          }
+
           <StatusDot health={state.health} />
-          <span className="flex flex-col min-w-0 leading-tight text-left">
-            <span
-              className="truncate font-medium text-sm text-foreground"
-              data-testid={`roster-row-name-${entry.id}`}
-            >
-              {entry.humanName}
-            </span>
-            <span className="truncate text-[11px] text-muted-foreground">{entry.role}</span>
+
+          <span className="font-medium text-sm text-foreground shrink-0">
+            {entry.humanName}
           </span>
-          <span className="hidden sm:block text-xs text-muted-foreground truncate flex-1 text-left">
-            {entry.description}
+
+          <span className="text-muted-foreground/50 text-xs shrink-0">·</span>
+
+          <span className="text-[11px] text-muted-foreground shrink-0">
+            {entry.role}
           </span>
-          {entry.class === "minion" && state.history.length > 0 && (
-            <span className="flex items-center gap-2 shrink-0">
-              <HistoryStrip items={state.history} />
-              <span
-                className="text-[10px] font-mono tabular-nums text-muted-foreground"
-                data-testid={`roster-row-last-run-${entry.id}`}
-              >
-                {formatRelative(state.history[0]?.ranAt ?? null)}
+
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            {!open && (
+              <span className="hidden md:block text-xs text-muted-foreground/60 truncate max-w-48">
+                {entry.description}
               </span>
-            </span>
-          )}
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className="px-4 pb-4">
-        <div className="space-y-4 pt-1">
-          <p className="text-sm text-muted-foreground leading-relaxed">{entry.description}</p>
+            )}
+
+            {entry.class === "minion" && state.history.length > 0 && !open && (
+              <span className="flex items-center gap-1.5">
+                <HistoryStrip items={state.history} />
+                <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+                  {formatRelative(state.history[0]?.ranAt ?? null)}
+                </span>
+              </span>
+            )}
+          </div>
+        </button>
+      </CollapsibleTrigger>
+
+      {/* ── Expanded content ─────────────────────────────────────────── */}
+      <CollapsibleContent>
+        <div className="px-4 pb-4 pt-3 border-t space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {entry.description}
+          </p>
 
           {entry.whereUsed.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-foreground/70 mb-1.5">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-foreground/60 mb-1.5">
                 Where used
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -279,11 +308,25 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          {entry.class === "minion" && state.history.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/60">
+                Recent runs
+              </span>
+              <HistoryStrip items={state.history} />
+              <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+                {formatRelative(state.history[0]?.ranAt ?? null)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-4 flex-wrap pt-1">
             <div className="text-xs text-muted-foreground space-y-0.5">
               <p>
                 Status:{" "}
-                <span className="font-medium text-foreground">{STATUS_LABEL[state.health]}</span>
+                <span className="font-medium text-foreground">
+                  {STATUS_LABEL[state.health]}
+                </span>
               </p>
               {state.outcome && (
                 <p className="font-mono tabular-nums">
@@ -294,13 +337,18 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
               )}
               {state.outcome?.message && (
                 <p
-                  className={state.outcome.status === "error" ? "text-destructive" : "text-amber-600"}
+                  className={
+                    state.outcome.status === "error"
+                      ? "text-destructive"
+                      : "text-amber-600"
+                  }
                   data-testid={`roster-row-message-${entry.id}`}
                 >
-                  {state.outcome.message}
+                  {humanizeProbeMessage(state.outcome.message, entry.class)}
                 </p>
               )}
             </div>
+
             {probeApplies ? (
               <AnalystActionButton
                 onClick={() => onProbe(entry)}
@@ -314,13 +362,14 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
               />
             ) : (
               <span className="text-xs text-muted-foreground italic">
-                Deterministic helper — no probe applies.
+                Deterministic minion — no probe applies.
               </span>
             )}
           </div>
         </div>
-      </AccordionContent>
-    </AccordionItem>
+      </CollapsibleContent>
+    </Collapsible>
+    </Card>
   );
 }
 
@@ -328,17 +377,15 @@ interface AgentRosterAccordionProps {
   title: string;
   entries: RosterEntry[];
   testId: string;
-  /**
-   * Which background scheduler's last-run summary to show in the card
-   * header. Defaults to `"costantino"`. The Minions roster passes
-   * `"minion-self-tests"` so admins can see when the periodic minion
-   * self-test loop last fired alongside the on-demand badge they get
-   * from the Analyst button (Task #1397).
-   */
   schedulerKey?: "costantino" | "minion-self-tests";
 }
 
-export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "costantino" }: AgentRosterAccordionProps) {
+export function AgentRosterAccordion({
+  title,
+  entries,
+  testId,
+  schedulerKey = "costantino",
+}: AgentRosterAccordionProps) {
   const { toast } = useToast();
   const [rows, setRows] = useState<Record<string, RowState>>(() => {
     const init: Record<string, RowState> = {};
@@ -348,11 +395,6 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
     return init;
   });
 
-  // Read the most recent already-tracked health signal for each entity
-  // (specialist assignments × resource health, Iris last-run, Rebecca KB,
-  // open Costantino findings). Polled every 30s so the page reads as a
-  // live status board (Task #1391) — manual `Analyst` button presses
-  // still run live probes per class.
   const { data: healthData } = useQuery<RosterHealthResponse>({
     queryKey: ["/api/admin/agent-roster/health"],
     refetchInterval: 30_000,
@@ -368,8 +410,6 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
         const signal = healthData.entries[entry.id];
         if (!signal || signal.status === "unknown") continue;
         const signalStatus: Exclude<RosterHealth, "unknown" | "not-applicable"> = signal.status;
-        // Don't overwrite a freshly-run manual probe if the user already
-        // pressed the button — prefer the more recent timestamp.
         const existing = next[entry.id]?.outcome;
         const signalTs = signal.checkedAt ? Date.parse(signal.checkedAt) : 0;
         if (existing && existing.checkedAt > signalTs) continue;
@@ -386,19 +426,11 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
           history: next[entry.id]?.history ?? [],
         };
       }
-      // Seed (or refresh) per-minion self-test history from the bulk
-      // payload (Task #1396). The server returns at most
-      // `minionHistoryStrip` rows per minion, already most-recent-first.
-      // We MERGE with any in-memory entries the user generated since the
-      // last poll (handleProbe prepends locally) so the strip never
-      // flickers backwards on refetch.
       const serverHistory = healthData.minionHistory ?? {};
       for (const entry of entries) {
         if (entry.class !== "minion") continue;
         const fromServer = serverHistory[entry.id] ?? [];
         const local = next[entry.id]?.history ?? [];
-        // Dedup by ranAt — local-prepended items reappear from the server
-        // on the next poll and we don't want to count them twice.
         const seen = new Set(fromServer.map((h) => h.ranAt));
         const merged = [...local.filter((h) => !seen.has(h.ranAt)), ...fromServer]
           .sort((a, b) => Date.parse(b.ranAt) - Date.parse(a.ranAt))
@@ -424,17 +456,12 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
         const outcome = await runProbe(entry);
         setRows((prev) => {
           const prevRow = prev[entry.id];
-          // For minion rows, prepend the fresh verdict to the in-memory
-          // strip so the dot lands immediately — the next poll will
-          // confirm/dedupe it from the server (Task #1396).
           let history = prevRow?.history ?? [];
           if (entry.class === "minion") {
             const verdictStatus =
-              outcome.status === "healthy"
-                ? "pass"
-                : outcome.status === "degraded"
-                ? "skipped"
-                : "fail";
+              outcome.status === "healthy" ? "pass"
+              : outcome.status === "degraded" ? "skipped"
+              : "fail";
             const fresh: MinionSelfTestHistoryItem = {
               status: verdictStatus,
               durationMs: outcome.latencyMs ?? 0,
@@ -451,8 +478,10 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
         if (outcome.status === "error") {
           toast({
             variant: "destructive",
-            title: `${entry.humanName} probe failed`,
-            description: outcome.message ?? "The entity did not respond.",
+            title: `${entry.humanName} check failed`,
+            description: outcome.message
+              ? humanizeProbeMessage(outcome.message, entry.class)
+              : `${CLASS_LABEL[entry.class]} did not respond.`,
           });
         }
       } catch (err) {
@@ -474,33 +503,36 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
         }));
         toast({
           variant: "destructive",
-          title: `${entry.humanName} probe failed`,
-          description: message,
+          title: `${entry.humanName} check failed`,
+          description: humanizeProbeMessage(message, entry.class),
         });
       }
     },
     [toast],
   );
 
-  const cycle = schedulerKey === "minion-self-tests"
-    ? healthData?.minionSelfTestCycle
-    : healthData?.costantinoCycle;
-  const cycleStatusColor = cycle?.status === "error"
-    ? "text-destructive"
-    : cycle?.status === "warn"
-    ? "text-amber-600"
+  const cycle =
+    schedulerKey === "minion-self-tests"
+      ? healthData?.minionSelfTestCycle
+      : healthData?.costantinoCycle;
+  const cycleStatusColor =
+    cycle?.status === "error" ? "text-destructive"
+    : cycle?.status === "warn" ? "text-amber-600"
     : "text-muted-foreground";
-  const cycleLabel = schedulerKey === "minion-self-tests" ? "Self-tests last ran" : "Costantino audited";
-  const cycleSummary = schedulerKey === "minion-self-tests"
-    ? (cycle && cycle.lastRunAt !== null
+  const cycleLabel =
+    schedulerKey === "minion-self-tests" ? "Self-tests last ran" : "Costantino audited";
+  const cycleSummary =
+    schedulerKey === "minion-self-tests"
+      ? cycle && cycle.lastRunAt !== null
         ? ` · ${cycle.succeeded} pass / ${cycle.failed} fail`
-        : "")
-    : (cycle && cycle.lastRunAt !== null
+        : ""
+      : cycle && cycle.lastRunAt !== null
         ? ` · ${cycle.succeeded} ok / ${cycle.failed} failed`
-        : "");
-  const cycleTestId = schedulerKey === "minion-self-tests"
-    ? "roster-minion-self-test-cycle"
-    : "roster-costantino-cycle";
+        : "";
+  const cycleTestId =
+    schedulerKey === "minion-self-tests"
+      ? "roster-minion-self-test-cycle"
+      : "roster-costantino-cycle";
 
   return (
     <Card>
@@ -519,17 +551,24 @@ export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "c
           )}
         </div>
       </CardHeader>
-      <CardContent className="px-0">
-        <Accordion type="multiple" className="w-full" data-testid={testId}>
+      <CardContent className="px-4 pb-4 pt-0">
+        <div className="space-y-2" data-testid={testId}>
           {entries.map((entry) => (
             <RosterRow
               key={entry.id}
               entry={entry}
-              state={rows[entry.id] ?? { health: entry.initialHealth, outcome: null, running: false, history: [] }}
+              state={
+                rows[entry.id] ?? {
+                  health: entry.initialHealth,
+                  outcome: null,
+                  running: false,
+                  history: [],
+                }
+              }
               onProbe={handleProbe}
             />
           ))}
-        </Accordion>
+        </div>
       </CardContent>
     </Card>
   );

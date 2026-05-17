@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useUnsavedExitGuard } from "@/hooks/useUnsavedExitGuard";
+import { UnsavedExitDialog } from "@/components/ui/unsaved-exit-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
@@ -12,6 +14,7 @@ import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTa
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
 import { CapitalStackDisciplineTab } from "./model-defaults/CapitalStackDisciplineTab";
+import { IcpMixTab } from "./model-defaults/IcpMixTab";
 import { ManagementCoTab } from "./model-defaults/ManagementCoTab";
 import { BrandsTab } from "./model-defaults/BrandsTab";
 import { useAuth } from "@/lib/auth";
@@ -174,6 +177,11 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
   const saveRef = useRef<(() => void) | undefined>(undefined);
   saveRef.current = () => saveMutation.mutate(draftRef.current);
 
+  const exitGuard = useUnsavedExitGuard({
+    isDirty,
+    onSave: () => saveRef.current?.(),
+  });
+
   // Tab-scoped Save for the Capital Stack Discipline tab — persists only the
   // four discipline fields so it does not bundle in unsaved edits from other
   // tabs (Company, Market & Macro, etc.).
@@ -216,6 +224,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
       // even when nothing is dirty. The save is safe to invoke as a no-op
       // (idempotent PUT into globalAssumptions).
       requiresEndorsement: true,
+      confirmNavigation: exitGuard.confirmLeave,
     });
     return () => onSaveStateChange?.(null);
   }, [isDirty, saveMutation.isPending, onSaveStateChange]);
@@ -243,6 +252,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
 
   const ALL_MODEL_DEFAULTS_TABS: CurrentThemeTabItem[] = [
     { value: "company",                  label: "Company" },
+    { value: "icp-mix",                  label: "ICP Mix" },
     { value: "capital-stack-discipline", label: "Capital Stack Discipline" },
     { value: "market-macro",             label: "Market & Macro" },
     { value: "model-constants",          label: "Model Constants" },
@@ -258,7 +268,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
         <CurrentThemeTab
           tabs={ALL_MODEL_DEFAULTS_TABS.filter(t => showTab(t.value))}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => exitGuard.confirmLeave(() => setActiveTab(tab))}
         />
 
         {activeTab === "company" && (
@@ -282,6 +292,8 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               }}
             />
         )}
+
+        {activeTab === "icp-mix" && <IcpMixTab />}
 
         {activeTab === "capital-stack-discipline" && (
             <CapitalStackDisciplineTab
@@ -354,6 +366,13 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
         onOpenChange={(open) => setMissingFieldsPrompt((p) => ({ ...p, open }))}
         specialistLabel="Analyst refresh"
         missingFields={missingFieldsPrompt.missingFields}
+      />
+      <UnsavedExitDialog
+        open={exitGuard.dialogOpen}
+        onSave={exitGuard.handleSave}
+        onLeave={exitGuard.handleLeave}
+        onCancel={exitGuard.handleCancel}
+        isSaving={exitGuard.isSaving}
       />
     </div>
   );

@@ -36,8 +36,6 @@ cr_progress() {
   printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
 }
 
-cr_banner
-
 subcommand="${1:-help}"
 shift || true
 

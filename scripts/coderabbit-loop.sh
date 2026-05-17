@@ -54,8 +54,6 @@ cr_progress() {
   printf '  [%s] %2d/%d  %s\n' "$bar" "$step" "$total" "$label"
 }
 
-cr_banner
-
 action="${1:-status}"
 
 case "$action" in

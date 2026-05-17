@@ -16,7 +16,7 @@ H+ Analytics is a hospitality-sector financial analytics platform built by **Nor
 
 ## Inviolable Rules
 
-See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy **[Category 2 DEFAULT_* is legacy — ALL DEFAULT_* are violations, remove entirely; `?? DEFAULT_X` fallback is a violation; algorithm calibration constants like `NOL_UTILIZATION_CAP` / `PRIORITY_*` stay in TS; `SEED_*` in migration guards OK; test files exempt from checker — see §2 + `hplus-variable-taxonomy` skill]**; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
+See `CLAUDE.md` §§ 1–13 (no hardcoded values — numeric literals AND integration identifiers; number taxonomy **[Category 2 DEFAULT_* is legacy — ALL DEFAULT_* are violations, remove entirely; `?? DEFAULT_X` fallback is a violation; algorithm calibration constants like `NOL_UTILIZATION_CAP` / `PRIORITY_*` stay in TS; `SEED_*` in migration guards OK; test files exempt from checker — see §2 + `hplus-variable-taxonomy` skill]**; seed rules; ADR-007; plan verification; institutional knowledge; agent parity; market rates; financial engine authoring; naming convention; frontend design; model cost; **UI canonical enforcement — Rule A "Analyst" CTA + Rule B `CurrentThemeTab` horizontal tabs, mechanically gated by `scripts/src/check-ui-canonical.ts`**) and § "Inviolable login / auth rules" (5 auth rules) for the full set.
 
 **Quick-ref auth rules (also in CLAUDE.md):**
 1. **Secrets parity.** Every env var must exist in both Railway AND Replit secrets.
@@ -151,6 +151,15 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 |---|---|---|
 | [ ] | (nothing pending) | — |
 
+## Agent Roster Probe — Rules
+
+> See `docs/solutions/ui-patterns/agent-roster-probe-messages-2026-05-17.md` for full context.
+
+- Probe messages must use the entity's class label — never say "Specialist" for an Agent or Minion.
+- Never show raw HTTP codes or internal error codes (`[ASRT-NNN]`) in admin-facing UI — use `humanizeProbeMessage()` in `AgentRosterAccordion.tsx`.
+- Gustavo (`gaspar`) routes through the specialist probe endpoint by design — handled by early-return in `runtime.ts`.
+- Any new agent absent from `SPECIALIST_CATALOG` needs a dedicated probe endpoint or early-return in `runtime.ts`.
+
 ---
 
 ## Recent Significant Changes
@@ -158,6 +167,6 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-| 2026-05-16 | **CurrentThemeTab standardization + admin sidebar restructure.** All horizontal tab menus across admin converted from Radix `Tabs` to `CurrentThemeTab` (9 components: `ModelDefaultsTab`, `DiagramsTab`, `DataSourcesTab`, `KnowledgeBaseEditor`, `CompanyTab`, `verification/index`, `NotificationsTab`, `AssetDefinitionTab`, `ResourceDetailDialog`). "Brand & Appearance" sidebar group removed — Themes and Brand Assets folded into Configuration. Slides nav link hidden on Admin and AI Intelligence routes. 6 new `flex-label-overflow` violations fixed (`min-w-0` / `shrink-0`); baseline tightened to 177. `ScorePill` extended with optional `className` prop. Gates: typecheck ✅, portal lint ✅, spinner-contrast ✅, flex-label-overflow ✅. |
-| 2026-05-13 | **Slide factory UI design sweep shipped (Plan 2026-05-13-004).** Two new shared components: `FactoryProgressPill` (fixed-position floating progress rectangle with indeterminate CSS bar + expandable minion details) and `FactoryErrorPill` (floating error pill). All five pipeline tabs rewritten: Lorenzo, Lucca, Agents, Download, and `SlideFactoryPanel` outer loading state. Embedded `<Card>` loading/error containers eliminated across the board — skeleton shimmer (`Skeleton`) replaces spinner-cards for pipeline-wait states; pills float at `bottom: 24px` for active pipeline feedback. Design gates pass: typecheck ✅, lint ✅, spinner-contrast ✅. |
-| 2026-05-13 | **Financial defaults integrity + IRR calibration shipped (Plan 2026-05-13-003, Phases 1–5).** Five root causes of broken IRR fixed: (1) exit cap rate 0.062→0.085 for luxury tier (`SEED_EXIT_CAP_RATE_LUXURY`); (2) `refinanceLtv`→`refinanceLTV` casing bug fixed on 3 SYNC properties; (3) `refiMaxLtvToOriginal` cap wired in both engine refi paths (`refinance-pass.ts` + `loanCalculations.ts`) to prevent equity stripping; (4) null assertions added for fail-fast behavior (Phase 4); (5) `withFinancialHydration` wired at all compute routes (Phase 2). DB migration adds `refi_max_ltv_to_original` column to `properties` (Drizzle 0058/0064, runtime guard `properties-refi-ltv-cap-001.ts`). Startup guard `assertRequiredModelDefaults()` fails boot if model_defaults seed rows are missing. |
+| 2026-05-17 | **Save-button audit implemented.** New `useUnsavedExitGuard` hook + `UnsavedExitDialog`. Wired into PropertyEdit (stays on page after save; header/footer reordered to Cancel\|Save and Analyst\|Cancel\|Save; alwaysActive), ModelDefaultsTab (tab-switch guard), CompanyBracketMix (beforeunload only — save is validation-gated), CompanyAssumptions form hook (beforeunload). Admin.tsx `handleNavigate` intercepts `confirmNavigation` from saveState. Gates: typecheck ✅ portal lint ✅. |
+| 2026-05-17 | **Analyst Tables moved: Admin → Model Defaults → Intelligence → Knowledge & Resources.** Removed from `AdminSidebar.tsx` `financial-defaults` group and `Admin.tsx` routing. Added to `IntelligenceSidebar.tsx` `knowledge-resources` group and `Intelligence.tsx` routing (lazy import + case + default-sections array). Gates: typecheck ✅. |
+| 2026-05-17 | **Brand Assets admin restructure (4-tab layout).** `BrandAssetsPage.tsx` rebuilt with tabs: App Logo (super-admin only, hidden for non-super-admins) · Logos (unchanged) · Animations (NEW — collapsible Rebecca/Analyst families via Card+Collapsible, read-only) · Other Graphics (renamed from "Brand Assets"). Backend: `PATCH /api/app-branding` upgraded to `requireSuperAdmin`. Shared `animationCatalog.tsx` is single source of truth for both Brand Assets and Intelligence Animations page. Gates: typecheck ✅, portal lint ✅. |

@@ -44,6 +44,7 @@ import {
   MINION_SELF_TEST_SCHEDULER_KEY,
 } from "../../jobs/minion-self-test-constants";
 import { MINION_SELF_TESTS } from "../../slides/minions/self-tests";
+import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 
 type RosterHealthStatus = "healthy" | "degraded" | "error" | "unknown";
 
@@ -228,6 +229,20 @@ async function specialistHealth(
     source,
     checkedAt,
     message: findingMessage,
+  };
+}
+
+/**
+ * Gustavo (Analyst Orchestrator) is an in-process router — not a scheduled
+ * job and not in SPECIALIST_CATALOG. If this server is responding, Gustavo is
+ * reachable by definition.
+ */
+function gustavoHealth(now: Date): RosterHealthEntry {
+  return {
+    status: "healthy",
+    source: "in-process",
+    checkedAt: now.toISOString(),
+    message: "Orchestrator is reachable.",
   };
 }
 
@@ -532,6 +547,7 @@ export function registerAgentRosterRoutes(app: Express) {
         }),
       );
 
+      entries[ORCHESTRATOR_SPECIALIST_ID] = gustavoHealth(now);
       entries["iris"] = await irisHealth(now);
       entries["rebecca"] = await rebeccaHealth(now);
 

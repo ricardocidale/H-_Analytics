@@ -33,6 +33,7 @@ import { registerAssumptionGuardrailRoutes } from "./assumption-guardrails";
 import { registerBenchmarkBandRoutes } from "./benchmark-bands";
 import { registerAdminFeesRoutes } from "./fees";
 import { registerSystemAuthRoutes } from "./system-auth";
+import { registerIntelligenceEntityRoutes } from "./intelligence-entities";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -72,4 +73,5 @@ export function register(app: Express) {
   registerBenchmarkBandRoutes(app);
   registerAdminFeesRoutes(app);
   registerSystemAuthRoutes(app);
+  registerIntelligenceEntityRoutes(app);
 }

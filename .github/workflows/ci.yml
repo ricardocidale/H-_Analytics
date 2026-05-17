@@ -42,6 +42,12 @@ jobs:
       - name: Analyst copy guard (casual-register rule)
         run: pnpm --filter @workspace/scripts run check:analyst-copy
 
+      - name: UI canonical gate (Analyst CTA + horizontal tabs)
+        run: pnpm --filter @workspace/scripts run check:ui-canonical
+
+      - name: Gate health check (ensures the UI canonical gate stays wired)
+        run: pnpm --filter @workspace/scripts run check:gate-health
+
   unit-tests:
     name: Unit Tests (calc + engine)
     runs-on: ubuntu-latest

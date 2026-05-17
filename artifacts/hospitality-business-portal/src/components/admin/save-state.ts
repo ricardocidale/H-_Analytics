@@ -3,6 +3,13 @@ export interface AdminSaveState {
   isPending: boolean;
   onSave: () => void;
   /**
+   * When set, the parent shell (Admin.tsx) calls this instead of directly
+   * switching the active section. The callback must invoke its `proceed`
+   * argument to complete the navigation after any save/discard confirmation.
+   * Tabs with unsaved changes should set this via `useUnsavedExitGuard`.
+   */
+  confirmNavigation?: (proceed: () => void) => void;
+  /**
    * When true, the shared admin Save button stays clickable and fully
    * opaque even when nothing is dirty so the admin can re-endorse the
    * displayed values. Use only on tabs whose backend save is safe to

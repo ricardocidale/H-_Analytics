@@ -81,7 +81,7 @@ grep -rl "skeleton\|spinner\|loading\|empty" src/components/ | head -10
 
 Common components that are almost always already in the app:
 - `<Button variant="...">` — do not create custom button wrappers
-- `<Tabs>`, `<TabsList>`, `<TabsTrigger>`, `<TabsContent>` — use the app's tab primitive
+- `<Tabs>`, `<CurrentThemeTab>`, `<TabsContent>` — use the canonical tab primitive. **Direct imports of `<TabsList>` or `<TabsTrigger>` outside `components/ui/tabs.tsx` are forbidden** (CLAUDE.md §13 Rule B, enforced by `scripts/src/check-ui-canonical.ts`). Use `<CurrentThemeTab>` for the strip; `<TabsContent>` remains the canonical panel wrapper.
 - `<Skeleton>` / `<Loader2>` — loading state
 - `<Card>`, `<CardHeader>`, `<CardContent>` — container
 - `<Badge>` — status indicators
@@ -113,8 +113,12 @@ export default function MyPage() {
     <Layout>
       <AnimatedPage>
         <PageHeader ... />
-        <Tabs>
-          <TabsList>...</TabsList>
+        <Tabs value={tab} onValueChange={setTab}>
+          <CurrentThemeTab
+            tabs={[{ value: "tab1", label: "Tab 1" }] satisfies CurrentThemeTabItem[]}
+            activeTab={tab}
+            onTabChange={setTab}
+          />
           <TabsContent value="tab1">...</TabsContent>
         </Tabs>
       </AnimatedPage>
@@ -122,6 +126,8 @@ export default function MyPage() {
   );
 }
 ```
+
+> **Canonical horizontal tabs (CLAUDE.md §13 Rule B):** `<CurrentThemeTab>` is the only allowed tab strip. It accepts `tabs`/`activeTab`/`onTabChange` plus optional `suffix` / `trailingIcon` / `disabled` + `tooltipTitle` / `responsive: { fallback: "select" }` / `variant: "default" | "drawer"`. Mechanically enforced by `scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts`. For Rule A (canonical "Analyst" CTA) see `.agents/skills/analyst-research-buttons/SKILL.md`.
 
 ### Required states — never skip these
 

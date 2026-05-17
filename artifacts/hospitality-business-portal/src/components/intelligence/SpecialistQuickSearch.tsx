@@ -98,7 +98,7 @@ export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) 
         specialistId: ORCHESTRATOR_SPECIALIST_ID,
         primary: human,
         secondary: "The Analyst · Orchestrator",
-        searchValue: [human, "the analyst", "orchestrator", "gaspar"]
+        searchValue: [human, "the analyst", "orchestrator", "gustavo"]
           .join(" ")
           .toLowerCase(),
       });

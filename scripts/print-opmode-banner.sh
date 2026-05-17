@@ -24,20 +24,7 @@ if ! opmode_active; then
   exit 0
 fi
 
-cat <<'BANNER'
-------------------------------------------------------------------------
-  CodeRabbit loop  (ON)
-------------------------------------------------------------------------
-  Session commands:
-    /coderabbit-loop-review    # iterative review loop (working tree)
-    /coderabbit-loop-autofix   # iterative loop with autofix on PR iter 1
-
-  Toggle commands:
-    pnpm coderabbit-loop:status    # show state, CLI version, auth
-    pnpm coderabbit-loop:off       # disarm the loop
-
-  Runbook:   docs/runbooks/coderabbit-loop-workflow.md
-------------------------------------------------------------------------
-BANNER
-
+# Loop is ON — silent at workflow/Claude startup.
+# Use `pnpm coderabbit-loop:status` to inspect state, or
+# run `/coderabbit-loop-review` / `/coderabbit-loop-autofix` directly.
 exit 0

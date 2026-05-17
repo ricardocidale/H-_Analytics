@@ -114,7 +114,7 @@ function probeToDot(p: TestProbeResult["status"]): DotStatus {
 }
 
 /**
- * Single specialistId param. Pass `ORCHESTRATOR_SPECIALIST_ID` ("gaspar")
+ * Single specialistId param. Pass `ORCHESTRATOR_SPECIALIST_ID` ("gustavo")
  * to render The Analyst's view — the backend resolves that to the
  * `analyst` connection target automatically.
  */

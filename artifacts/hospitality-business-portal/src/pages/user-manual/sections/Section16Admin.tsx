@@ -130,8 +130,8 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
           ]}
         />
         <p className="text-sm text-muted-foreground mt-3">
-          Use <strong>Regenerate Research and Intelligence</strong> (the sparkle button) to ask The Analyst
-          for a fresh, sourced value. The dialog shows the proposed number, the Analyst's reasoning, and the
+          Use <strong>Regenerate Research and Intelligence</strong> (the sparkle button) to have the Analyst
+          propose a fresh, sourced value. The dialog shows the proposed number, the Analyst's reasoning, and the
           web sources it cited; you confirm before anything is saved. Whatever is confirmed here flows
           through every calculation in the portal — finance, scenarios, exports, sensitivity, and the
           verification audit — regardless of what any client may have cached.

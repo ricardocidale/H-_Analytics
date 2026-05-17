@@ -24,6 +24,7 @@ interface EditUserDialogProps {
   isPending: boolean;
   onSubmit: () => void;
   scenarios: AdminScenario[];
+  currentUserRole?: string;
 }
 
 export default function EditUserDialog({
@@ -37,7 +38,9 @@ export default function EditUserDialog({
   isPending,
   onSubmit,
   scenarios,
+  currentUserRole,
 }: EditUserDialogProps) {
+  const isSuperAdmin = currentUserRole === UserRole.SUPER_ADMIN;
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent>
@@ -64,13 +67,22 @@ export default function EditUserDialog({
           <div className="space-y-2"><Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Title</Label><Input value={editUser.title} onChange={(e) => setEditUser(prev => ({ ...prev, title: e.target.value }))} placeholder="Job title" data-testid="input-edit-title" /></div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Role</Label>
-            <Select value={editUser.role} onValueChange={(v) => setEditUser(prev => ({ ...prev, role: v }))} data-testid="select-edit-user-role">
-              <SelectTrigger data-testid="select-edit-user-role"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UserRole.USER}>User</SelectItem>
-                <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-              </SelectContent>
-            </Select>
+            {isSuperAdmin ? (
+              <Select value={editUser.role} onValueChange={(v) => setEditUser(prev => ({ ...prev, role: v }))} data-testid="select-edit-user-role">
+                <SelectTrigger data-testid="select-edit-user-role"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.USER}>User — standard access</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Admin — manages users &amp; settings</SelectItem>
+                  <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin — full system access</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                <IconShield className="w-3.5 h-3.5 shrink-0" />
+                <span className="capitalize">{editUser.role.replace(/_/g, " ")}</span>
+                <span className="text-xs ml-auto">Role changes require super admin</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <Label className="flex items-center gap-2 cursor-pointer"><IconFileStack className="w-4 h-4 text-muted-foreground" />Scenario Management</Label>

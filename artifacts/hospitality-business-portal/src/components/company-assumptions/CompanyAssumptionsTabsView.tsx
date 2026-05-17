@@ -276,7 +276,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
                     tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
                     size="sm"
                     freshnessStatus={freshnessStatus}
-                    dataTestId={`button-ask-analyst-${activeTab}`}
+                    dataTestId={`button-analyst-${activeTab}`}
                   />
                 )}
                 {onCancelTab && (activeDirty || activeNeverSaved) && (

@@ -27,6 +27,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GlobalResponse } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
+import { useUnsavedExitGuard } from "@/hooks/useUnsavedExitGuard";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import type {
   TabValidationWarning,
@@ -279,14 +280,7 @@ export function useCompanyAssumptionsForm(
   };
 
   // Warn before unload while there are unsaved edits.
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
+  useUnsavedExitGuard({ isDirty, onSave: () => {} });
 
   // Clear a tab's warnings when the user starts editing fields in that tab again.
   useEffect(() => {

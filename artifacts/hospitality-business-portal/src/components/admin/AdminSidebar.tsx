@@ -44,7 +44,7 @@ export type AdminSection =
   | "scenarios"
   | "brand-themes" | "brand-assets-page"
   | "ai-agents"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
   | "property-heroes"
   | "archived-properties"
@@ -199,7 +199,6 @@ function buildNavGroups(): NavGroup[] {
         { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
-        { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
         { value: "reference-ranges",            label: "Reference Ranges",   icon: IconRuler },
       ],
     },

@@ -78,16 +78,37 @@ assumes the values are already confirmed when they may not be. The button
 being enabled is how the user signals "I have reviewed and accepted these
 values."
 
+**Save must not trigger navigation.** After a successful save the user stays
+on the page and sees a brief success toast (e.g. "Changes saved"). A separate
+affordance — the breadcrumb, sidebar, or a distinct "Close" action — handles
+leaving the page. Never conflate Save with Close.
+
 ### 2. Navigate-away triggers a "Confirm your values" prompt
 
 If a user starts to navigate away from an assumption page without having
-pressed Save, the app must show a warning:
+pressed Save, the app must show an **in-app dialog warning** — not a browser
+`beforeunload` popup (which cannot be styled and only fires on tab-close, not
+on React Router navigation).
 
-> "You haven't confirmed the values on this page. Press Save to lock them in,
-> or your changes will be lost."
+The canonical implementation is the `useUnsavedExitGuard` hook plus the
+`UnsavedExitDialog` component. Callers wrap navigation triggers with
+`confirmLeave(callback)`: the callback fires only after the user confirms they
+want to leave. The hook also registers a `window.beforeunload` listener as a
+secondary safety net for browser tab-close.
 
-This applies to tab navigation within a multi-tab page as well as page-level
-navigation.
+Scope — the prompt fires for:
+- Leaving the page via React Router navigation (sidebar, breadcrumb, links)
+- Switching between sections within the same page group (e.g. admin sidebar
+  section switches, tab switches within Model Defaults)
+- Browser tab close / reload (via `beforeunload`)
+
+The warning copy should be factual, not scolding:
+> "You have unsaved changes. Save before leaving or your edits will be lost."
+
+Two buttons: **Save** (primary) and **Leave without saving** (destructive/ghost).
+
+This applies to: `PropertyEdit`, `CompanyAssumptions`, `ModelDefaultsTab`,
+`CompanyBracketMix` / ICP.
 
 ### 3. Confirmed values are immutable from admin defaults
 
