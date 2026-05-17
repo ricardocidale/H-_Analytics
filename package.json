@@ -46,7 +46,8 @@
     "check": "sh -c 'pnpm run check:all-cached || { pnpm run check:selective && pnpm run check:all-cached:write; }'",
     "check:timing-report": "pnpm --filter @workspace/scripts run check:timing-report",
     "test:engine": "pnpm --filter @workspace/engine run test",
-    "test:calc": "pnpm --filter @workspace/calc run test"
+    "test:calc": "pnpm --filter @workspace/calc run test",
+    "replit:coderabbit:bootstrap": "bash scripts/replit-coderabbit-bootstrap.sh"
   },
   "private": true,
   "devDependencies": {
