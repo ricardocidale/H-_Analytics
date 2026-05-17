@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T00:10:00Z
-Status: handoff-pending
+Updated: 2026-05-17T11:10:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,38 +13,28 @@ main
 
 ## Last Commit on Branch
 
-`db98627ca` — fix(db): re-enable login screen (loginScreenEnabled flipped to true)
+`27dfa12d` — Move ICP mix definition to admin section
 
 ## What Replit Did This Session
 
-**Plan 2026-05-16-003 — Animations moved to AI Intelligence:**
+**ICP Mix moved to Admin → Management Co.:**
+- `CompanyBracketMix.tsx` refactored to export `IcpMixContent` (inner content) + simplified default export
+- New `IcpMixTab.tsx` created at `components/admin/model-defaults/IcpMixTab.tsx`
+- `ModelDefaultsTab.tsx` gains "ICP Mix" tab between "Company" and "Capital Stack Discipline"
+- `Admin.tsx` `MODEL_DEFAULTS_VISIBLE_TABS` updated for `defaults-management-company`
+- `IcpMixSummary` removed from `CompanyAssumptions.tsx`
 
-- Deleted `admin/AnimationsTab.tsx` (was a sub-tab of Brand Assets)
-- Removed animations tab from `admin/BrandAssetsPage.tsx` (now 2 tabs: Logos + Brand Assets)
-- Created 7 new animation components in `agent-animations/`:
-  - `RebeccaAliveGeometry.tsx` — 12-instance merged Lascaux + geo orbital
-  - `AnalystBarChartPulse.tsx` — isometric bar chart animation
-  - `AnalystExpandingSolver.tsx` — exploding/contracting 3×3×3 quantum cube
-  - `AnalystNexusCore.tsx` — shape-shifting four-block nexus
-  - `AnalystQuantumSolver.tsx` — rotating 3×3×3 quantum cube
-  - `AnalystSwissCube.tsx` — monochrome Swiss-modern cube expansion
-  - `AnalystThinkingCube.tsx` — scene-shifting cube (9 distinct scenes)
-- Updated `agent-animations/index.ts` barrel with all new + existing Rebecca exports
-- Created `pages/intelligence/AnimationsPage.tsx` — two tabs (Rebecca / The Analyst),
-  play/pause per card, 7 Rebecca cards + 8 Analyst cards
-- Wired `IntelligenceSidebar.tsx`: "animations" added to `IntelligenceSection` union,
-  nav entry under Knowledge & Resources with `IconSparkles`
-- Wired `Intelligence.tsx`: lazy import, `sectionMeta`, `SectionContent` switch case,
-  `VALID_SECTIONS` set
-- Fixed pre-existing TS error in `RebeccaAdvancedOrbit.tsx`: typed `animateObj` as
-  `TargetAndTransition` and `transitionObj` as `Transition` (both from framer-motion)
+**Breadcrumbs fixed + skill created:**
+- `Breadcrumbs.tsx` fully audited against `App.tsx` route table
+- Added: `/company/guidance`, `/company/icp-definition`, `/intelligence`, `/lb-slides`, `/structures` (no-id), `photos` + `criteria` property sub-pages
+- Removed stale redirect entries: `/voice`, `/compare`, `/timeline`, `/sensitivity`, `/financing`, `/global/research`, `/admin/logos`, `/methodology`, `/research`, `/analysis` (dupe)
+- Created `.agents/skills/breadcrumbs/SKILL.md` — canonical breadcrumb map + full update protocol for future route changes
 
-**Gates (all passed):** typecheck ✅ production-image ✅ flex-label-overflow ✅
-spinner-contrast ✅ magic-numbers ✅ replit-independence ✅
+**Gates:** typecheck ✅ production-image ✅
 
-**Pre-existing failures (not introduced, CC-owned):**
+**Pre-existing failures (CC-owned, not introduced):**
 - check:lint → no-shadow in `api-server/src/chat/rebecca-tool-impls-slide-factory.ts`
-- test:api-server → marco, builder-substitution-map, dispatch, pptx-substitution, slide-6-embed-flow
+- test:api-server → dispatch, builder-substitution-map, pptx-substitution, slide-6-embed-flow
 
 ## Files Replit Owns Right Now
 
@@ -52,15 +42,7 @@ None — session complete, all committed.
 
 ## Handoff to CC
 
-See `docs/handoffs/2026-05-17-animations-intelligence-replit-to-cc.md` for full brief.
-
-**Short version:**
-- The `check:lint` no-shadow failure in `rebecca-tool-impls-slide-factory.ts` is
-  CC-owned and pre-existing — needs destructuring fix in that file.
-- The `test:api-server` failures (marco, builder-substitution-map, dispatch) are
-  pre-existing CC-owned issues — not caused by Replit's changes.
-- No follow-up UI work required from CC for the animations feature itself.
-- CC's outstanding Replit UI backlog is unchanged (T2-2, T2-3, T2-4).
+None required.
 
 ## Pending Replit Work
 

@@ -1,3 +1,12 @@
+/**
+ * Breadcrumbs.tsx — Context-aware breadcrumb trail rendered in the app header.
+ *
+ * Canonical breadcrumb map lives in useBreadcrumbs() below.
+ * When adding, removing, or renaming a route, update BOTH:
+ *   1. The route table in App.tsx
+ *   2. The map in this file (staticRoutes or the dynamic match blocks)
+ * See the `breadcrumbs` agent skill for the full update protocol.
+ */
 import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
 import { useProperty } from "@/lib/api";
@@ -15,150 +24,109 @@ interface BreadcrumbEntry {
   href?: string;
 }
 
+const HOME: BreadcrumbEntry = { label: "Dashboard", href: "/" };
+
 function useBreadcrumbs(): BreadcrumbEntry[] {
   const [location] = useLocation();
   const properties = useStore((s) => s.properties);
 
   const path = location.replace(/\/+$/, "") || "/";
 
-  // Extract property ID from route before any conditional returns (React hooks rule)
-  const propertyMatch = path.match(/^\/property\/([^/]+)(\/(.+))?$/);
-  const structureMatch = path.match(/^\/structures\/([^/]+)$/);
+  // ── Dynamic: /property/:id[/:sub] ──────────────────────────────
+  const propertyMatch = path.match(/^\/property\/([^/]+)(?:\/(.+))?$/);
+  // ── Dynamic: /structures[/:id] ─────────────────────────────────
+  const structuresMatch = path.match(/^\/structures(?:\/([^/]+))?$/);
+
   const routePropertyId = propertyMatch
     ? parseInt(propertyMatch[1]) || 0
-    : structureMatch
-    ? parseInt(structureMatch[1]) || 0
+    : structuresMatch?.[1]
+    ? parseInt(structuresMatch[1]) || 0
     : 0;
+
   const { data: apiProperty } = useProperty(routePropertyId);
 
-  if (path === "/") {
-    return [{ label: "Dashboard" }];
-  }
+  // ── Dashboard ──────────────────────────────────────────────────
+  if (path === "/") return [{ label: "Dashboard" }];
 
+  // ── Property routes ────────────────────────────────────────────
   if (propertyMatch) {
     const propId = propertyMatch[1];
-    const sub = propertyMatch[3];
+    const sub = propertyMatch[2];
     const storeProp = properties.find((p) => String(p.id) === propId);
     const propName = apiProperty?.name ?? storeProp?.name ?? propId;
 
-    const items: BreadcrumbEntry[] = [
-      { label: "Dashboard", href: "/" },
+    const base: BreadcrumbEntry[] = [
+      HOME,
       { label: "Properties", href: "/portfolio" },
     ];
+
+    const SUB_LABELS: Record<string, string> = {
+      edit:     "Property Assumptions",
+      research: "Research",
+      photos:   "Photos",
+      criteria: "Research Criteria",
+    };
 
     if (!sub) {
-      items.push({ label: propName });
-    } else {
-      items.push({ label: propName, href: `/property/${propId}` });
-      if (sub === "edit") items.push({ label: "Property Assumptions" });
-      else if (sub === "research") items.push({ label: "Research" });
-      else items.push({ label: sub });
+      return [...base, { label: propName }];
     }
-    return items;
-  }
-
-  if (structureMatch) {
-    const propId = structureMatch[1];
-    const storeProp = properties.find((p) => String(p.id) === propId);
-    const propName = apiProperty?.name ?? storeProp?.name ?? propId;
     return [
-      { label: "Dashboard", href: "/" },
-      { label: "Properties", href: "/portfolio" },
+      ...base,
       { label: propName, href: `/property/${propId}` },
-      { label: "Operating Structure" },
+      { label: SUB_LABELS[sub] ?? sub },
     ];
   }
 
+  // ── Structures (Operating Structure Comparison) ────────────────
+  if (structuresMatch) {
+    const propId = structuresMatch[1];
+    if (propId) {
+      const storeProp = properties.find((p) => String(p.id) === propId);
+      const propName = apiProperty?.name ?? storeProp?.name ?? propId;
+      return [
+        HOME,
+        { label: "Properties", href: "/portfolio" },
+        { label: propName, href: `/property/${propId}` },
+        { label: "Operating Structure" },
+      ];
+    }
+    return [HOME, { label: "Operating Structure" }];
+  }
+
+  // ── Static route map ───────────────────────────────────────────
+  // Shorthand ancestor used by Management Co. sub-routes.
+  const MGMT: BreadcrumbEntry = { label: "Management Co.", href: "/company" };
+
   const staticRoutes: Record<string, BreadcrumbEntry[]> = {
-    "/portfolio": [
-      { label: "Dashboard", href: "/" },
-      { label: "Properties" },
-    ],
-    "/company": [
-      { label: "Dashboard", href: "/" },
-      { label: "Management Co" },
-    ],
-    "/company/assumptions": [
-      { label: "Dashboard", href: "/" },
-      { label: "Management Co", href: "/company" },
-      { label: "Assumptions" },
-    ],
-    "/company/research": [
-      { label: "Dashboard", href: "/" },
-      { label: "Management Co", href: "/company" },
-      { label: "Research" },
-    ],
-    "/profile": [
-      { label: "Dashboard", href: "/" },
-      { label: "My Profile" },
-    ],
-    "/scenarios": [
-      { label: "Dashboard", href: "/" },
-      { label: "My Scenarios" },
-    ],
-    "/sensitivity": [
-      { label: "Dashboard", href: "/" },
-      { label: "Sensitivity Analysis" },
-    ],
-    "/financing": [
-      { label: "Dashboard", href: "/" },
-      { label: "Financing Analysis" },
-    ],
-    "/property-finder": [
-      { label: "Dashboard", href: "/" },
-      { label: "Property Finder" },
-    ],
-    "/methodology": [
-      { label: "Dashboard", href: "/" },
-      { label: "Help" },
-    ],
-    "/admin": [
-      { label: "Dashboard", href: "/" },
-      { label: "Admin Settings" },
-    ],
-    "/global/research": [
-      { label: "Dashboard", href: "/" },
-      { label: "Global Research" },
-    ],
-    "/compare": [
-      { label: "Dashboard", href: "/" },
-      { label: "Compare Properties" },
-    ],
-    "/timeline": [
-      { label: "Dashboard", href: "/" },
-      { label: "Timeline" },
-    ],
-    "/map": [
-      { label: "Dashboard", href: "/" },
-      { label: "Map View" },
-    ],
-    "/help": [
-      { label: "Dashboard", href: "/" },
-      { label: "Help" },
-    ],
-    "/research": [
-      { label: "Dashboard", href: "/" },
-      { label: "Research Center" },
-    ],
-    "/analysis": [
-      { label: "Dashboard", href: "/" },
-      { label: "Analysis" },
-    ],
-    "/voice": [
-      { label: "Dashboard", href: "/" },
-      { label: "AI Voice Lab" },
-    ],
-    "/admin/logos": [
-      { label: "Dashboard", href: "/" },
-      { label: "Admin Settings", href: "/admin" },
-      { label: "Logos" },
-    ],
+    // ── Portfolio ──────────────────────────────────────────────
+    "/portfolio":               [HOME, { label: "Properties" }],
+
+    // ── Management Co. ─────────────────────────────────────────
+    "/company":                 [HOME, { label: "Management Co." }],
+    "/company/assumptions":     [HOME, MGMT, { label: "Assumptions" }],
+    "/company/research":        [HOME, MGMT, { label: "Research" }],
+    "/company/guidance":        [HOME, MGMT, { label: "Guidance" }],
+    "/company/icp-definition":  [HOME, MGMT, { label: "ICP Bracket Mix" }],
+
+    // ── Admin ──────────────────────────────────────────────────
+    "/admin":                   [HOME, { label: "Admin" }],
+
+    // ── AI Intelligence ────────────────────────────────────────
+    "/intelligence":            [HOME, { label: "AI Intelligence" }],
+
+    // ── Slide Decks ────────────────────────────────────────────
+    "/lb-slides":               [HOME, { label: "Slide Decks" }],
+
+    // ── Core pages ─────────────────────────────────────────────
+    "/profile":                 [HOME, { label: "My Profile" }],
+    "/scenarios":               [HOME, { label: "Scenarios" }],
+    "/property-finder":         [HOME, { label: "Property Finder" }],
+    "/analysis":                [HOME, { label: "Analysis" }],
+    "/map":                     [HOME, { label: "Map View" }],
+    "/help":                    [HOME, { label: "Help" }],
   };
 
-  return staticRoutes[path] ?? [
-    { label: "Dashboard", href: "/" },
-    { label: path.slice(1) },
-  ];
+  return staticRoutes[path] ?? [HOME, { label: path.slice(1) }];
 }
 
 export default function Breadcrumbs() {
