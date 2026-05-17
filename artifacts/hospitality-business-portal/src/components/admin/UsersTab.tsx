@@ -261,7 +261,7 @@ export default function UsersTab() {
     <Card className="bg-card border border-border/80 shadow-sm">
       <CardHeader className="relative">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-semibold text-foreground">User Management</CardTitle>
               <Tooltip>
@@ -277,7 +277,7 @@ export default function UsersTab() {
               {users?.length ?? 0} registered users
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" onClick={() => setInviteOpen(true)} data-testid="button-invite-users">

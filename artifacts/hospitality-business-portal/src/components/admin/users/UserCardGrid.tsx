@@ -168,7 +168,7 @@ export default function UserCardGrid({
                 </div>
 
                 <div className="px-4 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge variant={roleBadgeVariant(user.role)} className="text-[11px] px-2 py-0 cursor-help"
@@ -184,7 +184,7 @@ export default function UserCardGrid({
                       <span className="text-[11px] text-accent">{companyName}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] text-muted-foreground">Scenarios</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
