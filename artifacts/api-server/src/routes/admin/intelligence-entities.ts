@@ -21,6 +21,10 @@ import { z } from "zod";
 import { requireAdmin } from "../../auth";
 import { logAndSendError } from "../helpers";
 import { ENTITY_CODE_MAP } from "./intelligence-entity-codes";
+import {
+  HTTP_400_BAD_REQUEST,
+  HTTP_404_NOT_FOUND,
+} from "../../constants";
 
 const entityCodeParamSchema = z.object({
   entityCode: z.string().min(1),
@@ -34,13 +38,13 @@ export function registerIntelligenceEntityRoutes(app: Express): void {
       try {
         const parsed = entityCodeParamSchema.safeParse(req.params);
         if (!parsed.success) {
-          return res.status(400).json({ error: "Invalid entity code" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid entity code" });
         }
         const { entityCode } = parsed.data;
 
         const entity = ENTITY_CODE_MAP.get(entityCode);
         if (!entity) {
-          return res.status(404).json({
+          return res.status(HTTP_404_NOT_FOUND).json({
             error: `Intelligence entity not found: ${entityCode}`,
             hint: "Specialists use /api/admin/specialists/:id/probe. Minions use /api/admin/minions/:id/self-test.",
           });
@@ -84,7 +88,7 @@ export function registerIntelligenceEntityRoutes(app: Express): void {
           });
         }
 
-        return res.status(400).json({ error: `Unhandled entity class for probe: ${entity.class}` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unhandled entity class for probe: ${entity.class}` });
       } catch (error: unknown) {
         logAndSendError(res, "Failed to probe intelligence entity", error, "IENT-001");
       }
