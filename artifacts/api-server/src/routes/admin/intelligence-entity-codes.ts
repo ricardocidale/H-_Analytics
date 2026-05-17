@@ -12,9 +12,8 @@
  * Specialist probes remain on /api/admin/specialists/:id/probe.
  * Minion self-tests remain on /api/admin/minions/:id/self-test.
  *
- * Phase 3 follow-on (CC): after ORCHESTRATOR_SPECIALIST_ID is renamed
- * "gaspar" → "gustavo", this file picks up the change automatically via the
- * imported constant — no manual edit needed here.
+ * Phase 3 (CC) complete: ORCHESTRATOR_SPECIALIST_ID renamed "gaspar" → "gustavo"
+ * (2026-05-17). This file picks up the rename via the imported constant.
  */
 
 import {

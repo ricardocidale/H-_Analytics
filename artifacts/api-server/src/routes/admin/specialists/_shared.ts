@@ -42,7 +42,7 @@ export const identityHistoryQuerySchema = z.object({
 
 /**
  * Look up the catalog factory-default identity for any id accepted by the
- * Phase-3 identity routes. Returns the orchestrator default for "gaspar"
+ * Phase-3 identity routes. Returns the orchestrator default for "gustavo"
  * (which is not part of SPECIALIST_CATALOG), or the catalog entry for one
  * of the 12 specialists. Returns null for unknown ids so the route can
  * 404 cleanly.

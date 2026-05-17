@@ -53,11 +53,8 @@ export interface EntityRegistryEntry {
   /**
    * Backend ID used by probe and config API endpoints.
    * For specialists: dotted ID (e.g. "mgmt-co.funding").
-   * For orchestrator: ORCHESTRATOR_SPECIALIST_ID (currently "gaspar").
+   * For orchestrator: ORCHESTRATOR_SPECIALIST_ID ("gustavo" after Phase 3).
    * For agents/minions: plain id (e.g. "rebecca", "aldo").
-   *
-   * Phase 3 (CC): after ORCHESTRATOR_SPECIALIST_ID is renamed from
-   * "gaspar" → "gustavo", update this file's import only — entityCode stays.
    */
   readonly backendId: string;
 
@@ -141,7 +138,7 @@ export function getEntityByCode(
 
 /**
  * Look up an entity by its backend ID (the id used in API calls).
- * For the orchestrator this is ORCHESTRATOR_SPECIALIST_ID ("gaspar" until Phase 3).
+ * For the orchestrator this is ORCHESTRATOR_SPECIALIST_ID ("gustavo").
  * For specialists this is the dotted id (e.g. "mgmt-co.funding").
  */
 export function getEntityByBackendId(

@@ -222,7 +222,7 @@ export function registerCatalogRoutes(app: Express) {
   });
 
   // ── Detail (definition + config + assignments-with-health) ──────
-  // Accepts ORCHESTRATOR_SPECIALIST_ID ("gaspar") via a synthetic detail response so the orchestrator
+  // Accepts ORCHESTRATOR_SPECIALIST_ID ("gustavo") via a synthetic detail response so the orchestrator
   // can be edited through the same SpecialistPage as the 12 catalog
   // specialists. Catalog rows have their humanName/gender overlaid with
   // any Phase-3 admin override so the page header matches what the

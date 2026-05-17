@@ -56,11 +56,21 @@ export interface OrchestratorIdentity {
 }
 
 /**
- * Synthetic specialistId reserved for the orchestrator. The Phase-3 admin
- * identity routes accept this id alongside the catalog-declared specialist
- * ids so Gustavo's humanName/gender can be edited through the same surface.
+ * Stable orchestrator ID. Used as the synthetic specialistId for admin
+ * identity routes. Matches humanName ("gustavo") so it is self-documenting
+ * in logs, route params, and error messages.
+ *
+ * Phase 3: renamed from "gaspar" → "gustavo" (2026-05-17).
+ * See docs/plans/2026-05-17-005-agent-taxonomy-registry.md.
  */
-export const ORCHESTRATOR_SPECIALIST_ID = "gaspar" as const;
+export const ORCHESTRATOR_SPECIALIST_ID = "gustavo" as const;
+
+/**
+ * Backward-compat alias. Present for one release cycle to allow any
+ * remaining callers using the string literal "gaspar" to be found and
+ * updated. Remove in Phase 4.
+ */
+export const LEGACY_ORCHESTRATOR_ID = "gaspar" as const;
 
 export type Gender = "male" | "female" | "neutral";
 
