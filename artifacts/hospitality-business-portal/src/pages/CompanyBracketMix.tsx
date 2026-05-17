@@ -975,7 +975,7 @@ function DataSourcesTab() {
               className="rounded-lg border border-border bg-muted/20 px-4 py-3 space-y-1.5"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-sm font-medium text-foreground min-w-0 truncate">{item.label}</p>
                 <IconExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </div>
               <p className="text-xs text-muted-foreground">{item.description}</p>
