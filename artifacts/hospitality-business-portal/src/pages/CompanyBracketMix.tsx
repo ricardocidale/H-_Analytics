@@ -1131,7 +1131,7 @@ function LegacyIcpTab({
   );
 }
 
-export default function CompanyBracketMix() {
+export function IcpMixContent() {
   const { data: global, isLoading } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
   const [activeTab, setActiveTab] = useState("bracket-mix");
@@ -1166,7 +1166,26 @@ export default function CompanyBracketMix() {
     return <PageErrorState message="Failed to load company data" />;
   }
 
-  const companyName = global.companyName ?? "Hospitality Business";
+  return (
+    <div className="space-y-6">
+      <CurrentThemeTab tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      <div>
+        {activeTab === "bracket-mix" && <BracketMixTab />}
+        {activeTab === "market-evidence" && (
+          <MarketEvidenceTab global={global} properties={properties} />
+        )}
+        {activeTab === "data-sources" && <DataSourcesTab />}
+        {activeTab === "legacy-icp" && (
+          <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CompanyBracketMix() {
+  const { data: global } = useGlobalAssumptions();
+  const companyName = global?.companyName ?? "Hospitality Business";
 
   return (
     <Layout>
@@ -1179,18 +1198,7 @@ export default function CompanyBracketMix() {
           />
 
           <AnimatedSection delay={0.1}>
-            <CurrentThemeTab tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-
-            <div className="mt-6">
-              {activeTab === "bracket-mix" && <BracketMixTab />}
-              {activeTab === "market-evidence" && (
-                <MarketEvidenceTab global={global} properties={properties} />
-              )}
-              {activeTab === "data-sources" && <DataSourcesTab />}
-              {activeTab === "legacy-icp" && (
-                <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />
-              )}
-            </div>
+            <IcpMixContent />
           </AnimatedSection>
         </div>
       </AnimatedPage>

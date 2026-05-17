@@ -12,6 +12,7 @@ import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTa
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
 import { CapitalStackDisciplineTab } from "./model-defaults/CapitalStackDisciplineTab";
+import { IcpMixTab } from "./model-defaults/IcpMixTab";
 import { ManagementCoTab } from "./model-defaults/ManagementCoTab";
 import { BrandsTab } from "./model-defaults/BrandsTab";
 import { useAuth } from "@/lib/auth";
@@ -243,6 +244,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
 
   const ALL_MODEL_DEFAULTS_TABS: CurrentThemeTabItem[] = [
     { value: "company",                  label: "Company" },
+    { value: "icp-mix",                  label: "ICP Mix" },
     { value: "capital-stack-discipline", label: "Capital Stack Discipline" },
     { value: "market-macro",             label: "Market & Macro" },
     { value: "model-constants",          label: "Model Constants" },
@@ -282,6 +284,8 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               }}
             />
         )}
+
+        {activeTab === "icp-mix" && <IcpMixTab />}
 
         {activeTab === "capital-stack-discipline" && (
             <CapitalStackDisciplineTab
