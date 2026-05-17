@@ -113,7 +113,10 @@ None — session complete, all committed to main.
 
 ## Handoff to CC
 
-**Action required:** Execute Phase 3 of plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`.
+> **[CC note — 2026-05-17, user-authorized one-time edit]** Handoff resolved.
+> Phase 3 (`gaspar → gustavo` rename) was executed in CC session 11 (commit `f93cd76e8`) and shipped to main via PR #160 (squash `db246c075`, title "taxonomy Ph1-3"). The original handoff text below is preserved for session-log continuity but is no longer actionable.
+
+**Action required:** ~~Execute Phase 3 of plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`.~~ **DONE — shipped in PR #160.**
 
 Full details: `docs/handoffs/2026-05-17-cc-taxonomy-phase3.md`
 
