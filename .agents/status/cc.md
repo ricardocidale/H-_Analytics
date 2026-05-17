@@ -4,16 +4,16 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T21:45:00Z
+Updated: 2026-05-17T22:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `a94186d24`, synced with `origin/main`.
+`main` at `c4219fdfb`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-`a94186d24` — `chore(status): replit — CC refresh note bumped to 41fa4d9ea (user-authorized)`.
+`c4219fdfb` — `docs(masterplan): hygiene sweep + 3 new T2 task entries from 2026-05-17 audit`.
 
 ## What CC Did This Session (2026-05-17 session 14)
 
@@ -61,8 +61,9 @@ None — work is on main, working tree clean.
 
 ## What's Pending
 
-- Open TODO carried from prior sessions (CLAUDE.md):
-  - Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up)
+- **Next session priority — confirmed by user 2026-05-17:** Start **T3-1 Matteo — Model Router Specialist** per `docs/plans/master-plan-2026-05-16.md` (highest in Track 3; reduces token costs, pays for the other agents). Existing plan doc at `docs/plans/2026-05-16-002-feat-matteo-model-router-plan.md`. Effort: 2-3 weeks. CC-owned (gateway config, routing logic, admin UI). Done-when criteria in masterplan T3-1: LiteLLM or Bifrost gateway, routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek V4-Flash + Gemini 3.1 Flash routing, cost-per-task visible in Admin panel, 30–50% token-spend reduction measurable.
+- New T2 entries on plan added 2026-05-17 (Replit-safe, can run in parallel with Matteo): T2-6 (generic brand-type slugs + admin UI), T2-7 (horizontal tabs → collapsible UI on non-main pages). T2-5 (reference ranges singleton) is deferred pending ownership clarification.
+- Open TODO carried from prior sessions (CLAUDE.md): Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up).
 
 ## Handoff to Replit
 
