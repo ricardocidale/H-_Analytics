@@ -80,56 +80,33 @@ constants structurally unnecessary, not just stylistically bad.
 - `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) — bootstrap-only, source citation required, never imported by runtime code
 - Test assertion / fixture values (`*.test.ts`, `*.spec.ts`) — checker skips these files entirely
 
-**Three violation examples with correct fixes:**
+**Canonical violation + fix** (additional patterns in skill):
 ```ts
-// VIOLATION 1 — named constant for financial value
+// VIOLATION — named constant for financial value
 export const DEFAULT_EXIT_CAP_RATE = 0.085;
-const exitCap = property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE; // WRONG
+const exitCap = property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE; // WRONG — name doesn't fix it
 
-// CORRECT 1 — engine reads from DB (resolver guarantees it)
-const exitCap = property.exitCapRate; // always set by three-layer resolver
-
-// VIOLATION 2 — bracket default in TypeScript
-const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975; // WRONG even with a name
-
-// CORRECT 2 — value lives in icp_brackets row, bootstrapped by SQL:
-// INSERT INTO icp_brackets (slug, default_exit_cap_rate)
-// VALUES ('us-tertiary-boutique-resort', 0.0975); -- Source: CBRE 2024 + 75bp
-
-// VIOLATION 3 — service template rates as TS array
-export const DEFAULT_SERVICE_FEE_CATEGORIES = [
-  { name: "Marketing & Brand", rate: 0.02 }, // 2% is DB data, not code
-];
-// CORRECT 3 — these rows live in a DB table (service_fee_templates),
-// bootstrapped by migration SQL, editable by admin without a deploy.
+// CORRECT — engine reads from DB (three-layer resolver guarantees it's set)
+const exitCap = property.exitCapRate;
 ```
 
-Full taxonomy + legacy migration path: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
+Full taxonomy, recurring violations, and legacy migration path: `.agents/skills/hplus-variable-taxonomy/SKILL.md`.
 
 ---
 
 ## 3. Seed File Rule (updated 2026-05-13)
 
-**Migration SQL is the canonical source for bootstrap values.** TypeScript
-seed scripts invoke the resolver flow (`POST /api/properties`) and receive
-DB-populated values — they do NOT carry financial literals or named constants.
+**Migration SQL is the canonical source for bootstrap values.** TypeScript seed scripts invoke the resolver flow (`POST /api/properties`) and receive DB-populated values — they MUST NOT carry financial literals or named constants.
 
 ```ts
 // CORRECT — seed calls resolver; values come from icp_brackets Layer 2
 await createProperty({ companyId, ...baseFields });
-// exitCapRate arrives from bracket overlay, not a TS constant
 
-// VIOLATION — TS constant in seed
-const SEED_EXIT_CAP_RATE_US = 0.075;   // WRONG — still a hardcoded value
-{ exitCapRate: SEED_EXIT_CAP_RATE_US }
-
-// VIOLATION — raw literal in seed
-{ exitCapRate: 0.075 }  // WRONG
+// VIOLATION — TS constant or raw literal in seed (both forms are wrong)
+{ exitCapRate: 0.075 }
 ```
 
-When a per-entity confirmed override is required (e.g., Medellin Duplex
-strategic exit at 7.5%), use a SQL migration or a one-off script that writes
-a CONFIRMED-state DB row with a source comment — not a TS constant.
+Per-entity confirmed overrides go through a SQL migration or one-off DB-writing script, never a TS constant.
 
 ---
 
@@ -228,36 +205,20 @@ protected at the column level, not just the read site.
 
 ## 10. Agentic Member Naming Convention
 
-All agents, minions, and orchestrators in H+ Analytics use human first names
-from Brazilian or Italian naming traditions (male or female).
+All agents, minions, and orchestrators in H+ Analytics use human first names from Brazilian or Italian naming traditions.
 
 **Three roles — never conflate:**
 - **Orchestrators** — route work across agents; never produce content directly
 - **Agents** — do the substantive work (LLM or deterministic)
 - **Minions** — deterministic helpers called by agents; no LLM, no judgment
 
-### Canonical definitions
-
-**Agent** — A named pipeline member that does substantive work using an LLM. Agents receive structured inputs, apply reasoning or generation, and produce structured outputs. Every agent declares a `role`, `short_description`, and `long_description`. Agents may be job-specific (Swarm format) or cross-app (Specialist format).
-
-**Minion** — A deterministic helper invoked by an agent. Minions never call an LLM and exercise no judgment — they transform, validate, extract, or diff data according to fixed rules. Minions carry a single name. Examples: Aldo (PDF/PPTX extractor), Dino (pixel-diff calculator), Carlo (Zod validator), Gaetano (vendor pass-through cost fetcher, `artifacts/api-server/src/ai/ambient/minions/vendor-passthrough-costs.ts`), Renato (Mgmt Co markup factor fetcher, `artifacts/api-server/src/ai/ambient/minions/mgmt-co-markup-factors.ts`), Otavio (report PDF pagination pre-pass, `artifacts/api-server/src/report/minions/otavio-pagination.ts`).
-
-**Specialist** — An Agent used across more than one product surface, not bound to a single pipeline. Specialists carry a single name (no NN suffix) and their outputs surface directly in the product UI as intelligence badges, conviction ranges, or cited copy. Examples: Lucca (Content Drafter), Maya (Visual Inspector).
-
-**Swarm** — A coordinated team of job-specific Agents that collaborate on one pipeline stage. Swarm members use the `Name-NN` zero-padded format (e.g., Sofia-01, Lorenzo-03). When a swarm finishes, its combined output is a single artifact handed to the next pipeline stage. Swarm members are never reused outside their pipeline.
-
 **Name formats:**
-- **Swarm agents** (job-specific, only used in one pipeline): `Name-NN`
-  zero-padded (e.g., Sofia-01, Lorenzo-03)
-- **Cross-app specialists** (used in multiple surfaces): single name (e.g., Maya, Lucca)
-- **Orchestrators and minions**: single name
+- Swarm members (job-specific, single pipeline): `Name-NN` zero-padded (e.g., Sofia-01, Lorenzo-03)
+- Cross-app specialists, orchestrators, minions: single name
 
-**Every member has three fields:**
-- `role` — one-line title (e.g., "Slide 1 Builder")
-- `short_description` — 1-2 sentences for card/list views
-- `long_description` — full capabilities, inputs, outputs, model tier
+**Every member declares three fields:** `role` (one-line title), `short_description` (1-2 sentences), `long_description` (capabilities, I/O, model tier).
 
-**Reserved names and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
+**Canonical definitions of Agent / Minion / Specialist / Swarm, reserved names, and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
 
 ---
 
@@ -294,28 +255,21 @@ This is the hard gate. It must PASS before the unit is considered done. Zero tol
 - Analyst CTAs: `AnalystActionButton` (`@/components/analyst/AnalystActionButton`) — header/save-row/modal variants with cooldown support. Either is acceptable; the checker accepts both imports.
 - Horizontal tabs: `CurrentThemeTab` (`@/components/ui/tabs`) — Radix-backed wrapper with `suffix`, `trailingIcon`, `disabled` + `tooltipTitle`, `responsive: { fallback: "select" }`, and `variant: "default" | "drawer"`. `TabsContent` for panel content remains permitted.
 
-**Three violation examples with correct fixes:**
+**Two canonical violations + fixes** (additional patterns in skills):
 ```tsx
-// VIOLATION 1 — Rule A masking-literal anti-pattern
-export const ASK_ANALYST_CTA = "Ask The Analyst"; // BANNED
-
-// CORRECT 1 — use the canonical component
-import { AnalystButton } from "@/components/intelligence/AnalystButton";
-<AnalystButton onClick={onAnalystClick} />
-
-// VIOLATION 2 — Rule B import of bare primitives outside tabs.tsx
+// VIOLATION — Rule B import of bare primitives outside tabs.tsx
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"; // BANNED
 
-// CORRECT 2 — use the wrapper
+// CORRECT — use the wrapper
 import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 <CurrentThemeTab tabs={items} activeTab={tab} onTabChange={setTab} />
 
-// VIOLATION 3 — Rule B hand-rolled tab row
-<div className="flex">
-  {items.map(t => <button className={activeTab === t.value ? "on" : "off"} />)}
-</div>
+// VIOLATION — Rule A masking-literal anti-pattern
+export const ASK_ANALYST_CTA = "Ask The Analyst"; // BANNED
 
-// CORRECT 3 — same wrapper; styling stays consistent across the portal.
+// CORRECT — use the canonical component
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+<AnalystButton onClick={onAnalystClick} />
 ```
 
 **When to include in a plan's verification section:** Every frontend unit. If the unit adds no UI surface, the gate still runs to catch regressions. There are no exceptions.
@@ -476,16 +430,11 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 
 ### Costantino — Data Custodian (Step 0)
 
-Periodic agentic health-audit loop for all `admin_resources` rows with a `config.healthProbe` recipe. Runs side-by-side with legacy `resource-health-checker.ts` (Step 1 retires it). Admin-editable cadence via parameter row `costantino-health-cycle-interval-ms`. Full contract: `.agents/skills/costantino-data-custodian/SKILL.md`.
+Periodic agentic health-audit loop for `admin_resources` rows with `config.healthProbe`. Full contract: `.agents/skills/costantino-data-custodian/SKILL.md`.
 
 ### Intelligence Display — specialist-sourced UI affordances
 
-Every range badge, tip, severity signal, or suggestion must originate **100% from specialist/research-engine output**. No component may hard-code a range, write its own advice, or derive a suggestion locally.
-
-**Canonical components:** `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`
-**Severity:** ok=emerald, advisory=sky, warning=amber, block=red — no new levels.
-
-Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/skills/analyst-intelligence-display/SKILL.md`
+Every range badge, tip, severity signal, or suggestion must originate **100% from specialist/research-engine output** — no component may hard-code a range or derive a suggestion locally. Canonical components: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`. Severity palette: ok=emerald, advisory=sky, warning=amber, block=red — no new levels. Full contract: `.agents/skills/analyst-intelligence-display/SKILL.md`.
 
 ### Roles and permissions
 
@@ -493,25 +442,21 @@ Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
-### Number taxonomy — the permanent law (never re-derive)
+### Number taxonomy — see §2
 
-Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — the fix is NOT `?? DEFAULT_X` (also a violation); use `getFactoryNumber(key, country)` for country-specific rates or rely on the three-layer resolver guarantee (no fallback needed); (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` — a named constant doesn't fix the violation.
+Full enforcement rule is §2 above. Recurring violations, migration patterns, and confirmed exceptions: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local constants.
 
-**Confirmed exceptions (2026-05-13):** Algorithm calibration constants (non-financial ordering / IRS-derived parameters like `NOL_UTILIZATION_CAP`, `PRIORITY_*`) stay in TypeScript. `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) are acceptable bootstrap-only values with source citations. Test files (`*.test.ts`, `*.spec.ts`) are fully exempt from the checker.
+### Inflation policy (USD-base calculations)
 
-Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local assumption constants.
-
-### Inflation policy (USD-base calculations) — supersedes prior cascade
-
-All H+ engine calculations use the **US inflation rate** for every property. Country-level inflation tables are display-only. Engine cascade always passes `'US'` as the country argument to `getFactoryNumber`. Full policy and supersession notes: `.agents/skills/inflation-cascade/SKILL.md`.
+All H+ engine calculations use the **US inflation rate** for every property. Country-level inflation tables are display-only. Engine cascade always passes `'US'` to `getFactoryNumber`. Full policy: `.agents/skills/inflation-cascade/SKILL.md`.
 
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
-6-slide property deck (slide 7 "The Ask" always excluded). One pipeline: React pages at `features/internal-deck/` → headless Chromium (Playwright) → PDF → R2 → `GET /api/properties/:id/deck.pdf`. **Playwright is the only renderer — do not add Puppeteer; legacy Python/satori tracks are removed.** Full reference: `docs/slide-system/lb-slides-implementation-reference.md`.
+6-slide property deck (slide 7 "The Ask" always excluded). Pipeline: React pages at `features/internal-deck/` → headless Chromium (Playwright) → PDF → R2 → `GET /api/properties/:id/deck.pdf`. **Playwright is the only renderer — do not add Puppeteer.** Full reference: `docs/slide-system/lb-slides-implementation-reference.md`.
 
-### `reference_brands` AI pipeline wiring
+### `reference_brands` AI pipeline — DI pattern
 
-DI pattern (route layer fetches, calc/engine DB-import-free): `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
+Route layer fetches; calc/engine DB-import-free. Full doc: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
 
 ### Inviolable login / auth rules
 
@@ -532,9 +477,7 @@ See `docs/issues/known-issues.md`.
 
 ### Migration system architecture
 
-Three folders. `lib/db/migrations/` is the Drizzle-generate output target; `artifacts/api-server/migrations/` is what the api-server's `migrate()` actually reads at boot (slots past 0052 have drifted from `lib/db/migrations/` — new migrations must be mirrored with non-colliding slot numbers); `artifacts/api-server/src/migrations/*.ts` are runtime guards that re-apply idempotent `IF NOT EXISTS` DDL on every boot. Full topology + workflow: `docs/runbooks/schema-migrations.md`.
-
-Schema changes always use `pnpm --filter @workspace/db run generate` — never hand-craft SQL (except complex backfills). `lib/db/migrations/meta/0042_snapshot.json` is the canonical baseline; `0000_snapshot.json` stays as the historical root. The new `Three folders` paragraph above is the authoritative pointer to the full runbook.
+Three folders: `lib/db/migrations/` (Drizzle-generate output target), `artifacts/api-server/migrations/` (what the api-server reads at boot; slots past 0052 have drifted — new migrations need non-colliding slot numbers), `artifacts/api-server/src/migrations/*.ts` (runtime guards that re-apply idempotent `IF NOT EXISTS` DDL on every boot). Schema changes use `pnpm --filter @workspace/db run generate` — never hand-craft SQL except complex backfills. Full topology + workflow: `docs/runbooks/schema-migrations.md`.
 
 ### Shared proxy routing
 
@@ -572,49 +515,13 @@ Full directory layout, core workflow (brainstorm → plan → work → review �
 
 ### CC branch hygiene — Replit agent staging risk
 
-The Replit agent commits to whatever branch is checked out in the shared workspace. When CC creates a branch, pushes it, and leaves it open while waiting for CI, the Replit agent often lands unrelated commits onto it. Those commits then ship under the CC PR title, bypassing review scope.
-
-**Mandatory workflow before merging any CC PR:**
-
-```bash
-git log origin/main..origin/<branch> --oneline
-# Verify every commit is a CC commit (Author: ricardocidale with no Replit-Commit-Author header)
-# OR verify the squash diff only contains the intended files:
-git diff origin/main...origin/<branch> --name-only
-```
-
-If Replit agent commits are present:
-1. Note their SHAs
-2. Create a fresh branch from `origin/main`
-3. Cherry-pick only the CC commits: `git cherry-pick <sha1> <sha2>`
-4. Push the clean branch and create the PR from that
-
-Never merge a PR whose diff contains files outside the stated scope without explicitly acknowledging them in the PR description.
+Replit Agent commits to whatever branch is checked out in the shared workspace, so CC PR branches left open during CI often accumulate unrelated Replit commits. **Before merging any CC PR**, run `git log origin/main..origin/<branch> --oneline` and `git diff origin/main...origin/<branch> --name-only` to verify every commit and file matches the stated scope. If Replit commits are mixed in, cherry-pick the CC-only commits onto a fresh branch off `origin/main` and re-open the PR from there. Full recovery workflow: `docs/solutions/workflow-issues/cc-replit-branch-hygiene-2026-05-10.md`.
 
 ---
 
 ### Agent coordination — CC ↔ Replit (mandatory session gate)
 
-Two status files prevent work collisions between CC and Replit Agent:
-
-| File | Owner | Counterpart reads |
-|---|---|---|
-| `.agents/status/cc.md` | CC (sole writer) | Replit |
-| `.agents/status/replit.md` | Replit (sole writer) | CC |
-
-**Session start (mandatory):**
-1. Read `.agents/status/replit.md` — note `Active Branch` and `Files Replit Owns Right Now`.
-2. If Replit has an active branch that overlaps files you need, coordinate before touching them.
-3. Update `.agents/status/cc.md`: set `Status: active`, record branch, set `Updated` timestamp.
-
-**Session end (mandatory):**
-1. Set `Status: idle` (or `handoff-pending` if handing off to Replit).
-2. Fill `Handoff to Replit` section with specific pickup instructions if applicable.
-3. Commit the status file as part of your final commit (or standalone `chore(status)` commit).
-
-**Staleness clause:** if `Updated` is >24h old, treat as `idle` regardless of `Status` field.
-
-Full protocol, format spec, and surface restrictions: `agent-collab-status` skill.
+Two status files prevent work collisions: `.agents/status/cc.md` (CC is sole writer; Replit reads) and `.agents/status/replit.md` (Replit is sole writer; CC reads). At session start, read the counterpart's file and update your own (`Status: active`, branch, `Updated` timestamp). At session end, set `Status: idle` (or `handoff-pending`), fill the Handoff section if applicable, and commit. Staleness: if `Updated` is >24h old, treat as `idle` regardless of `Status`. Full protocol, format spec, and surface restrictions: `agent-collab-status` skill.
 
 ---
 
