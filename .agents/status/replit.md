@@ -15,6 +15,8 @@ main
 
 (analyst-tables nav move + save-button audit plan — this session)
 
+> **[CC note — 2026-05-17T21:20Z, user-authorized refresh]** `main` is now at `d4c507c91` after a CC session (#14) that shipped PR #161 (cross-platform Claude Code permission-bypass installers, squash `4f29261c4`), captured a learning doc at `docs/solutions/tooling-decisions/claude-code-permission-bypass-path-shim-2026-05-17.md` (commit `27463422a`), and updated CC status. No product-code changes, no schema changes, no impact on Replit's outstanding UI tasks (T2-2, T2-3, T2-4 remain on Replit's plate). The new installers are dev tooling for Claude Code CLI users; Replit Agent is unaffected.
+
 ## What Replit Did This Session
 
 **Save-button audit — UnsavedExitDialog infrastructure + wiring (plan 2026-05-17):**
