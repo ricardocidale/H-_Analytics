@@ -62,6 +62,7 @@ artifacts/api-server/logs/api-costs.jsonl
 /COST-MONITOR*
 /screenshots/**
 !/screenshots/README.md
+
 .compound-engineering/*.local.yaml
 .claude/worktrees/
 artifacts/api-server/iris/run-history/
@@ -72,3 +73,12 @@ artifacts/api-server/iris/health.md
 
 # Check-script input-hash caches (task #1214)
 .cache/check-*.hash
+
+# Claude local/runtime state
+.claude/settings.local.json
+.claude/launch.json
+.claude/worktrees/
+.claude/**/*.log
+.claude/**/artifacts/
+.claude/**/.slide-thumbnails/
+.claude/scheduled_tasks.lock

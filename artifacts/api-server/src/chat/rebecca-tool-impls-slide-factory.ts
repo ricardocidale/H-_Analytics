@@ -88,7 +88,6 @@ export async function toolGetSlideFactoryRun(
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
-  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   return { result: run };
@@ -104,9 +103,6 @@ export async function toolRecordSlideFactoryBrief(
   if (!Number.isFinite(id) || !r2Key || !filename) {
     return { result: { error: "id, r2Key, and filename are required" } };
   }
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "new") {
@@ -127,9 +123,6 @@ export async function toolAcceptSlideFactoryBrief(
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (!run.briefR2Key) return { result: { error: "No brief recorded yet" } };
@@ -166,9 +159,6 @@ export async function toolAssignSlideFactoryProperties(
   const slide3PropertyId = args.slide3PropertyId == null ? null : Number(args.slide3PropertyId);
   const slide5PropertyId = args.slide5PropertyId == null ? null : Number(args.slide5PropertyId);
 
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "ingested") {
@@ -230,9 +220,6 @@ export async function toolUpdateSlideFactorySlot(
   if (value === undefined && approved === undefined) {
     return { result: { error: "At least one of value or approved must be provided" } };
   }
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   const slotEditAllowed = run.status === "draft_review" || run.status === "complete";
@@ -272,9 +259,6 @@ export async function toolApproveAllSlideFactorySlots(
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "draft_review") {
@@ -306,9 +290,6 @@ export async function toolTriggerSlideFactoryBuild(
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   const isRetrigger = run.status === "error";
@@ -352,9 +333,6 @@ export async function toolCancelSlideFactoryBuild(
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "building") {
@@ -381,7 +359,6 @@ export async function toolProduceSlideFactoryDeck(
   if (!runIdResult.ok) return runIdResult.result;
   const runId = runIdResult.value;
 
-  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
   const run = await getSlideFactoryRun(runId, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${runId} not found` } };
 
@@ -408,9 +385,6 @@ export async function toolRebuildSlideFactoryDeck(
   const id = Number(args.id);
   if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
 
-  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
-    "../storage/slide-factory-runs"
-  );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
 
@@ -483,7 +457,6 @@ export async function toolDownloadFactoryV2Deck(
     return { result: { error: "format must be 'pptx', 'pdf', or 'both'" } };
   }
 
-  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
   const run = await getSlideFactoryRun(runId, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${runId} not found` } };
   if (run.status !== "complete") {
@@ -520,7 +493,6 @@ export async function toolTriggerLorenzoIngestion(
   if (!idResult.ok) return idResult.result;
   const id = idResult.value;
 
-  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "ingesting") {
@@ -560,7 +532,6 @@ export async function toolTriggerLuccaDraft(
   if (!idResult.ok) return idResult.result;
   const id = idResult.value;
 
-  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
   if (run.status !== "drafting") {
