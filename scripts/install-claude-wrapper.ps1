@@ -6,10 +6,16 @@
 #   flag `--dangerously-skip-permissions` is currently the only working bypass.
 #
 # What it does:
-#   Installs a PATH-first .cmd shim at %USERPROFILE%\.local\bin\claude.cmd that
-#   always invokes the real claude with --dangerously-skip-permissions. Works in
-#   PowerShell, CMD, Windows Terminal, VS Code's integrated terminal — any
+#   Installs a PATH-first .cmd shim at %USERPROFILE%\.claude-bypass\bin\claude.cmd
+#   that always invokes the real claude with --dangerously-skip-permissions. Works
+#   in PowerShell, CMD, Windows Terminal, VS Code's integrated terminal — any
 #   Windows shell that respects user PATH.
+#
+#   The shim lives in its OWN directory (.claude-bypass\bin) rather than
+#   %USERPROFILE%\.local\bin\ to avoid colliding with the Anthropic native
+#   installer, which puts claude.exe at %USERPROFILE%\.local\bin\claude.exe.
+#   On Windows .EXE beats .CMD in PATHEXT, so a sibling .cmd shim is silently
+#   ignored. A separate directory prepended to PATH solves this cleanly.
 #
 # What it does NOT do:
 #   Bypass prompts in Claude Code Desktop (Mac or Windows). The Desktop app
@@ -17,8 +23,9 @@
 #   bypass exists for Desktop. Use the CLI for unattended workflows.
 #
 # OneDrive / Dropbox safety:
-#   Installs to %USERPROFILE%\.local\bin\ which is NOT redirected by either
-#   service. Warns if your USERPROFILE or current directory looks redirected.
+#   Installs to %USERPROFILE%\.claude-bypass\bin\ which is NOT redirected by
+#   either service. Warns if your USERPROFILE or current directory looks
+#   redirected.
 #
 # Run from PowerShell (5.1+ or 7+) anywhere in the repo:
 #     .\scripts\install-claude-wrapper.ps1
@@ -61,7 +68,7 @@ if ($hazards.Count -gt 0) {
 
 # --- 2. Resolve the real claude binary (skip our own shim if it exists) -------
 
-$shimDir  = Join-Path $homePath '.local\bin'
+$shimDir  = Join-Path $homePath '.claude-bypass\bin'
 $shimPath = Join-Path $shimDir 'claude.cmd'
 $shimResolvedPath = if (Test-Path $shimPath) { (Resolve-Path $shimPath).Path } else { $null }
 

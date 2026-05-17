@@ -13,6 +13,29 @@
 set -euo pipefail
 
 WRAPPER_PATH="$HOME/.local/bin/claude"
+
+# Safety: don't overwrite an Anthropic native install. The wrapper is < 1 KB;
+# the native binary is hundreds of MB. If the file at WRAPPER_PATH exists and
+# is large, bail out so we never destroy a native installation.
+if [[ -f "$WRAPPER_PATH" ]]; then
+  # Linux uses `stat -c%s`, BSD/Mac uses `stat -f%z`. Fall back to 0.
+  existing_size=$(stat -c%s "$WRAPPER_PATH" 2>/dev/null \
+                  || stat -f%z "$WRAPPER_PATH" 2>/dev/null \
+                  || echo 0)
+  if [[ "$existing_size" -gt 100000 ]]; then
+    cat >&2 <<MSG
+ERROR: $WRAPPER_PATH already exists and is $existing_size bytes.
+This looks like a native Claude Code install, not our wrapper.
+Refusing to overwrite. To use this installer either:
+  1) Move the native install:  mv "$WRAPPER_PATH" "$HOME/claude-native-backup"
+  2) Or install the wrapper to a separate directory by editing WRAPPER_PATH
+     in this script (e.g. $HOME/.claude-bypass/bin/claude) and adding that
+     directory to your PATH ahead of $HOME/.local/bin.
+MSG
+    exit 1
+  fi
+fi
+
 mkdir -p "$(dirname "$WRAPPER_PATH")"
 
 cat > "$WRAPPER_PATH" <<'WRAPPER_EOF'
