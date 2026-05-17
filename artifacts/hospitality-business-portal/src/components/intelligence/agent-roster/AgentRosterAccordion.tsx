@@ -9,12 +9,12 @@
  * on error, no silent failures). Badge rendering follows
  * `analyst-intelligence-display`.
  *
- * Probe endpoints:
- *   agent · gaspar (Gustavo)  → POST /api/admin/specialists/gaspar/probe
- *   agent · iris              → GET  /api/admin/iris/status (200 = healthy)
- *   agent · rebecca           → GET  /api/rebecca/kb/stats (200 = healthy)
- *   specialist · :id          → POST /api/admin/specialists/:id/probe
- *   minion · :id              → POST /api/admin/minions/:id/self-test
+ * Probe endpoints (Phase 2 routing — uses entityCode from RosterEntry):
+ *   orch.gustavo              → POST /api/admin/intelligence/orch.gustavo/probe
+ *   agent.iris                → GET  /api/admin/iris/status (200 = healthy)
+ *   agent.rebecca             → GET  /api/rebecca/kb/stats (200 = healthy)
+ *   spec.<letter>             → POST /api/admin/specialists/:backendId/probe
+ *   minion.<id>               → POST /api/admin/minions/:id/self-test
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -59,7 +59,7 @@ const HISTORY_STRIP_MAX = 10;
 const CLASS_LABEL: Record<RosterClass, string> = {
   agent: "Agent",
   specialist: "Specialist",
-  minion: "Helper",
+  minion: "Minion",
 };
 
 /**
@@ -150,14 +150,17 @@ async function runProbe(entry: RosterEntry): Promise<ProbeOutcome> {
     let res: Response;
     if (entry.class === "minion") {
       res = await apiRequest("POST", `/api/admin/minions/${encodeURIComponent(entry.id)}/self-test`);
-    } else if (entry.class === "specialist" || (entry.class === "agent" && entry.id !== "rebecca" && entry.id !== "iris")) {
+    } else if (entry.class === "specialist") {
       res = await apiRequest("POST", `/api/admin/specialists/${encodeURIComponent(entry.id)}/probe`);
-    } else if (entry.id === "iris") {
+    } else if (entry.entityCode?.startsWith("orch.")) {
+      // Orchestrator — class-aware intelligence entities route (Phase 2)
+      res = await apiRequest("POST", `/api/admin/intelligence/${encodeURIComponent(entry.entityCode)}/probe`);
+    } else if (entry.entityCode === "agent.iris") {
       res = await apiRequest("GET", "/api/admin/iris/status");
-    } else if (entry.id === "rebecca") {
+    } else if (entry.entityCode === "agent.rebecca") {
       res = await apiRequest("GET", "/api/rebecca/kb/stats");
     } else {
-      throw new Error(`No probe defined for ${entry.class} · ${entry.id}`);
+      throw new Error(`No probe defined for ${entry.class} · ${entry.entityCode ?? entry.id}`);
     }
 
     const latencyMs = Math.round(performance.now() - startedAt);
@@ -365,7 +368,7 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
               />
             ) : (
               <span className="text-xs text-muted-foreground italic">
-                Deterministic helper — no probe applies.
+                Deterministic minion — no probe applies.
               </span>
             )}
           </div>

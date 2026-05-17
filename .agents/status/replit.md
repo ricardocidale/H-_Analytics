@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T13:30:00Z
-Status: idle
+Updated: 2026-05-17T14:30:00Z
+Status: handoff-pending
 
 ## Active Branch
 
@@ -13,42 +13,59 @@ main
 
 ## Last Commit on Branch
 
-`b20c23bf` — Improve layout alignment for pending server update banner
+(taxonomy registry phase 1+2 — this session)
 
 ## What Replit Did This Session
 
-**Agent Roster pills redesign:**
-- `AgentRosterAccordion.tsx` rebuilt — Radix Accordion replaced with shadcn Collapsible per-row
-- Icon import corrected to `@/components/icons/themed-icons`
+**Agent taxonomy registry (plan 2026-05-17-005, Phases 1 & 2):**
 
-**Agent Roster probe fixes:**
-- `runtime.ts`: added ORCHESTRATOR_SPECIALIST_ID early-return so gaspar probe returns 200 pass
-- `AgentRosterAccordion.tsx`: `humanizeProbeMessage()` strips HTTP codes/error codes, uses correct class label
-- Toast title changed "probe failed" → "check failed"
-- Solution doc: `docs/solutions/ui-patterns/agent-roster-probe-messages-2026-05-17.md`
-- replit.md updated with probe rules + Recent Changes
+Phase 1 — Portal-layer entity registry:
+- NEW: `artifacts/hospitality-business-portal/src/lib/intelligence-entity-registry.ts`
+  — `INTELLIGENCE_ENTITY_REGISTRY` (1 orchestrator + 16 specialists + 2 agents + 5 minions)
+  — `entityCode` format: `orch.gustavo`, `spec.A`–`spec.Q`, `agent.rebecca`, `minion.aldo`
+  — `getEntityByCode()`, `getEntityByBackendId()` lookup helpers
+- UPDATED: `artifacts/hospitality-business-portal/src/lib/agent-roster.ts`
+  — Added `entityCode: string` to `RosterEntry` interface
+  — `getAgentsRoster()`: looks up entityCode via `getEntityByBackendId()`
+  — `getSpecialistsRoster()`: derives `spec.${d.letter}`
+  — `getMinionsRoster()`: derives `minion.${m.id}`
+- UPDATED: `artifacts/hospitality-business-portal/src/components/intelligence/agent-roster/AgentRosterAccordion.tsx`
+  — `CLASS_LABEL.minion`: `"Helper"` → `"Minion"` (terminology fix)
+  — Probe routing now uses `entry.entityCode` (orch.* → intelligence endpoint; specialist → specialist endpoint)
+  — "Deterministic helper" → "Deterministic minion"
 
-**Agent taxonomy plan (ce-plan):**
-- Plan written: `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`
-- Architect subagent consulted for deep structural analysis
-- 4-phase plan: Phases 1–2 Replit-owned; Phases 3–4 CC-owned
-- Defines `entityCode` convention (`orch.gustavo`, `spec.A`, `agent.rebecca`, `minion.aldo`)
-- Designs centralized `intelligence-entity-registry.ts` for portal layer
-- Covers new class-aware probe route, terminology fixes, and `gaspar`→`gustavo` rename
+Phase 2 — API-server class-aware probe route:
+- NEW: `artifacts/api-server/src/routes/admin/intelligence-entity-codes.ts`
+  — `INTELLIGENCE_ENTITY_CODES`, `ENTITY_CODE_MAP`, `ORCHESTRATOR_ENTITY_CODE`
+- NEW: `artifacts/api-server/src/routes/admin/intelligence-entities.ts`
+  — `POST /api/admin/intelligence/:entityCode/probe` (orchestrators + agents)
+- UPDATED: `artifacts/api-server/src/routes/admin/index.ts`
+  — Registered `registerIntelligenceEntityRoutes(app)`
+- UPDATED: `artifacts/api-server/src/routes/admin/specialists/runtime.ts`
+  — ASRT-005 error message now directs callers to intelligence endpoint for non-specialist IDs
 
-**Gates:** typecheck ✅ vite compile ✅
+CC handoff doc: `docs/handoffs/2026-05-17-cc-taxonomy-phase3.md`
+
+**Gates:** typecheck ✅ magic-numbers ✅ replit-independence ✅ taxonomy-mirror ✅ types-mirror ✅ vite compile ✅
 
 **Pre-existing failures (CC-owned, not introduced):**
 - check:lint → no-shadow in `api-server/src/chat/rebecca-tool-impls-slide-factory.ts`
-- test:api-server → dispatch, builder-substitution-map, pptx-substitution, slide-6-embed-flow
+- test:api-server → dispatch, pptx-substitution, marco, slide-6-embed-flow
 
 ## Files Replit Owns Right Now
 
-None — session complete, all committed.
+None — session complete, all committed to main.
 
 ## Handoff to CC
 
-None required.
+**Action required:** Execute Phase 3 of plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md`.
+
+Full details: `docs/handoffs/2026-05-17-cc-taxonomy-phase3.md`
+
+Summary: Rename `ORCHESTRATOR_SPECIALIST_ID` from `"gaspar"` → `"gustavo"` in
+`lib/engine/src/analyst/identity.ts`. Add `LEGACY_ORCHESTRATOR_ID = "gaspar"` alias for one
+release cycle. Scan for any string literal `"gaspar"` remaining in the codebase. Check DB for
+rows using the old ID and migrate if needed. Remove alias in Phase 4.
 
 ## Pending Replit Work
 

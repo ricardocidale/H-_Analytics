@@ -94,7 +94,7 @@ export function registerRuntimeRoutes(app: Express) {
       }
 
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASRT-005" });
+      if (!def) return res.status(404).json({ error: "Entity not found in Specialist catalog. For orchestrators or agents use /api/admin/intelligence/:entityCode/probe.", code: "ASRT-005" });
 
       const ranAt = new Date();
       const rows = await storage.listSpecialistAssignments(id);

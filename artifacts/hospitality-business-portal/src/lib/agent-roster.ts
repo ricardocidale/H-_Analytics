@@ -20,6 +20,7 @@
 import { AGENTS, MINIONS } from "@/lib/agent-taxonomy";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+import { getEntityByBackendId } from "@/lib/intelligence-entity-registry";
 
 export type RosterClass = "agent" | "specialist" | "minion";
 
@@ -29,6 +30,12 @@ export type RosterHealth = "unknown" | "healthy" | "degraded" | "error" | "not-a
 export interface RosterEntry {
   /** Stable id used as the probe target — also the accordion key. */
   id: string;
+  /**
+   * Class-prefixed entity code from the intelligence-entity-registry.
+   * Format: orch.<name> | spec.<letter> | agent.<id> | minion.<id>
+   * Used by the accordion to route probe requests to the correct endpoint.
+   */
+  entityCode: string;
   class: RosterClass;
   humanName: string;
   role: string;
@@ -96,15 +103,19 @@ const AGENT_DESCRIPTORS: AgentDescriptor[] = [
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export function getAgentsRoster(): RosterEntry[] {
-  return AGENT_DESCRIPTORS.map((d) => ({
-    id: d.id,
-    class: "agent" as const,
-    humanName: d.source.humanName,
-    role: d.source.role,
-    description: d.description,
-    whereUsed: d.whereUsed,
-    initialHealth: "unknown" as const,
-  }));
+  return AGENT_DESCRIPTORS.map((d) => {
+    const regEntry = getEntityByBackendId(d.id);
+    return {
+      id: d.id,
+      entityCode: regEntry?.entityCode ?? d.id,
+      class: "agent" as const,
+      humanName: d.source.humanName,
+      role: d.source.role,
+      description: d.description,
+      whereUsed: d.whereUsed,
+      initialHealth: "unknown" as const,
+    };
+  });
 }
 
 export function getSpecialistsRoster(): RosterEntry[] {
@@ -113,6 +124,7 @@ export function getSpecialistsRoster(): RosterEntry[] {
     .sort((a, b) => a.letter.localeCompare(b.letter))
     .map((d) => ({
       id: d.id,
+      entityCode: `spec.${d.letter}`,
       class: "specialist" as const,
       humanName: d.humanName ?? d.realName,
       role: d.displayName ?? d.realName,
@@ -125,6 +137,7 @@ export function getSpecialistsRoster(): RosterEntry[] {
 export function getMinionsRoster(): RosterEntry[] {
   return Object.values(MINIONS).map((m) => ({
     id: m.id,
+    entityCode: `minion.${m.id}`,
     class: "minion" as const,
     humanName: m.label,
     role: m.role,
