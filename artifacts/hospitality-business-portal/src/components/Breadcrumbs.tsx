@@ -5,11 +5,18 @@
  * When adding, removing, or renaming a route, update BOTH:
  *   1. The route table in App.tsx
  *   2. The map in this file (staticRoutes or the dynamic match blocks)
- * See the `breadcrumbs` agent skill for the full update protocol.
+ *
+ * Intelligence sections (/intelligence?section=X) are resolved via
+ * useIntelligenceSection() so the breadcrumb updates without a full navigation.
+ *
+ * Admin sections (/admin#sectionName) are resolved via useAdminSection() for
+ * the same reason.
  */
 import { useLocation, Link } from "wouter";
 import { useStore } from "@/lib/store";
 import { useProperty } from "@/lib/api";
+import { useAdminSection } from "@/lib/admin-nav";
+import { useIntelligenceSection } from "@/lib/intelligence-nav";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -25,10 +32,87 @@ interface BreadcrumbEntry {
 }
 
 const HOME: BreadcrumbEntry = { label: "Dashboard", href: "/" };
+const ADMIN: BreadcrumbEntry = { label: "Admin", href: "/admin" };
+const AI_INTEL: BreadcrumbEntry = { label: "AI Intelligence", href: "/intelligence" };
+
+// ── Intelligence section label map ──────────────────────────────────────────
+// Derived from buildNavGroups() in IntelligenceSidebar.tsx.
+// Keep in sync when sections are added or renamed.
+const INTEL_SECTION_LABEL: Record<string, string> = {
+  // Agent Roster
+  "roster-agents":        "Agents",
+  "roster-specialists":   "Specialists",
+  "roster-minions":       "Minions",
+  // Conversational
+  "ai-agents":            "Rebecca",
+  "knowledge-base":       "Knowledge Base",
+  "conversations":        "Conversations",
+  "iris":                 "Iris",
+  // Logs
+  "logs":                 "All Logs",
+  "runs":                 "All Logs",        // legacy alias
+  // Knowledge & Resources
+  "knowledge-registry":              "Knowledge Registry",
+  "knowledge-registry-country-data": "Country Economic Data",
+  "resources":                        "Resources Catalog",
+  "resources-tables":                 "Market Data",
+  "benchmark-bands":                  "Benchmark Bands",
+  "animations":                       "Animations",
+  // LLMs
+  "llms-agents":    "LLMs · Agents",
+  "llms-research":  "LLMs · Research",
+  "llms-graphics":  "LLMs · Graphics",
+  "llms-other":     "LLMs · Other",
+  "llm-workflows":  "LLMs · Agents",        // legacy alias
+  // System
+  "assumption-guidance": "Assumption Guidance",
+  "engine-health":       "System Health",
+  "scheduled-research":  "Scheduled Research",
+  "vector-bench":        "Vector Search Latency",
+  // Orchestrator / legacy specialist detail pages
+  "analyst-orchestrator": "Gustavo",
+  "gustavo":              "Gustavo",
+  "specialists":          "Specialists",
+};
+
+// ── Admin section label map ──────────────────────────────────────────────────
+// Derived from buildAdminGroups() in AdminSidebar.tsx.
+const ADMIN_SECTION_LABEL: Record<string, string> = {
+  // Model Defaults
+  "defaults-management-company": "Management Co.",
+  "defaults-property":           "Property Defaults",
+  "constants":                   "Constants",
+  "analyst-tables":              "Analyst Tables",
+  "reference-ranges":            "Reference Ranges",
+  // Portfolio
+  "required-fields":     "Required Fields",
+  "property-heroes":     "Property Heroes",
+  "archived-properties": "Archived Properties",
+  "scenarios":           "All Scenarios",
+  "default-assignments": "Default Assignments",
+  // Users
+  "users": "All Users",
+  // Testing & Verification
+  "verification": "Verification",
+  "qa-sandbox":   "QA Sandbox",
+  "compliance":   "Compliance",
+  // Configuration
+  "notifications":      "Notifications",
+  "sidebar-visibility": "Sidebar Visibility",
+  "brand-themes":       "Themes",
+  "brand-assets-page":  "Brand Assets",
+  // System
+  "database":      "Database",
+  "observability": "Observability",
+  "activity":      "Activity",
+  "login-settings": "Login",
+};
 
 function useBreadcrumbs(): BreadcrumbEntry[] {
   const [location] = useLocation();
   const properties = useStore((s) => s.properties);
+  const [adminSection] = useAdminSection();
+  const [intelSection] = useIntelligenceSection();
 
   const path = location.replace(/\/+$/, "") || "/";
 
@@ -93,8 +177,29 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
     return [HOME, { label: "Operating Structure" }];
   }
 
+  // ── Intelligence section (section-aware) ───────────────────────
+  if (path === "/intelligence" || path === "/ai-intelligence") {
+    const sectionLabel = INTEL_SECTION_LABEL[intelSection];
+    if (sectionLabel) {
+      return [HOME, ADMIN, AI_INTEL, { label: sectionLabel }];
+    }
+    // Specialist detail pages — section ID looks like "specialist-mgmt-co-*"
+    if (intelSection.startsWith("specialist-")) {
+      return [HOME, ADMIN, AI_INTEL, { label: "Specialist" }];
+    }
+    return [HOME, ADMIN, { label: "AI Intelligence" }];
+  }
+
+  // ── Admin section (section-aware) ──────────────────────────────
+  if (path === "/admin") {
+    const sectionLabel = ADMIN_SECTION_LABEL[adminSection];
+    if (sectionLabel) {
+      return [HOME, { label: "Admin", href: "/admin" }, { label: sectionLabel }];
+    }
+    return [HOME, { label: "Admin" }];
+  }
+
   // ── Static route map ───────────────────────────────────────────
-  // Shorthand ancestor used by Management Co. sub-routes.
   const MGMT: BreadcrumbEntry = { label: "Management Co.", href: "/company" };
 
   const staticRoutes: Record<string, BreadcrumbEntry[]> = {
@@ -107,23 +212,36 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
     "/company/research":        [HOME, MGMT, { label: "Research" }],
     "/company/guidance":        [HOME, MGMT, { label: "Guidance" }],
     "/company/icp-definition":  [HOME, MGMT, { label: "ICP Bracket Mix" }],
+    "/company/criteria":        [HOME, MGMT, { label: "Criteria" }],
 
-    // ── Admin ──────────────────────────────────────────────────
-    "/admin":                   [HOME, { label: "Admin" }],
-
-    // ── AI Intelligence ────────────────────────────────────────
-    "/intelligence":            [HOME, { label: "AI Intelligence" }],
+    // ── Admin sub-pages ────────────────────────────────────────
+    "/admin/logos":             [HOME, ADMIN, { label: "Logos" }],
+    "/admin/icp-studio":        [HOME, ADMIN, { label: "ICP Studio" }],
+    "/admin/lb-slides":         [HOME, ADMIN, { label: "Slides" }],
 
     // ── Slide Decks ────────────────────────────────────────────
     "/lb-slides":               [HOME, { label: "Slide Decks" }],
+    "/slide-decks":             [HOME, { label: "Slide Decks" }],
+
+    // ── Analysis tools ─────────────────────────────────────────
+    "/analysis":                [HOME, { label: "Analysis" }],
+    "/sensitivity":             [HOME, { label: "Sensitivity" }],
+    "/financing":               [HOME, { label: "Financing" }],
+    "/executive-summary":       [HOME, { label: "Executive Summary" }],
+    "/compare":                 [HOME, { label: "Compare" }],
+    "/timeline":                [HOME, { label: "Timeline" }],
 
     // ── Core pages ─────────────────────────────────────────────
     "/profile":                 [HOME, { label: "My Profile" }],
     "/scenarios":               [HOME, { label: "Scenarios" }],
     "/property-finder":         [HOME, { label: "Property Finder" }],
-    "/analysis":                [HOME, { label: "Analysis" }],
     "/map":                     [HOME, { label: "Map View" }],
     "/help":                    [HOME, { label: "Help" }],
+    "/settings":                [HOME, { label: "Settings" }],
+    "/methodology":             [HOME, { label: "Methodology" }],
+    "/research":                [HOME, { label: "Research" }],
+    "/global/research":         [HOME, { label: "Research" }],
+    "/icp":                     [HOME, { label: "ICP" }],
   };
 
   return staticRoutes[path] ?? [HOME, { label: path.slice(1) }];
