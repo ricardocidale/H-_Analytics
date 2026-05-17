@@ -29,8 +29,7 @@ import {
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiError } from "@/lib/queryClient";
-import { ChevronDown } from "@/components/icons/themed-icons";
-import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import type {
   MinionSelfTestHistoryItem,
   RosterClass,
@@ -243,19 +242,18 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      {/* ── Pill trigger ─────────────────────────────────────────────── */}
+      {/* ── Row trigger (matches Knowledge Registry AssetPanel style) ── */}
       <CollapsibleTrigger asChild>
         <button
-          className={cn(
-            "w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-all duration-150 group",
-            "border border-border/60 bg-card hover:bg-accent/40",
-            open
-              ? "rounded-t-xl border-b-0"
-              : "rounded-full hover:border-border",
-          )}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
           data-testid={`roster-row-trigger-${entry.id}`}
           aria-expanded={open}
         >
+          {open
+            ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          }
+
           <StatusDot health={state.health} />
 
           <span className="font-medium text-sm text-foreground shrink-0">
@@ -268,33 +266,28 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
             {entry.role}
           </span>
 
-          {!open && (
-            <span className="hidden sm:block text-xs text-muted-foreground/70 truncate flex-1 min-w-0">
-              {entry.description}
-            </span>
-          )}
-
-          {entry.class === "minion" && state.history.length > 0 && !open && (
-            <span className="flex items-center gap-1.5 shrink-0">
-              <HistoryStrip items={state.history} />
-              <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
-                {formatRelative(state.history[0]?.ranAt ?? null)}
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            {!open && (
+              <span className="hidden md:block text-xs text-muted-foreground/60 truncate max-w-48">
+                {entry.description}
               </span>
-            </span>
-          )}
-
-          <ChevronDown
-            className={cn(
-              "w-3.5 h-3.5 text-muted-foreground shrink-0 ml-auto transition-transform duration-200",
-              open && "rotate-180",
             )}
-          />
+
+            {entry.class === "minion" && state.history.length > 0 && !open && (
+              <span className="flex items-center gap-1.5">
+                <HistoryStrip items={state.history} />
+                <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+                  {formatRelative(state.history[0]?.ranAt ?? null)}
+                </span>
+              </span>
+            )}
+          </div>
         </button>
       </CollapsibleTrigger>
 
-      {/* ── Expanded card body ───────────────────────────────────────── */}
+      {/* ── Expanded content ─────────────────────────────────────────── */}
       <CollapsibleContent>
-        <div className="border border-t-0 border-border/60 rounded-b-xl bg-card px-4 py-4 space-y-4">
+        <div className="px-4 pb-4 pt-3 border-t space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
             {entry.description}
           </p>
@@ -556,8 +549,8 @@ export function AgentRosterAccordion({
           )}
         </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="flex flex-col gap-2" data-testid={testId}>
+      <CardContent className="px-0 pb-0 pt-0">
+        <div className="divide-y divide-border/40" data-testid={testId}>
           {entries.map((entry) => (
             <RosterRow
               key={entry.id}
