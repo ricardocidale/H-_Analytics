@@ -44,7 +44,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Get correct numbers and a slide deck into investor hands, even if app is not fully polished. Days, not weeks.*
 
 ### T0-1: U8 — Verify portfolio IRR in 28–38% band
-**Status:** ✅ Done (2026-05-16)
+**Status:** ✅ Done (2026-05-16, commit `a8f1b0a5c`)
 **Result:** Portfolio IRR = **35.55%** ✓ PASS. All 7 properties documented in `docs/runbooks/seed-calibration-2026-05-13.md`. CLAUDE.md U8 checkbox marked.
 - San Diego 51.6% · Scott's House 42.6% · Lakeview Haven 37.7% · Loch Sheldrake 37.1% · Belleayre 30.4% · Jano Grande 29.8% · Medellin Duplex 13.5% (by design)
 - Portfolio equity invested $19.43M · exit value $69.5M · equity multiple 6.12×
@@ -52,7 +52,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T0-2: Raw financial engine output → XLSX
-**Status:** ✅ Done (2026-05-16)
+**Status:** ✅ Done (2026-05-16, commit `a8f1b0a5c`)
 **Route:** `GET /api/finance/compute/export?projectionYears=10`
 **Result:** Valid 8-sheet XLSX (Portfolio Summary + 1 tab per property). Each property tab: Revenue, GOP, NOI, ANOI, Debt Service, Cash Flow, Occupancy %, ADR, Sold Rooms by year. Portfolio summary tab: IRR, equity multiple, totals, per-property table.
 **Verified:** HTTP 200, 17KB XLSX with valid structure, passes typecheck + magic-numbers gate.
@@ -70,13 +70,13 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Fix security issues, close small gaps, and reduce technical debt. Weeks 1–4.*
 
 ### T1-1: Fix email existence leak in scenario sharing
-**Status:** ✅ Done (2026-05-16)
+**Status:** ✅ Done (2026-05-16, commit `c48b89f84`)
 **Fix:** `artifacts/api-server/src/routes/scenarios.ts` line ~481 — changed silent `201 { shares: [] }` for unknown email to `404 { error: "User not found", code: "SCN-046" }`. The `201` response with empty `shares[]` leaked user existence via body discrimination (caller could tell unknown email by `shares.length === 0` with no error). Typecheck + magic-numbers gate pass.
 
 ---
 
 ### T1-2: Property soft-delete UI toggle
-**Status:** ✅ Done (2026-05-16, Replit) — `AdminPropertiesTab.tsx` added; "Archived" entry in Portfolio admin sidebar group; Restore button calls `POST /api/admin/properties/:id/restore`; `AdminSidebar.tsx` wired.
+**Status:** ✅ Done (2026-05-16, Replit, commit `f02ee07b8`) — `AdminPropertiesTab.tsx` added; "Archived" entry in Portfolio admin sidebar group; Restore button calls `POST /api/admin/properties/:id/restore`; `AdminSidebar.tsx` wired.
 **Done when:**
 - User can "hide" a property from their view via a UI action (button or menu item)
 - Hidden property disappears from the user's property list
@@ -89,7 +89,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-3: Admin default scenario per user
-**Status:** ✅ Done (2026-05-16) — CC: schema + migration + route; Replit: "Default Scenario" dropdown in EditUserDialog, `assignedScenarioId` in User type, `assignScenarioMutation` in UsersTab
+**Status:** ✅ Done (2026-05-16) — CC backend commit `8bc3824fc` (schema + migration + route); Replit UI commit `f02ee07b8` ("Default Scenario" dropdown in EditUserDialog, `assignedScenarioId` in User type, `assignScenarioMutation` in UsersTab)
 **Context:** Currently every user gets an auto-created `kind="default"` scenario at first login. Admin cannot pre-configure which properties a user sees. Required for: investor users who should see only their property on sign-in; management company owner who sees full portfolio.
 **Done when:**
 - `users` table has `assignedScenarioId` (FK to scenarios, nullable)
@@ -135,7 +135,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 *Goal: Close the feature gaps users and investors will notice. Weeks 4–8.*
 
 ### T2-1: Management company / investor view separation
-**Status:** ✅ Phase complete (2026-05-16) — schema, migration, runtime guard, finance route filter, scenario route, Rebecca tool, parity map. UI (admin per-user perspectiveRole setter + hidden menu items) remains Replit-safe.
+**Status:** ✅ Phase complete (2026-05-16, backend commit `295b07e85`) — schema, migration, runtime guard, finance route filter, scenario route, Rebecca tool, parity map. UI (admin per-user perspectiveRole setter + hidden menu items) remains Replit-safe.
 **Context:** An investor in a single property should not see the management company's P&L, overhead, or fee structures. Currently all users see the same data model.
 **Done when (backend):**
 - ✅ `scenarios.perspectiveRole` enum: `operator | investor`, default `operator`, migration 0067/0074 + runtime guard
@@ -152,7 +152,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-2: Portfolio grouping
-**Status:** ✅ Complete (2026-05-16) — CC: schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. Replit: "Unassigned Properties" section on Portfolio.tsx with per-row dropdown + "Assign to portfolio" button; calls PUT /api/properties/:id/portfolio, invalidates properties query.
+**Status:** ✅ Complete (2026-05-16) — CC backend: schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. Replit UI commit `9b3222350` ("Unassigned Properties" section on Portfolio.tsx with per-row dropdown + "Assign to portfolio" button; calls PUT /api/properties/:id/portfolio, invalidates properties query); ownership-check follow-up commit `00bac3340`.
 **Context:** Multiple users need to be able to see different groupings of properties (e.g., "Southeast Portfolio," "Colombia Properties"). Currently all properties in a company are a flat list.
 **Done when:**
 - `portfolios` table: `(id, userId, companyId, name, description, createdAt)`
@@ -168,7 +168,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-3: Analyst button — content generation discipline
-**Status:** ✅ Complete (2026-05-16) — CC: audit, `generate_executive_summary` + `rewrite_property_description` Rebecca tools. Replit: `ImprovedDescriptionField.tsx` extracted from `BasicInfoSection.tsx` (view/edit toggle, "Improve with AI" preview dialog, Clear + Done; `data-testid="input-description-improved"`).
+**Status:** ✅ Complete (2026-05-16) — CC commit `0987d6968` (audit, `generate_executive_summary` + `rewrite_property_description` Rebecca tools); Replit UI commit `5252d10bf` (`ImprovedDescriptionField.tsx` extracted from `BasicInfoSection.tsx` — view/edit toggle, "Improve with AI" preview dialog, Clear + Done; `data-testid="input-description-improved"`).
 **Context:** The vision is that users regenerate content rather than type it. Every text field with variable content should have an Analyst button that populates it from research or AI inference.
 **Done when:**
 - Audit of all property and scenario text fields: list which have Analyst buttons and which don't
@@ -193,6 +193,52 @@ Every CC or Replit session should open this file first. Before writing a line of
 - LLM slot `bianca-verification` seeded via admin-resources-014 (defaults to Claude Haiku)
 
 **Note:** UI integration shipped by Replit — "Verify deck quality" button in DownloadTab.tsx, collapsible findings panel with severity dots, auto-expands prior results on load. `SlideFactoryTypes.ts` updated with `VerificationFinding` interface and 5 new run fields.
+
+---
+
+### T2-5: Reference ranges in Model Defaults — singleton storage
+**Status:** ⚠️ Deferred — ownership and definition need clarification before implementation (added 2026-05-17 from user input)
+**Context:** Reference ranges in Model Defaults are currently saved over time, bloating the DB and admin UI. There should be one current set per (entity, metric), not a versioned history. Separately, the user is unclear what reference ranges are exactly and which agents own them; that question needs to be revisited before any storage refactor.
+**Done when:**
+- Decision recorded: which agent or specialist owns reference-range generation (Maya? a new range-quality specialist? Rebecca tool?); document in `docs/solutions/architecture-patterns/`
+- Storage holds exactly one current snapshot per (entity, metric); no historical versioning
+- Migration: archive or delete the historical rows that exist today (keep an export in case of a need-to-restore)
+- Model Defaults admin UI shows one current set with a regeneration control; no history view
+**Effort:** Clarification (founder discussion, 1 day) → audit current usage (1 day) → schema migration + UI (3–5 days)
+**Owner:** CC (schema, migration, ownership decision) + Replit-safe (admin UI)
+
+---
+
+### T2-6: Generic brand-type slugs + admin UI for brand display names
+**Status:** ❌ Not started (added 2026-05-17 from user input)
+**Context:** Brand types in the app should use generic slug identifiers (`Boutique-Hotel-01`, `STR-01`, `Boutique-Hotel-02`, etc.). The actual brand display name does not have an authoring surface yet — admins need a place under Model Default Management Co to define the mapping from slug → display name and any per-brand metadata.
+**Done when:**
+- All brand-type references in DB / engine / UI use generic slug identifiers, not display names baked into code or seed data
+- New `brand_definitions` table (or equivalent) with `(slug, display_name, created_at, updated_at)` and any per-brand metadata fields needed by admin
+- Admin UI under Model Default Management Co: per-slug CRUD for display name + metadata
+- Every UI surface that renders a brand name resolves via slug → display name lookup
+- Migration: existing properties / scenarios renamed to slug identifiers with no data loss; backfill display names from any current literal usage
+**Effort:** Schema decision + migration (1 day) → admin UI (3–5 days) → call-site migration sweep (1–2 days)
+**Owner:** CC (schema, migration) + Replit-safe (admin UI)
+
+---
+
+### T2-7: Horizontal tabs → collapsible UI on non-main pages
+**Status:** ❌ Not started (added 2026-05-17 from user input)
+**Context:** Pages other than the main pages currently use horizontal tab menus with cards rendered under each tab. The user wants those refactored to a collapsible UI pattern modeled on Agent Roster — each item shows a description plus a few indicators that expand into a full card on click.
+**Excluded from refactor (keep horizontal tabs):**
+- Dashboard
+- Management Company page
+- Properties list page
+- Individual property pages
+**Done when:**
+- Audit produces a list of every page with horizontal tabs that is NOT in the excluded set
+- A reusable collapsible component lands in `components/ui/` (extending or wrapping the AgentRosterAccordion pattern) with `{ summary, indicators[], expandedContent }` props
+- Each non-excluded page replaces its horizontal-tab + cards layout with the collapsible component
+- Excluded pages continue to use the canonical `<CurrentThemeTab>` wrapper (§13 mandates that for horizontal tabs)
+- No regression in `scripts/src/check-ui-canonical.ts` (must NOT touch `CurrentThemeTab` itself; the refactor replaces tab *usage* on specific pages, not the tab component)
+**Effort:** Audit (½ day) → reusable component (2 days) → per-page refactor (1–2 weeks depending on count)
+**Owner:** Replit-safe (UI refactor)
 
 ---
 
@@ -324,6 +370,9 @@ WEEKS 4-8:
   T2-1  Investor view separation       ← needed before multi-user demo
   T2-3  Analyst content audit          ← systematic pass
   T2-4  Export verification agent      ← wrap working factory with quality gate
+  T2-6  Brand-type slugs + admin UI    ← decouple display names from identifiers
+  T2-7  Tabs → collapsible refactor    ← UX consistency on non-main pages
+  T2-5  Reference ranges singleton     ← deferred pending ownership clarification
 
 MONTHS 2-4:
   T3-1  Matteo model router            ← token cost reduction
@@ -367,6 +416,10 @@ LONG TERM:
 3. **Photo storage migration**: Photos are currently in a hybrid state (some in Neon bytea, some in Replit Object Storage, some as base64). As part of Replit graduation, these should move fully to Cloudflare R2. Timeline: whenever Replit Object Storage is deprecated or Replit graduation happens.
 
 4. **"Scenario bank per user" intent**: The current scenario system supports saving/listing/sharing scenarios. Is the "scenario bank" a different concept (e.g., a curated library of template scenarios that any user can clone), or is it the current save/share feature?
+
+5. **2026-05-17 tooling detour (acknowledged off-plan):** A CC session today shipped cross-platform Claude Code permission-bypass installers (PR #161, squash `4f29261c4`), a compound learning doc (`27463422a`), and a memory-file harmonization trim (`483dbe48d`). None of these are tracked masterplan tasks. The detour is dev-environment tooling driven by per-tool permission prompts that were blocking unattended Claude Code workflows; rationale and gotchas captured in `docs/solutions/tooling-decisions/claude-code-permission-bypass-path-shim-2026-05-17.md`. Treating as a one-off — no plan-level action needed beyond this acknowledgment.
+
+6. **2026-05-17 orchestrator rename shipped:** Plan `docs/plans/2026-05-17-005-agent-taxonomy-registry.md` Phase 3 renamed `ORCHESTRATOR_SPECIALIST_ID` from `gaspar` → `gustavo` in `lib/engine/src/analyst/identity.ts` (CC session 11, individual commit `f93cd76e8`; landed on main via PR #160 squash `db246c075`). Legacy `gaspar` string aliased for one release cycle (Phase 4 removes it). Affects T2-3 wiring at the agent-roster probe layer only; no impact on engine math.
 
 ---
 
