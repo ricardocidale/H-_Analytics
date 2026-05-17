@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T13:30:00Z
+Updated: 2026-05-17T14:40:00Z
 Status: idle
 
 ## Active Branch
@@ -13,7 +13,7 @@ main
 
 ## Last Commit on Branch
 
-(taxonomy registry phase 1+2 — this session)
+(analyst-tables nav move + save-button audit plan — this session)
 
 ## What Replit Did This Session
 

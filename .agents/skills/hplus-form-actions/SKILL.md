@@ -161,11 +161,35 @@ unambiguous. "Save Platform Fee Rate" is redundant.
   current action.
 - **Do not put Cancel before Analyst** in the button row. Analyst is always
   leftmost.
-- **Do not use Cancel to navigate away.** Use `AnalystUnsavedChangesDialog`
-  for navigation-away warnings.
+- **Do not use Cancel to navigate away.** Navigation-away warnings use
+  `UnsavedExitDialog` (see below), not Cancel and not `AnalystUnsavedChangesDialog`.
 - **Do not show all three buttons on sections where Analyst is not available.**
   If the section has no AI research capability, omit Analyst entirely — do not
   show a disabled Analyst button as a placeholder.
+
+---
+
+## Navigation-exit dialogs — two distinct components, never conflated
+
+### `AnalystUnsavedChangesDialog`
+- **When:** User clicks the **Analyst** button while the form is dirty.
+- **Why:** The Analyst reads from the database, not from in-flight edits. The
+  user must decide whether to save first or run on the last-saved state.
+- **Buttons (3):** Save & Analyze / Continue with last saved / Cancel
+- **Component:** `@/components/analyst/AnalystUnsavedChangesDialog`
+
+### `UnsavedExitDialog`
+- **When:** User navigates **away from the page** (sidebar, breadcrumb, route
+  change, admin section switch, tab switch within Model Defaults) while dirty.
+- **Why:** Prevents silent data loss when the user leaves without endorsing.
+- **Buttons (2):** Save / Leave without saving
+- **Component:** `@/components/ui/unsaved-exit-dialog` (new — 2026-05-17 plan)
+- **Hook:** `useUnsavedExitGuard({ isDirty, onSave })` — wraps navigation
+  triggers with `confirmLeave(callback)`; also registers `beforeunload` as a
+  secondary safety net for browser tab-close.
+
+**Never use `AnalystUnsavedChangesDialog` for a navigation exit.** Its 3-button
+layout implies the Analyst will run — confusing when the user just clicked Back.
 
 ---
 

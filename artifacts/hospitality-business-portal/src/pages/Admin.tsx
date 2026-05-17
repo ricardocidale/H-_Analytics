@@ -42,7 +42,6 @@ const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSo
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
 // KnowledgeBaseTab is now rendered as a sub-tab inside AIAgentsTab/RebeccaAdminTabs
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
-const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const ReferenceRangesTab = lazy(() => import("@/components/admin/intelligence/ReferenceRangesTab"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
@@ -69,7 +68,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "qa-sandbox":          { title: "QA Sandbox",               subtitle: "Preview context packs and prompts before running research" },
   "scheduled-research":  { title: "Scheduled Research",       subtitle: "Automated research workflows that keep intelligence fresh" },
   benchmarks:            { title: "Hospitality Benchmarks",    subtitle: "Industry benchmark values powering AI research ranges" },
-  "analyst-tables":      { title: "Analyst Tables",             subtitle: "Admin-only LLM refresh of benchmark tables (capital raise, etc.)" },
   "reference-ranges":    { title: "Reference Ranges",           subtitle: "Admin-editable low / mid / high ranges (tax, macro, KPI, construction, financing, labor, risk, demand) consumed by Specialists, Analyst, and Rebecca" },
   "vector-bench":        { title: "Vector Search Latency",      subtitle: "Trend lines for pgvector / HNSW p50 and p95 query latency over time" },
   notifications:         { title: "Notifications",            subtitle: "Email channels, alert rules, and delivery tracking" },
@@ -256,7 +254,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "qa-sandbox":       return <QASandbox />;
     case "scheduled-research": return <ScheduledResearchPanel />;
     case "benchmarks":       return <HospitalityBenchmarksTab />;
-    case "analyst-tables":   return <AnalystTablesTab />;
     case "reference-ranges": return <ReferenceRangesTab />;
     case "vector-bench":     return <VectorBenchTrendsTab />;
     case "notifications":    return <NotificationsTab />;

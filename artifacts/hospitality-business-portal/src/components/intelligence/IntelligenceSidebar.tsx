@@ -80,6 +80,7 @@ export type IntelligenceSection =
   | "knowledge-registry"
   | "knowledge-registry-country-data"
   | "benchmark-bands"
+  | "analyst-tables"
   | "logs"
   // "runs" is kept in the union as a backward-compat alias for deep links;
   // Intelligence.tsx redirects it to "logs" on load.
@@ -230,6 +231,12 @@ function buildNavGroups(): NavGroup[] {
           label: "Benchmark Bands",
           icon: IconActivity,
           tooltip: "Admin-editable low / mid / high bands for the 24 market calibration groups. Edits update model_constants without a code deploy.",
+        },
+        {
+          value: "analyst-tables",
+          label: "Analyst Tables",
+          icon: IconBrain,
+          tooltip: "LLM-refreshed benchmark tables (capital raise, reference brands, etc.) — trigger Analyst refresh and review output.",
         },
         {
           value: "animations",
