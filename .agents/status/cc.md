@@ -4,16 +4,16 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T20:45:00Z
+Updated: 2026-05-17T20:55:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `4f29261c4`, synced with `origin/main`.
+`main` at `40bcf3ca3`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-`4f29261c4` — `chore(dev): cross-platform Claude Code permission-bypass installers (#161)` (squash merge).
+`40bcf3ca3` — `chore(status): replit — mark Phase 3 handoff resolved (one-time CC edit, user-authorized)`.
 
 ## What CC Did This Session (2026-05-17 session 14)
 
@@ -42,6 +42,8 @@ Diagnosed and worked around three open Anthropic bugs that make permission-promp
 - Worked on `chore/claude-wrapper` (off main) for the PR.
 - Deleted `feat/portal-followups` (post-merge stub from PR #160 with no unique work) — deletion authorized by user; recovery via reflog if needed (`d11cb426e`).
 - Pruned 17 stale remote-tracking refs as a side effect of `git remote prune origin`.
+
+**Protocol override (one-time, user-authorized):** Edited `.agents/status/replit.md` to mark Replit's Phase 3 handoff to CC as resolved (Phase 3 = `gaspar → gustavo` rename, shipped in PR #160). The protocol says Replit is the sole writer of that file; the override was scoped to a single targeted edit and clearly labeled in-file with a `[CC note — user-authorized]` block. Original handoff text preserved (struck-through) for session-log continuity. Commit `40bcf3ca3`.
 
 **Memory captured (saved to `~/.claude/projects/.../memory/`):**
 - `feedback_powershell_repo_path.md` — don't assume the user is in the H-Analytics repo when issuing PowerShell commands on Windows; their clone is not in any common location.
