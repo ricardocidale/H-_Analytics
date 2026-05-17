@@ -332,7 +332,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
               disabled={false}
               tooltip="Have the Analyst review the revenue ancillary mix"
               size="sm"
-              dataTestId="button-ask-analyst-revenue-mix"
+              dataTestId="button-analyst-revenue-mix"
             />
           </div>
         </div>

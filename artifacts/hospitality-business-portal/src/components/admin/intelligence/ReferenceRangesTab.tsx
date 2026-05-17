@@ -128,7 +128,7 @@ export default function ReferenceRangesTab() {
 
   const submitting = createMutation.isPending || updateMutation.isPending;
 
-  const askTheAnalyst = async () => {
+  const runAnalyst = async () => {
     if (analystStep !== null) return;
     setAnalystError(null);
 
@@ -188,7 +188,7 @@ export default function ReferenceRangesTab() {
         setMetricSearch={setMetricSearch}
         setShowArchived={setShowArchived}
         onOpenCreate={openCreate}
-        onAskAnalyst={askTheAnalyst}
+        onAnalystClick={runAnalyst}
         onClearFilters={clearFilters}
       />
 
