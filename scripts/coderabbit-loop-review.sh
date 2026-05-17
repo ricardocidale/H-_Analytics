@@ -430,7 +430,6 @@ print_logo() {
 # ─────────────────────────────────────────────────────────────
 run_review() {
   local ndjson_file="${1:?usage: run-review <ndjson-output-file>}"
-  cr_banner
   print_logo
   export PATH="$HOME/.local/bin:$PATH"
 
