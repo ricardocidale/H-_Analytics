@@ -10,6 +10,7 @@ import {
   IconClipboardList,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import {
   DD_WORKSTREAM_LABELS,
   DD_TEMPLATE_VERSION,
@@ -46,12 +47,12 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
   const cityForComps = property.city || property.address.split(",")[0]?.trim() || null;
   const stateForComps = property.state || undefined;
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "listing", label: "Listing" },
-    ...(saved ? [{ key: "pricing" as Tab, label: "Pricing" }] : []),
-    { key: "value", label: "Value History" },
-    { key: "comps", label: "Hotel Comps" },
-    { key: "dd", label: "Due Diligence" },
+  const tabs: CurrentThemeTabItem[] = [
+    { value: "listing", label: "Listing" },
+    ...(saved ? [{ value: "pricing", label: "Pricing" }] : []),
+    { value: "value", label: "Value History" },
+    { value: "comps", label: "Hotel Comps" },
+    { value: "dd", label: "Due Diligence" },
   ];
 
   return (
@@ -76,21 +77,13 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
             </Button>
           </div>
 
-          <div className="flex gap-1 bg-muted/50 rounded-lg p-1" data-testid="detail-tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid={`tab-${tab.key}`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div data-testid="detail-tabs">
+            <CurrentThemeTab
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={(v) => setActiveTab(v as Tab)}
+              variant="drawer"
+            />
           </div>
 
           {activeTab === "listing" && <ListingPane property={property} />}
