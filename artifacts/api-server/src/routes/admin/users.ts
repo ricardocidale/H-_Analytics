@@ -108,8 +108,8 @@ export function registerUserRoutes(app: Express) {
         if (!roleResult.success) {
           return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}`, code: "AUSR-012" });
         }
-        if (role === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role", code: "AUSR-013" });
+        if (getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can change user roles", code: "AUSR-013" });
         }
         if (id === getAuthUser(req).id) {
           return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role", code: "AUSR-014" });
@@ -158,8 +158,8 @@ export function registerUserRoutes(app: Express) {
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
       if (await guardSuperAdmin(id, req, res)) return;
-      if (roleResult.data === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role", code: "AUSR-017" });
+      if (getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can change user roles", code: "AUSR-017" });
       }
 
       if (id === getAuthUser(req).id) {

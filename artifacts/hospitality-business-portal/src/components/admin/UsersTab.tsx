@@ -21,10 +21,24 @@ import PasswordDialog from "./users/PasswordDialog";
 import InviteUsersDialog from "./users/InviteUsersDialog";
 import DefaultPropertiesDialog from "./users/DefaultPropertiesDialog";
 
+function SectionHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+        {label}
+      </span>
+      <span className="text-xs text-muted-foreground/60 tabular-nums">
+        {count} {count === 1 ? "user" : "users"}
+      </span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
 export default function UsersTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -82,6 +96,16 @@ export default function UsersTab() {
     });
   }, [users, sortField, sortDir]);
 
+  const mainUsers = useMemo(
+    () => sortedUsers.filter(u => u.role === UserRole.USER),
+    [sortedUsers],
+  );
+
+  const adminUsers = useMemo(
+    () => sortedUsers.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN),
+    [sortedUsers],
+  );
+
   const createMutation = useMutation({
     mutationFn: async (data: { email: string; password?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string }) => {
       const res = await apiRequest("POST", "/api/admin/users", data, {
@@ -135,9 +159,6 @@ export default function UsersTab() {
 
   const editMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: { email?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string; canManageScenarios?: boolean } }) => {
-      // apiRequest's throwIfResNotOk already handles non-JSON error bodies
-      // (HTML pages, plain text) by including a body excerpt — no manual
-      // content-type check needed.
       const res = await apiRequest("PATCH", `/api/admin/users/${id}`, data, {
         fallbackMessage: "Failed to update user",
       });
@@ -220,6 +241,20 @@ export default function UsersTab() {
     }
   };
 
+  const sharedGridProps = {
+    sortField,
+    sortDir,
+    toggleSort,
+    currentUserRole: user?.role,
+    onEditUser: handleEditUser,
+    onPasswordUser: handlePasswordUser,
+    onDeleteUser: (id: number) => deleteMutation.mutate(id),
+    onToggleScenarios: (userId: number, value: boolean) => {
+      editMutation.mutate({ id: userId, data: { canManageScenarios: value } });
+    },
+    onManageDefaults: (targetUser: User) => { setDefaultsUser(targetUser); setDefaultsDialogOpen(true); },
+  };
+
   return (
     <TooltipProvider delayDuration={300}>
     <>
@@ -234,7 +269,7 @@ export default function UsersTab() {
                   <IconHelpCircle className="w-4 h-4 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-xs max-w-[280px]">
-                  Only users listed here can log in. There is no public sign-up — every user must be added or invited by an admin. Hover over role badges and icons on each card to learn what they do.
+                  Only users listed here can log in. There is no public sign-up — every user must be added or invited by an admin. <strong>Main</strong> users have standard access. <strong>Admin</strong> users manage the platform. Only super admins can change roles.
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -274,20 +309,38 @@ export default function UsersTab() {
             <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
           </div>
         ) : (
-          <UserCardGrid
-            sortedUsers={sortedUsers}
-            sortField={sortField}
-            sortDir={sortDir}
-            toggleSort={toggleSort}
-            currentUserRole={user?.role}
-            onEditUser={handleEditUser}
-            onPasswordUser={handlePasswordUser}
-            onDeleteUser={(id) => deleteMutation.mutate(id)}
-            onToggleScenarios={(userId, value) => {
-              editMutation.mutate({ id: userId, data: { canManageScenarios: value } });
-            }}
-            onManageDefaults={(targetUser) => { setDefaultsUser(targetUser); setDefaultsDialogOpen(true); }}
-          />
+          <div className="space-y-8">
+            <div>
+              <SectionHeader label="Main" count={mainUsers.length} />
+              {mainUsers.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  No standard users yet. Use Add User or Invite Users to get started.
+                </p>
+              ) : (
+                <UserCardGrid
+                  {...sharedGridProps}
+                  sortedUsers={mainUsers}
+                  showSortControls
+                />
+              )}
+            </div>
+
+            <div>
+              <SectionHeader label="Admin" count={adminUsers.length} />
+              {adminUsers.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  No admin users.
+                  {isSuperAdmin && " Use the edit button on a Main user to promote them."}
+                </p>
+              ) : (
+                <UserCardGrid
+                  {...sharedGridProps}
+                  sortedUsers={adminUsers}
+                  showSortControls={false}
+                />
+              )}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -326,6 +379,7 @@ export default function UsersTab() {
       isPending={editMutation.isPending}
       onSubmit={handleEditSubmit}
       scenarios={scenarios ?? []}
+      currentUserRole={user?.role}
     />
 
     <InviteUsersDialog

@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T13:18:00Z
+Updated: 2026-05-17T13:30:00Z
 Status: idle
 
 ## Active Branch
@@ -16,6 +16,16 @@ main
 (taxonomy registry phase 1+2 — this session)
 
 ## What Replit Did This Session
+
+**Users page split into Main / Admin sections + role-change super-admin gate:**
+
+- SECURITY: `PATCH /api/admin/users/:id` — any role change now requires super admin (was: only super_admin assignment restricted); code `AUSR-013`
+- SECURITY: `PATCH /api/admin/users/:id/role` — same gate; code `AUSR-017`
+- UPDATED: `components/admin/UsersTab.tsx` — two labeled sections (Main = role user; Admin = role admin|super_admin), each with count and a `SectionHeader` divider; passes `currentUserRole` to `EditUserDialog`
+- UPDATED: `components/admin/users/UserCardGrid.tsx` — new optional `showSortControls` prop (default true); sort bar hidden in Admin section; `currentUserRole` now destructured + used; role badges display human labels ("Super Admin", "Admin", "User")
+- UPDATED: `components/admin/users/EditUserDialog.tsx` — new `currentUserRole` prop; role field shows editable Select (user/admin/super_admin) to super admins only; regular admins see read-only role display with "Role changes require super admin" note
+
+**Gates:** typecheck ✅
 
 **Brand Assets admin restructure (4-tab layout + super-admin App Logo gate):**
 
