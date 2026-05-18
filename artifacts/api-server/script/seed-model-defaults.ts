@@ -61,7 +61,6 @@ import {
   DEFAULT_START_ADR,
   DEFAULT_MAX_OCCUPANCY,
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_START_OCCUPANCY,
 } from "@shared/constants";
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
@@ -174,7 +173,7 @@ export const SPECS: SeedSpec[] = [
   { key: "roomCount",                   card: "property_defaults", value: DEFAULT_ROOM_COUNT,                unit: "rooms",  label: "Default room count for new property" },
   { key: "startAdr",                    card: "property_defaults", value: DEFAULT_START_ADR,                 unit: "$",      label: "Starting ADR for new property" },
   { key: "maxOccupancy",                card: "property_defaults", value: DEFAULT_MAX_OCCUPANCY,             unit: "%",      label: "Stabilized maximum occupancy" },
-  { key: "startOccupancy",              card: "property_defaults", value: DEFAULT_START_OCCUPANCY,           unit: "%",      label: "Starting occupancy (month 1)" },
+  { key: "startOccupancy",              card: "property_defaults", value: 0.55,                              unit: "%",      label: "Starting occupancy (month 1)" },
   { key: "adrGrowthRate",               card: "property_defaults", value: DEFAULT_ADR_GROWTH_RATE,           unit: "%",      label: "Annual ADR growth rate" },
   { key: "stabilizationMonths",         card: "property_defaults", value: 36,                               unit: "months", label: "Months to stabilize" },
   { key: "occupancyRampMonths",         card: "property_defaults", value: 6,                                unit: "months", label: "Occupancy ramp duration" },

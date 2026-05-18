@@ -14,7 +14,6 @@ import { computePropertyMetrics } from "@calc/research/property-metrics";
 import { isAdminRole } from "@shared/constants";
 import {
   DEFAULT_START_ADR,
-  DEFAULT_START_OCCUPANCY,
   DEFAULT_ROOM_COUNT,
 } from "@shared/constants";
 
@@ -47,7 +46,7 @@ export function register(app: Express) {
         const metrics = computePropertyMetrics({
           room_count: property.roomCount ?? DEFAULT_ROOM_COUNT,
           adr: property.startAdr ?? DEFAULT_START_ADR,
-          occupancy: property.maxOccupancy ?? property.startOccupancy ?? DEFAULT_START_OCCUPANCY,
+          occupancy: property.maxOccupancy ?? property.startOccupancy ?? 0.55,
         });
 
         const currentYear = new Date().getFullYear();

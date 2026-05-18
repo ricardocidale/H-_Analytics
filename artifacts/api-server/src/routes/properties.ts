@@ -39,7 +39,6 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEFAULT_START_OCCUPANCY,
   DEFAULT_MAX_OCCUPANCY,
 } from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
@@ -1072,7 +1071,7 @@ Rewritten description:`;
       const assumptions: StressAssumptions = {
         roomCount: body.roomCount,
         startAdr: body.startAdr,
-        startOccupancy: body.startOccupancy ?? DEFAULT_START_OCCUPANCY,
+        startOccupancy: body.startOccupancy ?? 0.55,
         maxOccupancy: body.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
         revShareFB: body.revShareFB ?? DEFAULT_REV_SHARE_FB,
         revShareEvents: body.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS,

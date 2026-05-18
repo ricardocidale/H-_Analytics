@@ -2181,10 +2181,13 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-quant-panel-prompt.ts",
+    "artifacts/api-server/src/routes/properties.ts",
+    "artifacts/api-server/src/routes/reserves-brand.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-operating-structures-data.ts",
     "lib/shared/src/constants-operating-structures.ts",
+    "lib/shared/src/field-registry.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
   ],
   "0.06": [

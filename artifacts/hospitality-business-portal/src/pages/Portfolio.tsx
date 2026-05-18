@@ -34,7 +34,6 @@ import { useToast } from "@/hooks/use-toast";
 import { InsertProperty } from "@shared/schema";
 import {
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_START_OCCUPANCY,
   DEFAULT_MAX_OCCUPANCY,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_ROOM_COUNT,
@@ -76,7 +75,7 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
   roomCount: DEFAULT_ROOM_COUNT,
   startAdr: DEFAULT_START_ADR,
   adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
-  startOccupancy: DEFAULT_START_OCCUPANCY,
+  startOccupancy: 0.55, // starting occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.startOccupancy
   maxOccupancy: DEFAULT_MAX_OCCUPANCY,
   occupancyRampMonths: 6, // ramp-up months bootstrap; canonical source is model_defaults.mc.property_defaults.occupancyRampMonths
   occupancyGrowthStep: 0.05, // monthly occupancy step bootstrap; canonical source is model_defaults.mc.property_defaults.occupancyGrowthStep

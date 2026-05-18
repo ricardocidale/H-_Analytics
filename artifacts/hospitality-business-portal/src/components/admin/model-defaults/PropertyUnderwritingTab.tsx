@@ -23,7 +23,6 @@ import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./anal
 import {
   DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_START_OCCUPANCY,
   DEFAULT_MAX_OCCUPANCY,
   DEFAULT_ROOM_COUNT,
   DEFAULT_REV_SHARE_FB,
@@ -362,7 +361,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Starting Occupancy"
           tooltip="Occupancy rate at property opening, before ramp-up to stabilization. Typically 50-60% for new boutique hotels."
           value={draft.defaultStartOccupancy}
-          fallback={DEFAULT_START_OCCUPANCY}
+          fallback={0.55}
           onChange={(_, v) => onChange("defaultStartOccupancy", v)}
           min={0.1} max={1} step={0.01}
           testId="field-defaultStartOccupancy"
