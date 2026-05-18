@@ -6,6 +6,10 @@ import { DocumentAIService } from "../integrations/document-ai";
 import { mapExtractionToFields, getConfidenceLevel } from "../document-ai/field-mapper";
 import { DOCUMENT_TEMPLATES, renderTemplate } from "../document-ai/templates";
 import { getStorageProvider } from "../providers/storage";
+import { getMistralOcrClient } from "../ai/clients";
+import { getParameterValue } from "../ai/parameter-resolver";
+import { logApiCost, unitCost } from "../middleware/cost-logger";
+import type { DocumentAIResult } from "../integrations/document-ai";
 import { deleteExtractionVectors } from "../ai/vector-store-service";
 import { randomUUID } from "crypto";
 import { z } from "zod";
@@ -24,6 +28,10 @@ import { resolveDefault } from "../defaults";
 import { classifyDocumentType, DOCUMENT_TYPES } from "@shared/document-types";
 
 const documentAIService = new DocumentAIService();
+
+/** Confidence score for key-value pairs parsed from Mistral OCR markdown tables.
+ *  Algorithm calibration heuristic — not financial, not admin-configurable. */
+const MISTRAL_OCR_TABLE_CONFIDENCE = 0.8;
 
 /** Allowlist of property columns that document extraction can write to.
  *  Prevents prototype pollution and arbitrary column writes from AI output. */
@@ -75,12 +83,69 @@ function normalizePercent(value: number, field: string): number {
   return PERCENT_FIELDS.has(field) && value > 1 ? value / 100 : value;
 }
 
+function parseMistralOcrPages(
+  ocrPages: Array<{ index: number; markdown: string }>,
+): DocumentAIResult {
+  const pages: DocumentAIResult["pages"] = [];
+  const keyValuePairs: DocumentAIResult["keyValuePairs"] = [];
+  let fullText = "";
+
+  for (const page of ocrPages) {
+    fullText += page.markdown + "\n";
+    const bodyRows: string[][] = [];
+
+    for (const line of page.markdown.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) continue;
+      if (/^\|[-|:\s]+\|$/.test(trimmed)) continue;
+      const cells = trimmed.split("|").map((c) => c.trim()).filter(Boolean);
+      if (cells.length < 2) continue;
+      bodyRows.push(cells);
+      if (cells.length === 2) {
+        keyValuePairs.push({ key: cells[0], value: cells[1], confidence: MISTRAL_OCR_TABLE_CONFIDENCE });
+      }
+    }
+
+    if (bodyRows.length > 0) {
+      pages.push({ pageNumber: page.index + 1, tables: [{ headerRows: [], bodyRows }] });
+    }
+  }
+
+  return { text: fullText, pages, entities: [], keyValuePairs };
+}
+
 async function runAnalysisPipeline(
   extraction: Awaited<ReturnType<typeof storage.getDocumentExtraction>>,
   property: NonNullable<Awaited<ReturnType<typeof checkPropertyAccess>>>,
 ) {
   if (!extraction) throw new Error("Extraction not found");
-  const result = await documentAIService.processDocument(extraction.objectPath, extraction.fileContentType);
+
+  const useMistralOcr =
+    (await getParameterValue("matteo-enable-pdf-ocr-extraction", 0)) !== 0 &&
+    extraction.fileContentType === "application/pdf";
+
+  let result: DocumentAIResult;
+  if (useMistralOcr) {
+    const storageProvider = getStorageProvider();
+    const { buffer } = await storageProvider.downloadBuffer(extraction.objectPath);
+    const startTime = Date.now();
+    const ocrClient = await getMistralOcrClient();
+    const ocrResult = await ocrClient.extractText({
+      pdfBase64: buffer.toString("base64"),
+      documentName: extraction.fileName,
+    });
+    result = parseMistralOcrPages(ocrResult.pages);
+    logApiCost({
+      timestamp: new Date().toISOString(),
+      service: "mistral",
+      operation: "pdf-ocr-extraction",
+      estimatedCostUsd: ocrResult.pages.length * unitCost("mistral-ocr-page"),
+      durationMs: Date.now() - startTime,
+      route: "documents",
+    });
+  } else {
+    result = await documentAIService.processDocument(extraction.objectPath, extraction.fileContentType);
+  }
   const mappedFields = mapExtractionToFields(result, property);
 
   await storage.updateDocumentExtraction(extraction.id, {

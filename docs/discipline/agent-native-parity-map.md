@@ -284,3 +284,12 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
 | View LLM cost summary by slot/model | Admin → LLM Workflows → Cost tab | `download_llm_cost_summary` | ✅ |
+
+## LLM Slot Routing Changelog (T3-1 U8)
+
+Audit record of call sites rerouted through Matteo feature flags. Flag off → previous slot. Flag on → new slot.
+
+| Call site | Feature flag | Previous slot | New slot | Shipped |
+|---|---|---|---|---|
+| `routes/documents.ts` → `runAnalysisPipeline` (PDF only) | `matteo-enable-pdf-ocr-extraction` | `document-ai` (Google) | `pdf-ocr-extraction` (Mistral OCR 3) | 2026-05-18 |
+| `ai/executive-summary/llm-sections.ts` → `callLlmForText` | `matteo-enable-bulk-text-synthesis` | `executive-summary-property` / `executive-summary-portfolio` | `bulk-text-synthesis` (DeepSeek) | 2026-05-18 |
