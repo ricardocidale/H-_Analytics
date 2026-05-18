@@ -34,6 +34,7 @@ const BASE_GLOBAL: GlobalInput = {
   modelStartDate: '2024-01-01',
   inflationRate: 0.03,
   marketingRate: 0.01,
+  miscOpsRate: 0.0,
   debtAssumptions: { interestRate: 0.065, amortizationYears: 25 },
 };
 
@@ -41,6 +42,7 @@ const ZERO_GROWTH_GLOBAL: GlobalInput = {
   ...BASE_GLOBAL,
   inflationRate: 0.0,
   marketingRate: 0.0,
+  miscOpsRate: 0.0,
 };
 
 const MINIMAL_COSTS = {

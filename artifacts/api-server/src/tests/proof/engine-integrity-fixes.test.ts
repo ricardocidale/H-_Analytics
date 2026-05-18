@@ -38,6 +38,7 @@ const ZERO_DEBT_GLOBAL: GlobalInput = {
   modelStartDate: '2024-01-01',
   inflationRate: 0.0,
   marketingRate: 0.0,
+  miscOpsRate: 0.0,
   debtAssumptions: { interestRate: 0.0, amortizationYears: 25, acqLTV: 0.0 },
 };
 
@@ -273,6 +274,7 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       exitCapRate: 0.08,
       debtAssumptions: { interestRate: 0.065, amortizationYears: 25, acqLTV: 0.65 },
     };
@@ -318,6 +320,7 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       exitCapRate: 0.08,
       debtAssumptions: { interestRate: 0.065, amortizationYears: 25, acqLTV: 0.65 },
     };
@@ -380,6 +383,7 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       exitCapRate: 0.08,
       debtAssumptions: { interestRate: 0.065, amortizationYears: 25, acqLTV: 0.0 },
     };
@@ -435,6 +439,7 @@ describe('Phase 5 — refiMaxLtvToOriginal cap (T013)', () => {
     modelStartDate: '2024-01-01',
     inflationRate: 0.0,
     marketingRate: 0.0,
+    miscOpsRate: 0.0,
     exitCapRate: 0.085,
     debtAssumptions: { interestRate: 0.075, amortizationYears: 25, acqLTV: 0.0 },
   };
@@ -507,6 +512,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       debtAssumptions: { interestRate: 0.0, amortizationYears: 25, acqLTV: 0.0 },
     };
 
@@ -545,6 +551,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       debtAssumptions: { interestRate: 0.0, amortizationYears: 25, acqLTV: 0.0 },
     };
     const monthly = generatePropertyProForma(prop, global, 12);
@@ -577,6 +584,7 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       debtAssumptions: { interestRate: 0.0, amortizationYears: 25, acqLTV: 0.0 },
     };
     const monthly = generatePropertyProForma(prop, global, 12);
@@ -792,6 +800,7 @@ describe('Finding #4 — Incentive fee gated on post-debt-service levered cash (
       modelStartDate: '2024-01-01',
       inflationRate: 0.0,
       marketingRate: 0.0,
+      miscOpsRate: 0.0,
       debtAssumptions: {
         interestRate: 0.10,
         amortizationYears: 25,
@@ -859,6 +868,7 @@ describe('T013 — acquisitionInterestRate drives netCashFlowToInvestors', () =>
     modelStartDate: '2024-01-01',
     inflationRate: 0.0,
     marketingRate: 0.0,
+    miscOpsRate: 0.0,
     debtAssumptions: { interestRate: 0.07, amortizationYears: 25, acqLTV: 0.65 },
   };
 

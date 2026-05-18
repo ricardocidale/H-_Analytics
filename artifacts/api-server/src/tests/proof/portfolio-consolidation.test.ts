@@ -48,6 +48,7 @@ const GLOBAL: GlobalInput = {
   modelStartDate: '2024-01-01',
   inflationRate: 0.02,
   marketingRate: 0.01,
+  miscOpsRate: 0.0,
   debtAssumptions: {
     interestRate: 0.065,
     amortizationYears: 25,

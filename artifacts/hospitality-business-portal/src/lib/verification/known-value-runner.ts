@@ -99,6 +99,7 @@ function buildEngineInputs(tc: TestCase): { property: import("@engine/types").Pr
       projectionYears: 2,
       inflationRate: 0,
       marketingRate: 0.05,
+      miscOpsRate: 0.03,
       fixedCostEscalationRate: 0,
       debtAssumptions: {
         interestRate: DEFAULT_INTEREST_RATE,

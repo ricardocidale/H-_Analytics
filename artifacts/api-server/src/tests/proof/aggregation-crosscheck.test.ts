@@ -8,6 +8,7 @@ describe('T_C: Monthly-to-Yearly Aggregation Cross-Check (T007)', () => {
     modelStartDate: '2024-01-01',
     inflationRate: 0.03,
     marketingRate: 0.05,
+    miscOpsRate: 0.0,
     debtAssumptions: {
       interestRate: 0.06,
       amortizationYears: 25,

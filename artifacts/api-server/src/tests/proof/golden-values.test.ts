@@ -39,6 +39,7 @@ const ZERO_GROWTH_GLOBAL: GlobalInput = {
   projectionYears: 1,
   inflationRate: 0.0,
   marketingRate: 0.0,
+  miscOpsRate: 0.0,
   debtAssumptions: {
     interestRate: 0.0,
     amortizationYears: 25,

@@ -10,6 +10,7 @@ const BASE_GLOBAL: GlobalInput = {
   modelStartDate: "2026-01-01",
   inflationRate: 0.03,
   marketingRate: 0.02,
+  miscOpsRate: 0.0,
   debtAssumptions: { interestRate: 0.065, amortizationYears: 25 },
   projectionYears: 5,
 };

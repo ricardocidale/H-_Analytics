@@ -33,6 +33,7 @@ const ZERO_DEBT_GLOBAL: GlobalInput = {
   modelStartDate: '2024-01-01',
   inflationRate: 0.0,
   marketingRate: 0.0,
+  miscOpsRate: 0.0,
   debtAssumptions: { interestRate: 0.0, amortizationYears: 25, acqLTV: 0.0 },
 };
 
@@ -40,6 +41,7 @@ const LEVERED_GLOBAL: GlobalInput = {
   modelStartDate: '2024-01-01',
   inflationRate: 0.0,
   marketingRate: 0.0,
+  miscOpsRate: 0.0,
   debtAssumptions: { interestRate: 0.065, amortizationYears: 25, acqLTV: 0.65 },
 };
 

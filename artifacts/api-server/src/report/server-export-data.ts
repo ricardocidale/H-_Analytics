@@ -348,6 +348,7 @@ function buildGlobalInput(globalAssumptions: Record<string, unknown>, projYears:
     modelStartDate: globalAssumptions.modelStartDate as string,
     inflationRate: Number(globalAssumptions.inflationRate),
     marketingRate: Number(globalAssumptions.marketingRate ?? 0.01),
+    miscOpsRate: Number(globalAssumptions.miscOpsRate ?? 0.03),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? 0.065),
       amortizationYears: Number(dbDebt?.amortizationYears ?? 25),

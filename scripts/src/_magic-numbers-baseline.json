@@ -1790,7 +1790,6 @@
     "artifacts/api-server/src/routes/scenario-helpers.ts",
     "artifacts/api-server/src/table-renderer.ts",
     "lib/calc/src/analysis/exit-scenarios.ts",
-    "lib/engine/src/company/company-engine.ts",
     "lib/engine/src/property/property-engine.ts",
     "lib/engine/src/property/resolve-assumptions.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1984,21 +1983,6 @@
     "lib/engine/src/analyst/quality/quality-scorer.ts",
     "lib/shared/src/constants-operating-structures-data.ts"
   ],
-  "0.03": [
-    "artifacts/api-server/src/ai/executive-summary/finance-helpers.ts",
-    "artifacts/api-server/src/ai/executive-summary/templates.ts",
-    "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
-    "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/slides/build-payload.ts",
-    "lib/engine/src/company/company-engine.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts",
-    "lib/shared/src/constants-funding.ts",
-    "lib/shared/src/constants-operating-structures-data.ts",
-    "lib/shared/src/countryDefaults.ts"
-  ],
   "3.0": [
     "artifacts/api-server/src/ai/ambient/fetchers.ts",
     "artifacts/api-server/src/ai/data-routing/dispatchers/macro-services.ts",
@@ -2170,6 +2154,23 @@
     "lib/shared/src/constants-funding.ts",
     "lib/shared/src/constants-operating-structures-data.ts",
     "lib/shared/src/constants.ts"
+  ],
+  "0.03": [
+    "artifacts/api-server/src/ai/executive-summary/finance-helpers.ts",
+    "artifacts/api-server/src/ai/executive-summary/templates.ts",
+    "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
+    "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/report/server-export-data.ts",
+    "artifacts/api-server/src/routes/analyst-admin-utils.ts",
+    "artifacts/api-server/src/routes/scenario-helpers.ts",
+    "artifacts/api-server/src/slides/build-payload.ts",
+    "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/constants-business-models.ts",
+    "lib/shared/src/constants-funding.ts",
+    "lib/shared/src/constants-operating-structures-data.ts",
+    "lib/shared/src/countryDefaults.ts"
   ],
   "0.005": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
