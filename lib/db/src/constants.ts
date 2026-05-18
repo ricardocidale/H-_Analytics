@@ -242,19 +242,12 @@ export const DEFAULT_START_OCCUPANCY = 0.55;
 // INFLATION & COST ESCALATION
 // ──────────────────────────────────────────────────────────
 
-/**
- * @deprecated Audit #319 R4. Use
- * `getFactoryNumber('inflationRate', country, state)` from
- * `@shared/model-constants-registry` (US baseline = 0.03, identical value;
- * other countries pick up locality-aware rates). Retained for schema column
- * defaults and tests.
- */
-export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
-/**
- * @deprecated Audit #319 R4. Same as `DEFAULT_PROPERTY_INFLATION_RATE` —
- * route through `getFactoryNumber('inflationRate', country, state)`.
- */
-export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
+// Inflation rates are resolved via `getFactoryNumber('inflationRate', country, state)`
+// from `@shared/model-constants-registry` (US baseline = 0.03, locality-aware).
+// Schema column globalAssumptions.inflationRate carries the bootstrap value;
+// model_defaults rows (mc.setup.companyInflationRate, mc.property_defaults.propertyInflationRate)
+// hold the admin-editable per-scope overrides.
+
 // ──────────────────────────────────────────────────────────────────────────────
 // COMPANY-LEVEL INCOME TAX — DECISION RECORDED (Task #403, follow-up to #406)
 // ──────────────────────────────────────────────────────────────────────────────

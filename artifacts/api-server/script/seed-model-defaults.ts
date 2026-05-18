@@ -67,8 +67,6 @@ import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_START_OCCUPANCY,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
-  DEFAULT_COMPANY_INFLATION_RATE,
 } from "@shared/constants";
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
@@ -111,7 +109,7 @@ export const SPECS: SeedSpec[] = [
   { key: "modelStartDate",        card: "setup", value: DEFAULT_MODEL_START_DATE,       unit: "date",   label: "Model start date (t=0)" },
   { key: "companyOpsStartDate",   card: "setup", value: DEFAULT_COMPANY_OPS_START_DATE, unit: "date",   label: "Company operations start date" },
   { key: "projectionYears",       card: "setup", value: DEFAULT_PROJECTION_YEARS,       unit: "years",  label: "Projection horizon (years)" },
-  { key: "companyInflationRate",  card: "setup", value: DEFAULT_COMPANY_INFLATION_RATE, unit: "%",      label: "Company-level cost inflation (annual)" },
+  { key: "companyInflationRate",  card: "setup", value: 0.03,                            unit: "%",      label: "Company-level cost inflation (annual)" },
 
   // ── Funding ──────────────────────────────────────────────────────────
   { key: "capitalRaise1Date",     card: "funding", value: DEFAULT_CAPITAL_RAISE_1_DATE,     unit: "date",   label: "First capital raise disbursement" },
@@ -186,7 +184,7 @@ export const SPECS: SeedSpec[] = [
   { key: "stabilizationMonths",         card: "property_defaults", value: 36,                               unit: "months", label: "Months to stabilize" },
   { key: "occupancyRampMonths",         card: "property_defaults", value: DEFAULT_OCCUPANCY_RAMP_MONTHS,     unit: "months", label: "Occupancy ramp duration" },
   { key: "occupancyGrowthStep",         card: "property_defaults", value: 0.05,                              unit: "%",      label: "Occupancy growth step per period" },
-  { key: "propertyInflationRate",       card: "property_defaults", value: DEFAULT_PROPERTY_INFLATION_RATE,   unit: "%",      label: "Property-level cost inflation (annual)" },
+  { key: "propertyInflationRate",       card: "property_defaults", value: 0.03,                              unit: "%",      label: "Property-level cost inflation (annual)" },
   // STR platform fee — blended Airbnb 15.5% / VRBO 8% / Booking 15%.
   // Admin-visible reference value. The engine resolves this via
   // property.platformFeeRate ?? BUSINESS_MODEL_DEFAULTS[bm].platformFeeRate

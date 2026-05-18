@@ -16,7 +16,6 @@ import {
   RENOV_MAX_PCT_OF_PRICE,
   RENOV_MIN_PER_KEY,
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
@@ -90,7 +89,9 @@ export function buildGlobalInput(ga: Record<string, unknown>, projYears: number)
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    inflationRate: Number(ga.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE),
+    // ga.inflationRate is non-null per schema (globalAssumptions.inflationRate NOT NULL DEFAULT 0.03);
+    // locality-aware engine reads go through getFactoryNumber('inflationRate', country) elsewhere.
+    inflationRate: Number(ga.inflationRate ?? 0.03),
     marketingRate: Number(ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),

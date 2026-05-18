@@ -40,7 +40,6 @@ import {
   DEFAULT_SERVICE_MARKUP,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COST_SEG_5YR_PCT,
   DEFAULT_COST_SEG_7YR_PCT,
   DEFAULT_COST_SEG_15YR_PCT,
@@ -103,7 +102,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   projectionYears: integer("projection_years").notNull().default(DEFAULT_PROJECTION_YEARS),
   companyOpsStartDate: text("company_ops_start_date").notNull().default(DEFAULT_COMPANY_OPS_START_DATE),
   fiscalYearStartMonth: integer("fiscal_year_start_month").notNull().default(1), // 1 = January, 4 = April, etc.
-  inflationRate: real("inflation_rate").notNull().default(DEFAULT_PROPERTY_INFLATION_RATE),
+  inflationRate: real("inflation_rate").notNull().default(0.03), // bootstrap = US baseline; engine uses getFactoryNumber('inflationRate', country) for locality
   fixedCostEscalationRate: real("fixed_cost_escalation_rate").notNull().default(0.03), // bootstrap; reads ga.fixedCostEscalationRate at runtime
 
   // Company-specific inflation rate (nullable — NULL means use global inflationRate)

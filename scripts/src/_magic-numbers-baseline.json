@@ -2372,6 +2372,7 @@
     "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/slides/build-payload.ts",
     "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-business-models.ts",
