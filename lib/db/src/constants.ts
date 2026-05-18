@@ -343,9 +343,6 @@ export const DEFAULT_REFI_PERIOD_YEARS = 3;
 // columns + model_defaults rows under card="overhead". See lib/db/src/schema/config.ts.
 export const DEFAULT_TRAVEL_COST_PER_CLIENT = 5000;
 export const DEFAULT_IT_LICENSE_PER_CLIENT = 3600;
-export const DEFAULT_MARKETING_RATE = 0.05;
-export const DEFAULT_MISC_OPS_RATE = 0.03;
-
 // ── Operating Reserve / Funding Buffers ─────────────────────────────────
 export const OPERATING_RESERVE_BUFFER = 50_000;
 export const COMPANY_FUNDING_BUFFER = 100_000;
