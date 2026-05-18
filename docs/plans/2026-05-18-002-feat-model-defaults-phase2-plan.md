@@ -111,7 +111,7 @@ The §2 T1-4 retirement campaign (sessions 17–20) has been PAUSED since sessio
 
 > *This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce.*
 
-```
+```text
 Before (current):
   POST /api/properties
     → seedPropertyDefaults(qualityTier, businessModel, country, roomCount)
