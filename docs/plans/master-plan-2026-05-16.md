@@ -36,7 +36,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 | Model router (Matteo) | ❌ Not started | NO | Phase 2 — 30–50% token cost savings |
 | Dreaming on research | ❌ Not started | NO | Phase 2 — research memory accumulation |
 | Email existence leak in sharing | ⚠️ Security bug | NO | Returns 201 instead of 404 on unknown email |
-| DEFAULT_* → model_defaults migration | ⚠️ Partial | NO | Incremental — 5+ legacy TS constants remain |
+| DEFAULT_* → model_defaults migration | ⚠️ PAUSED 2026-05-18 | NO | Phase 2 wiring required (CLAUDE.md §14 gate). See T1-4 + T1-6. |
 
 ---
 
@@ -104,7 +104,10 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-4: DEFAULT_* constants → model_defaults DB rows (incremental)
-**Status:** ✅ Phase 1 complete (2026-05-16) + 6 incremental retirements (2026-05-18, session 17) + 2 cross-cutting refactors deferred to dedicated plan docs.
+**Status:** ⚠️ PAUSED 2026-05-18 (session 20) pending §14 wiring. Phase 1 complete (2026-05-16) + 11 incremental retirements (session 17, 2026-05-18) + 3 more (session 19) + 2 cross-cutting refactors deferred to plan docs. Resumption gated by CLAUDE.md §14 (Retirement Campaign Discipline) — see T1-6.
+
+**Pause reason:** Session 20 retired `DEFAULT_ADR_GROWTH_RATE` before `computePropertyDefaults` was wired to read from `model_defaults`. Inline `0.03` leaked into `lib/engine/` and `lib/calc/`, breaking typecheck and regressing the `check-magic-numbers` ratchet 15→17. Full revert required. Phase 2 (Analyst-researched `model_defaults` rows + `computePropertyDefaults` wiring) must land before any further retirements. Architecture: `docs/brainstorms/numeric-architecture-requirements.md` (D1–D5).
+
 **Progress phase 1 (commit `6d8cbaf0f`):** Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals. `PropertyInput.exitCapRate/dispositionCommission/landValuePercent` and `LoanParams` equivalents promoted to required `number`. All `?? DEFAULT_*` dead-code fallbacks removed from engine and calc layers.
 
 **Phase 2 retirements shipped 2026-05-18 (session 17):**
@@ -148,6 +151,23 @@ Every CC or Replit session should open this file first. Before writing a line of
 
 **Effort:** 2–4 hours total
 **Owner:** CC (items 1, 3) + Replit-safe (items 2, 4)
+
+---
+
+### T1-6: Retirement Campaign Discipline — §14 enforcement
+**Status:** ✅ Rule shipped 2026-05-18 (CLAUDE.md §14, session 21). Enforcement is per-PR going forward.
+**Context:** Session 20 (2026-05-18) deleted `DEFAULT_ADR_GROWTH_RATE` before its DB destination was wired. Inline `0.03` leaked into engine/calc; typecheck broke; magic-numbers ratchet regressed 15→17; full revert. The same failure mode applies to every retirement campaign in this repo (§1 integration identifiers, §13 UI canonical, future schema/auth/agent slug retirements). §14 codifies the general rule.
+**The rule:** Never delete a TS constant, string identifier, or other named source-code symbol participating in an active retirement campaign until (a) its replacement destination is wired and reading green in the same PR, and (b) every CI ratchet the symbol touches has been re-baselined at ≤ current count.
+**Done when (per retirement PR going forward):**
+- Plan unit lists both §14 pre-conditions in its Verification section explicitly
+- Replacement read site exists in the same PR diff (grep proves it)
+- `pnpm run typecheck` PASS
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` PASS at current baseline (no regression)
+- `scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts` PASS at zero (UI retirements only)
+- Companion explainer for non-engineers: `docs/concepts/numeric-values-explained.md`
+
+**Effort:** Zero engineering. Discipline only. Every retirement PR enforces this.
+**Owner:** Whoever proposes the retirement (CC, Replit, or any agent).
 
 ---
 
