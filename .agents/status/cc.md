@@ -4,20 +4,30 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-17T22:00:00Z
+Updated: 2026-05-18T10:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `c4219fdfb`, synced with `origin/main`.
+`main` at `776085c98`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-`c4219fdfb` — `docs(masterplan): hygiene sweep + 3 new T2 task entries from 2026-05-17 audit`.
+`776085c98` — `feat(matteo-u8): route pdf-ocr-extraction through Mistral OCR 3 behind feature flag`.
 
-## What CC Did This Session (2026-05-17 session 14)
+## What CC Did This Session (2026-05-18 session 15)
 
-**Shipped cross-platform Claude Code permission-bypass installers — PR #161 squash-merged to main as `4f29261c4`.**
+**Shipped T3-1 Matteo U8 — PDF OCR routing through Mistral OCR 3 (commit `776085c98`).**
+
+- `routes/documents.ts`: `runAnalysisPipeline` now checks `matteo-enable-pdf-ocr-extraction` parameter flag. Flag on + PDF → Mistral OCR 3 via `getMistralOcrClient()`. Flag off or non-PDF → unchanged Google DocumentAI path.
+- `parseMistralOcrPages()` adapter converts Mistral markdown pages into `DocumentAIResult` shape (`pages[].tables[].bodyRows`, `keyValuePairs`) for `mapExtractionToFields()`.
+- `logApiCost()` emits JSONL cost line (`service=mistral`, `operation=pdf-ocr-extraction`, cost = `pageCount * unitCost("mistral-ocr-page")`).
+- `MISTRAL_OCR_TABLE_CONFIDENCE = 0.8` named calibration constant (algorithm heuristic, not financial).
+- Parity map updated with T3-1 U8 slot routing audit entries (both call sites: pdf-ocr-extraction + bulk-text-synthesis).
+- All T3-1 Matteo Model Router units (U1–U8) now complete.
+- Both verification gates passed: `pnpm run typecheck` clean, `check-magic-numbers.ts` PASS.
+
+**Previous session (2026-05-17 session 14): shipped cross-platform Claude Code permission-bypass installers — PR #161 squash-merged to main as `4f29261c4`.**
 
 Diagnosed and worked around three open Anthropic bugs that make permission-prompt suppression unreliable in Claude Code 2.1.x:
 - [anthropics/claude-code#34923](https://github.com/anthropics/claude-code/issues/34923) — `permissions.defaultMode: "bypassPermissions"` in settings.json is silently broken.
@@ -61,7 +71,8 @@ None — work is on main, working tree clean.
 
 ## What's Pending
 
-- **Next session priority — confirmed by user 2026-05-17:** Start **T3-1 Matteo — Model Router Specialist** per `docs/plans/master-plan-2026-05-16.md` (highest in Track 3; reduces token costs, pays for the other agents). Existing plan doc at `docs/plans/2026-05-16-002-feat-matteo-model-router-plan.md`. Effort: 2-3 weeks. CC-owned (gateway config, routing logic, admin UI). Done-when criteria in masterplan T3-1: LiteLLM or Bifrost gateway, routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek V4-Flash + Gemini 3.1 Flash routing, cost-per-task visible in Admin panel, 30–50% token-spend reduction measurable.
+- **T3-1 Matteo — Model Router Specialist is COMPLETE (all U1–U8 shipped).** Done-when criteria met: routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek + Gemini routing, cost-per-task JSONL log via `admin-llm-cost.ts`, cost visible in Admin LLM Workflows Cost tab.
+- **Next session priority:** T2-6 (generic brand-type slugs + admin UI) or T2-7 (horizontal tabs → collapsible UI on non-main pages). Both are Replit-safe and can run in parallel with Replit.
 - New T2 entries on plan added 2026-05-17 (Replit-safe, can run in parallel with Matteo): T2-6 (generic brand-type slugs + admin UI), T2-7 (horizontal tabs → collapsible UI on non-main pages). T2-5 (reference ranges singleton) is deferred pending ownership clarification.
 - Open TODO carried from prior sessions (CLAUDE.md): Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up).
 
