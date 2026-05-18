@@ -4,18 +4,35 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T14:00:00Z
+Updated: 2026-05-18T16:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `485a7d02d`, ahead of `origin/main` by 7 commits.
+`main`, ahead of `origin/main` by 9 commits.
 
 ## Last Commit on Branch
 
-`485a7d02d` — `test(documents): add unit tests for parseMistralOcrPages adapter`
+`refactor(T1-4): migrate DEFAULT_MAX_STALENESS_HOURS to schema default`
 
-## What CC Did This Session (2026-05-18 session 16)
+## What CC Did This Session (2026-05-18 session 17)
+
+**Shipped T1-4 increment — DEFAULT_MAX_STALENESS_HOURS retired.**
+
+- Removed the TS constant `DEFAULT_MAX_STALENESS_HOURS = 24` from both canonical constants files (`lib/shared/src/constants.ts`, `lib/db/src/constants.ts`).
+- Schema column `marketResearch.maxStalenessHours` now uses raw literal `24` as the SQL bootstrap default (allowed per CLAUDE.md §2 — the `notNull().default(24)` is both the bootstrap and the not-null enforcement).
+- Removed dead import from `lib/db/src/schema/config.ts` (the constant was imported but never used in that file).
+- No `model_defaults` row added — this is a per-row tunable column on the `intelligence` table (admins can override `max_staleness_hours` per market-research source), not a system-wide admin-editable default. Same shape as the canonical `DEFAULT_STABILIZATION_MONTHS` migration (`900338a54`).
+- Gates: `pnpm run typecheck` clean, `check-magic-numbers` PASS, `check:migration-guards` PASS. Zero remaining `DEFAULT_MAX_STALENESS_HOURS` references in the repo.
+
+**Shipped T2-7 audit — horizontal tabs → collapsible UI candidate list.**
+
+- Wrote `docs/plans/t2-7-tab-audit.md` listing 11 in-scope pages with their tab labels and indicator hypotheses, 4 excluded pages, 1 ambiguous (`CompanyAssumptions`), and the Admin sub-component classification.
+- AgentRosterAccordion pattern documented as the basis for a new generic `CollapsibleSectionItem` API in `components/ui/`.
+- Suggested implementation order (easy-first) and verification gates per page.
+- This is T2-7 Done-When criterion #1. Implementation is Replit-safe.
+
+## What CC Did Previous Session (2026-05-18 session 16)
 
 **Shipped unit tests for parseMistralOcrPages (T3-1 U8 follow-up, commit `485a7d02d`).**
 
