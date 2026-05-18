@@ -4,9 +4,6 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { users } from "./auth";
 import { properties } from "./properties";
-import {
-  DEFAULT_ALERT_COOLDOWN_MINUTES,
-} from "../constants";
 import type { NotificationLogMetadata, RawExtractionData } from "./types/jsonb-shapes";
 
 // --- NOTIFICATION EVENT TYPES ---
@@ -54,7 +51,7 @@ export const alertRules = pgTable("alert_rules", {
   threshold: real("threshold").notNull(),
   scope: text("scope").notNull().default("all"),
   propertyId: integer("property_id").references(() => properties.id, { onDelete: "cascade" }),
-  cooldownMinutes: integer("cooldown_minutes").notNull().default(DEFAULT_ALERT_COOLDOWN_MINUTES),
+  cooldownMinutes: integer("cooldown_minutes").notNull().default(1440),
   isActive: boolean("is_active").notNull().default(true),
   lastTriggeredAt: timestamp("last_triggered_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -70,7 +67,7 @@ export const insertAlertRuleSchema = z.object({
   threshold: z.number(),
   scope: z.enum(ALERT_SCOPES).optional().default("all"),
   propertyId: z.number().nullable().optional(),
-  cooldownMinutes: z.number().optional().default(DEFAULT_ALERT_COOLDOWN_MINUTES),
+  cooldownMinutes: z.number().optional().default(1440),
   isActive: z.boolean().optional().default(true),
 });
 

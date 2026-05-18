@@ -23,7 +23,6 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
-  DEFAULT_MARKETING_RATE,
   MONTHS_PER_YEAR,
 } from "../constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -99,7 +98,7 @@ function buildEngineInputs(tc: TestCase): { property: import("@engine/types").Pr
       modelStartDate: opsDate,
       projectionYears: 2,
       inflationRate: 0,
-      marketingRate: DEFAULT_MARKETING_RATE,
+      marketingRate: 0.05,
       fixedCostEscalationRate: 0,
       debtAssumptions: {
         interestRate: DEFAULT_INTEREST_RATE,

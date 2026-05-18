@@ -1,6 +1,6 @@
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { SEED_DEBT_ASSUMPTIONS } from "@shared/constants-funding";
-import { DEFAULT_MARKETING_RATE, DEFAULT_INTEREST_RATE } from "@shared/constants";
+import { DEFAULT_INTEREST_RATE } from "@shared/constants";
 import type { GlobalInput } from "@engine/types";
 import type { ModelConstant } from "@workspace/db";
 import type { CountryInflationOutlook } from "@engine/analyst/surface/property/risk-intelligence-specialist";
@@ -10,7 +10,7 @@ export function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: nu
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
     inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate', 'US')),
-    marketingRate: Number(ga.marketingRate ?? DEFAULT_MARKETING_RATE),
+    marketingRate: Number(ga.marketingRate ?? 0.05),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
       amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),

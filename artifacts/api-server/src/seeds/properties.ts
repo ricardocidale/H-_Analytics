@@ -20,7 +20,6 @@ import {
   SEED_DEBT_ASSUMPTIONS,
   DEFAULT_SERVICE_FEE_CATEGORIES,
   SEED_EXIT_CAP_RATE_LUXURY,
-  DEFAULT_MISC_OPS_RATE,
 } from "@shared/constants";
 import { resolveStaffingDefaults } from "../finance/benchmark-resolver";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -127,7 +126,7 @@ export async function seedGlobalAssumptions() {
     partnerCountYear10: 3,
     ...(await resolveStaffingDefaults()),
     marketingRate: SEED_MARKETING_RATE,
-    miscOpsRate: DEFAULT_MISC_OPS_RATE,
+    miscOpsRate: 0.03,
     commissionRate: DEFAULT_COMMISSION_RATE,
     standardAcqPackage: {
       monthsToOps: 6,

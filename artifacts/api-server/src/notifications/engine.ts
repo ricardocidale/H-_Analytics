@@ -4,7 +4,7 @@ import { getEventLabel } from "./events";
 import type { Property } from "@workspace/db";
 import { sendNotificationEmail } from "../integrations/resend";
 import { storage } from "../storage";
-import { APP_BRAND_NAME, DEFAULT_ALERT_COOLDOWN_MINUTES } from "@shared/constants";
+import { APP_BRAND_NAME } from "@shared/constants";
 import { logger } from "../logger";
 import { getAppUrl } from "../providers/config";
 
@@ -89,7 +89,7 @@ export async function evaluateAlertRules(
     if (!breached) continue;
 
     if (rule.lastTriggeredAt) {
-      const cooldownMs = (rule.cooldownMinutes ?? DEFAULT_ALERT_COOLDOWN_MINUTES) * 60 * 1000;
+      const cooldownMs = (rule.cooldownMinutes ?? 1440) * 60 * 1000;
       if (Date.now() - new Date(rule.lastTriggeredAt).getTime() < cooldownMs) {
         continue;
       }

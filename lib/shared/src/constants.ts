@@ -271,8 +271,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // ──────────────────────────────────────────────────────────
 
 export const USE_STABLE_SCENARIO_LOAD = true;
-export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
-
 // ── Working Capital Defaults ────────────────────────────────────────────
 export const WORKING_CAPITAL_DAYS_PER_MONTH = 30;
 

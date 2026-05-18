@@ -22,8 +22,6 @@ import {
   PROJECTION_MONTHS,
   DEFAULT_PARTNER_COMP,
   STAFFING_TIERS,
-  DEFAULT_MARKETING_RATE,
-  DEFAULT_MISC_OPS_RATE,
   DEFAULT_CAPITAL_RAISE_TRANCHE,
 } from '@norfolk/shared/constants';
 import { MONTHS_PER_YEAR } from '@norfolk/shared/constants';
@@ -144,8 +142,8 @@ export function generateCompanyProForma(
   const businessInsuranceStart = global.businessInsuranceStart ?? getFactoryNumber('benchmarkStaffDefaultBizInsurance');
   const travelCostPerClient = global.travelCostPerClient ?? getFactoryNumber('benchmarkStaffDefaultTravelPerClient');
   const itLicensePerClient = global.itLicensePerClient ?? getFactoryNumber('benchmarkStaffDefaultItLicensePerClient');
-  const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
-  const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
+  const marketingRate = global.marketingRate ?? 0.05;
+  const miscOpsRate = global.miscOpsRate ?? 0.03;
   const companyTaxRate = global.companyTaxRate
     ?? getFactoryNumber('taxRate', global.companyCountry ?? null, global.companyStateProvince ?? null);
   const capitalRaise1Amount = global.capitalRaise1Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;

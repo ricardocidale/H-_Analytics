@@ -50,8 +50,6 @@ import {
   DEFAULT_STAFF_SALARY,
   DEFAULT_TRAVEL_COST_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
-  DEFAULT_MARKETING_RATE,
-  DEFAULT_MISC_OPS_RATE,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
@@ -154,8 +152,8 @@ export const SPECS: SeedSpec[] = [
   { key: "techInfraStart",              card: "overhead", value: 18000,                                      unit: "$/yr",  label: "Technology infrastructure (year 1)" },
   { key: "travelCostPerClient",         card: "overhead", value: DEFAULT_TRAVEL_COST_PER_CLIENT,             unit: "$/yr",  label: "Travel cost per managed client" },
   { key: "itLicensePerClient",          card: "overhead", value: DEFAULT_IT_LICENSE_PER_CLIENT,              unit: "$/yr",  label: "IT license cost per managed client" },
-  { key: "marketingRate",               card: "overhead", value: DEFAULT_MARKETING_RATE,                     unit: "%",     label: "Company-level marketing rate" },
-  { key: "miscOpsRate",                 card: "overhead", value: DEFAULT_MISC_OPS_RATE,                      unit: "%",     label: "Company-level miscellaneous ops rate" },
+  { key: "marketingRate",               card: "overhead", value: 0.05,                                        unit: "%",     label: "Company-level marketing rate" },
+  { key: "miscOpsRate",                 card: "overhead", value: 0.03,                                        unit: "%",     label: "Company-level miscellaneous ops rate" },
   { key: "businessInsuranceStart",      card: "overhead", value: 12000,                                      unit: "$/yr",  label: "Company business insurance (year 1)" },
 
   // ── Tax & Exit ───────────────────────────────────────────────────────

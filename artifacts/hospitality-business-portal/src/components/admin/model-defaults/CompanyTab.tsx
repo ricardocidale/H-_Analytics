@@ -10,8 +10,6 @@ import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_MISC_OPS_RATE,
-  DEFAULT_MARKETING_RATE,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { Section } from "@/components/ui/field-section";
@@ -452,7 +450,7 @@ export function CompanyTab(props: CompanyTabProps) {
                 label="Marketing Rate"
                 tooltip="Company-level marketing spend as a percentage of total managed revenue. Covers brand, digital, and PR activities for the management company (not individual property marketing budgets)."
                 value={draft.marketingRate}
-                fallback={DEFAULT_MARKETING_RATE}
+                fallback={0.05}
                 onChange={(_, v) => onChange("marketingRate", v)}
                 min={0}
                 max={0.15}
@@ -464,7 +462,7 @@ export function CompanyTab(props: CompanyTabProps) {
                 label="Misc Operations Rate"
                 tooltip="Catch-all variable overhead expressed as a percent of total managed revenue — office supplies, memberships, recruiting, and other recurring operating costs not captured above."
                 value={draft.miscOpsRate}
-                fallback={DEFAULT_MISC_OPS_RATE}
+                fallback={0.03}
                 onChange={(_, v) => onChange("miscOpsRate", v)}
                 min={0}
                 max={0.10}

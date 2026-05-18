@@ -13,8 +13,6 @@ import {
   DEFAULT_TECH_INFRA,
   DEFAULT_TRAVEL_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
-  DEFAULT_MARKETING_RATE,
-  DEFAULT_MISC_OPS_RATE,
 } from './constants';
 
 // --- LOCAL STORE TYPES (legacy — canonical types live in shared/schema.ts) ---
@@ -121,8 +119,8 @@ const INITIAL_GLOBAL: StoreGlobalAssumptions = {
   staffSalary: DEFAULT_STAFF_SALARY,
   travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
   itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
-  marketingRate: DEFAULT_MARKETING_RATE,
-  miscOpsRate: DEFAULT_MISC_OPS_RATE,
+  marketingRate: 0.05,
+  miscOpsRate: 0.03,
   officeLeaseStart: DEFAULT_OFFICE_LEASE,
   professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES,
   techInfraStart: DEFAULT_TECH_INFRA,

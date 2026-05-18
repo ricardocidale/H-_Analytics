@@ -42,14 +42,11 @@ import {
   DEFAULT_COST_SEG_5YR_PCT,
   DEFAULT_COST_SEG_7YR_PCT,
   DEFAULT_COST_SEG_15YR_PCT,
-  DEFAULT_ALERT_COOLDOWN_MINUTES,
   DEFAULT_STAFF_TIER1_MAX_PROPERTIES,
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
   DEFAULT_STAFF_SALARY,
   DEFAULT_TRAVEL_COST_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
-  DEFAULT_MARKETING_RATE,
-  DEFAULT_MISC_OPS_RATE,
 } from "../constants";
 import { getFactoryNumber } from "../model-constants-registry";
 
@@ -177,8 +174,8 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // Cost variables - Variable costs
   travelCostPerClient: real("travel_cost_per_client").notNull().default(DEFAULT_TRAVEL_COST_PER_CLIENT),
   itLicensePerClient: real("it_license_per_client").notNull().default(DEFAULT_IT_LICENSE_PER_CLIENT),
-  marketingRate: real("marketing_rate").notNull().default(DEFAULT_MARKETING_RATE),
-  miscOpsRate: real("misc_ops_rate").notNull().default(DEFAULT_MISC_OPS_RATE),
+  marketingRate: real("marketing_rate").notNull().default(0.05),
+  miscOpsRate: real("misc_ops_rate").notNull().default(0.03),
   
   // Portfolio — acquisition-side broker commission (applied during portfolio modeling)
   commissionRate: real("commission_rate").notNull().default(DEFAULT_COMMISSION_RATE),
