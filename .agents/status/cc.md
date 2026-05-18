@@ -5,17 +5,37 @@
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
 Updated: 2026-05-18T14:00:00Z
-Status: active
+Status: idle
 
 ## Active Branch
 
-`main` at `893a04868`, synced with `origin/main`.
+`main` at `485a7d02d`, ahead of `origin/main` by 7 commits.
 
 ## Last Commit on Branch
 
-`893a04868` — `feat(t2-6): add POST/PATCH /api/admin/brands for brand CRUD`.
+`485a7d02d` — `test(documents): add unit tests for parseMistralOcrPages adapter`
 
-## What CC Did This Session (2026-05-18 session 15)
+## What CC Did This Session (2026-05-18 session 16)
+
+**Shipped unit tests for parseMistralOcrPages (T3-1 U8 follow-up, commit `485a7d02d`).**
+
+- Exported `parseMistralOcrPages` and `MISTRAL_OCR_TABLE_CONFIDENCE` from `routes/documents.ts` (the function was previously unexported, blocking test isolation).
+- Added `artifacts/api-server/src/tests/mistral-ocr-adapter.test.ts` — 12 tests covering all three adapter behaviors:
+  - 0-based Mistral `index` → 1-based `pageNumber` (including non-zero index offsets)
+  - GFM separator-row skipping (`|---|---|`, `:---:`, spaced `| --- |`)
+  - 2-column rows → `keyValuePairs` at `MISTRAL_OCR_TABLE_CONFIDENCE = 0.8`; 3+ column rows not promoted
+  - Pages with no table rows excluded from `result.pages`; text accumulated regardless
+  - Empty input guard
+- All 12 tests pass. `typecheck` clean. `check-magic-numbers` PASS.
+
+**Shipped `/ce-compound-refresh` docs updates (commits `9918b582b`, earlier this session).**
+
+- `docs/solutions/architecture-patterns/lorenzo-vision-pipeline-canonical-ingestion-2026-05-07.md` — added Class 5 regex literal false-positives (both `{6}` quantifier AND `[a-z0-9]` character-class variants); removed drifted `LORENZO_VISION_MODEL` constant entry; added note on runtime `resolveLorenzoVisionModelId()`.
+- `docs/solutions/tooling/magic-numbers-ratchet-improvements.md` — bumped "four classes" → "five classes"; added Class 5 full entry with both patterns and prevention bullet.
+
+---
+
+## What CC Did Previous Session (2026-05-18 session 15)
 
 **Shipped T2-6 CC portion — brand CRUD API routes (commit `893a04868`).**
 
