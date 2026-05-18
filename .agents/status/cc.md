@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T17:30:00Z
+Updated: 2026-05-18T18:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,9 +13,17 @@ Status: idle
 
 ## Last Commit on Branch
 
-`refactor(T1-4): migrate DEFAULT_AR_DAYS + DEFAULT_AP_DAYS to inline literals`
+`refactor(T1-4): retire DEFAULT_PROPERTY_INFLATION_RATE + DEFAULT_COMPANY_INFLATION_RATE`
 
-## What CC Did This Session (2026-05-18 session 17 — four T1-4 increments)
+## What CC Did This Session (2026-05-18 session 17 — five T1-4 increments)
+
+**Shipped T1-4 paired increment — DEFAULT_PROPERTY_INFLATION_RATE + DEFAULT_COMPANY_INFLATION_RATE retired (commit `fe730c7c9`).**
+
+- Both constants were marked `@deprecated` per Audit #319 R4 — canonical replacement is `getFactoryNumber('inflationRate', country, state)` from the model-constants registry. This commit completes their retirement.
+- Schema column `globalAssumptions.inflationRate` → inline `0.03` NOT NULL DEFAULT. SPECS entries for `companyInflationRate` and `propertyInflationRate` use inline 0.03. Slides build-payload `??` fallback inlined as `?? 0.03` with explanatory comment.
+- Client-side re-export removed.
+- Ratchet: 0.03 (12→13 files, +build-payload.ts) crossed baseline. Re-snapshotted via `--init`.
+- Gates: typecheck clean, check-magic-numbers PASS, check:schema-drift PASS, engine tests (41/41) PASS.
 
 **Shipped T1-4 paired increment — DEFAULT_AR_DAYS + DEFAULT_AP_DAYS retired (commit `ccb3efdcb`).**
 
