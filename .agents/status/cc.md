@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T18:00:00Z
+Updated: 2026-05-18T18:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,9 +13,22 @@ Status: idle
 
 ## Last Commit on Branch
 
-`refactor(T1-4): retire DEFAULT_PROPERTY_INFLATION_RATE + DEFAULT_COMPANY_INFLATION_RATE`
+`docs(t1-4): plan docs for 2 deferred constants + masterplan reality update`
 
-## What CC Did This Session (2026-05-18 session 17 — five T1-4 increments)
+## What CC Did This Session (2026-05-18 session 17 — six T1-4 retirements + 2 deferral plans)
+
+**Shipped T1-4 overhead quadruple — DEFAULT_OFFICE_LEASE_START + DEFAULT_PROFESSIONAL_SERVICES_START + DEFAULT_TECH_INFRA_START + DEFAULT_BUSINESS_INSURANCE_START retired (commit `b34b8d20a`).**
+
+- Year-1 management-company overhead cost cluster, all four identical profile (8 sites each, no engine `??`, no client-side fallback chains).
+- Schema column defaults → inline literals (36000/24000/18000/12000). SPECS entries inline. syncHelpers.ts inline.
+- Ratchet: 36000 new suspect (4 files), 24000 4→5 files. Re-snapshotted baseline via `--init`.
+- Gates: typecheck clean, check-magic-numbers PASS, check:schema-drift PASS, engine tests (41/41) PASS.
+
+**Shipped plan docs for the 2 cross-cutting deferred T1-4 candidates (commit `be592f319`).**
+
+- `docs/plans/t1-4-property-income-tax-rate-retirement.md` — 20+ sites; calc layer needs country plumbing for `getFactoryNumber('taxRate', country)`.
+- `docs/plans/t1-4-land-value-percent-retirement.md` — 30+ sites; mostly a dead-fallback sweep if client-side type tightening reached audits/display.
+- Masterplan T1-4 entry updated to reflect reality (six 2026-05-18 retirements listed, two cross-cutting refactors marked "deferred — plan required" with links).
 
 **Shipped T1-4 paired increment — DEFAULT_PROPERTY_INFLATION_RATE + DEFAULT_COMPANY_INFLATION_RATE retired (commit `fe730c7c9`).**
 
