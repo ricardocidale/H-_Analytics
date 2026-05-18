@@ -4,18 +4,30 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T21:00:00Z
+Updated: 2026-05-18T22:30:00Z
 Status: idle
 
 ## Active Branch
 
-`main`, in sync with `origin/main` at `ae7c0afbb` after rebase + push.
+`main`, in sync with `origin/main` at `0ad1ae1d1` after push.
 
 ## Last Commit on Branch
 
-`T2-7 Batch 3: complete collapsible UI refactor (all 12 pages done)` — Replit's three commits rebased onto `99e6d86a1` (cost-conscious Claude Code defaults).
+`T1-4: retire DEFAULT_ALERT_COOLDOWN_MINUTES, DEFAULT_MARKETING_RATE, DEFAULT_MISC_OPS_RATE` (`0ad1ae1d1`), on top of Replit's parallel retirement commit (`6a228a142`) and the AgentProcessingCard mockup commits (`84749470c`, `f6e8ea8a3`).
 
-## What CC Did This Session (2026-05-18 session 18 — short orientation + push)
+## What CC Did This Session (2026-05-18 session 19 — T1-4 triple retirement, parallel with Replit)
+
+**Shipped T1-4 triple retirement — DEFAULT_ALERT_COOLDOWN_MINUTES + DEFAULT_MARKETING_RATE + DEFAULT_MISC_OPS_RATE (commit `0ad1ae1d1`).**
+
+- Audited the Tier 1 backlog from the prior session's open-TODO list. Five constants (`DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`) were already retired and the list was stale. Three remaining cleanly tractable: `DEFAULT_ALERT_COOLDOWN_MINUTES`, `DEFAULT_MARKETING_RATE`+`DEFAULT_MISC_OPS_RATE`.
+- **DEFAULT_ALERT_COOLDOWN_MINUTES (1440)** — `lib/db/src/schema/notifications.ts` schema column + Zod default → inline `1440`. `artifacts/api-server/src/notifications/engine.ts` `??` fallback → inline `?? 1440`. Dead import removed from `lib/db/src/schema/config.ts`. Constant removed from `lib/shared/src/constants.ts` + `lib/db/src/constants.ts`.
+- **DEFAULT_MARKETING_RATE (0.05) + DEFAULT_MISC_OPS_RATE (0.03)** — schema column defaults in `config.ts` → inline. Engine `??` fallbacks in `lib/engine/src/company/company-engine.ts` → inline `?? 0.05`/`?? 0.03`. Route fallbacks in `scenario-helpers.ts` + `analyst-admin-utils.ts` → inline. Seed surfaces in `seed-model-defaults.ts`, `diagnose-portfolio-irr.ts`, `src/seeds/properties.ts` → inline (Category 5 carve-out). Frontend `store.ts` demo fixture, `CompanyTab.tsx` `fallback={}`, `known-value-runner.ts` test runner → inline. Re-exports removed from `lib/constants.ts`. Constants removed from both canonical constants files.
+- **Parallel-work conflict resolved:** While I was making these edits, Replit Agent pre-emptively committed the same retirements as `6a228a142 "Update default system rates and notification cooldown"`. My commit landed on top — when I read files mid-session some were already in Replit's post-state, so my Edit calls were partially no-ops; the final tree is consistent. Confirmed clean: typecheck PASS, 41/41 engine tests PASS, check-magic-numbers PASS after `--init` baseline reset (119 suspects, unchanged from prior session).
+- **Engine surface note (§9):** Replit's commit `6a228a142` touched `lib/engine/src/company/company-engine.ts` (3 lines: 2 import lines + 2 `??` fallback inlines). This violates the §9 "ONLY shell CC may edit financial engine" rule. The change itself is identical to what I was about to do and is mechanically safe (constant inlining, no semantic change), so I did not revert. Flagging here for visibility — if Replit's pattern of touching engine files continues, the file-scope-exclusion discipline in §9 needs reinforcement.
+- Ratchet baseline re-init: `0.05` (17→20 files) and `0.03` (12→13 files) crossed thresholds as expected after constant retirement. `--init` re-snapshotted per the ratchet-improvements doc pattern.
+- Pushed to `origin/main` with explicit user authorization.
+
+## What CC Did Previous Session (2026-05-18 session 18 — short orientation + push)
 
 **Oriented on Replit handoff `.agents/handoffs/replit-to-cc-2026-05-18.md` and pushed Replit's 3 local commits to `origin/main`.**
 
@@ -192,7 +204,9 @@ None — work is on main, working tree clean.
 
 ### Next CC session pickup (also captured in CC's memory at `project_next_session_priorities.md`)
 
-**Tier 1 — bounded T1-4 retirements** (1-3 hr each, CC-only): `DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`, `DEFAULT_ADR_GROWTH_RATE`, `DEFAULT_MARKETING_RATE`+`DEFAULT_MISC_OPS_RATE`, `DEFAULT_TRAVEL_COST_PER_CLIENT`+`DEFAULT_IT_LICENSE_PER_CLIENT`, `DEFAULT_ALERT_COOLDOWN_MINUTES`. Pattern is established (Category 5 + `--init` baseline reset).
+**Tier 1 — bounded T1-4 retirements** (1-3 hr each, CC-only): `DEFAULT_ADR_GROWTH_RATE` (needs schema `.default(0.03)` migration — `notNull()` with no default today), `DEFAULT_TRAVEL_COST_PER_CLIENT`+`DEFAULT_IT_LICENSE_PER_CLIENT` (paired, audit first — value conflict between constants.ts 5000/3600 and constants-staffing.ts 3600/3000; ~16-27 sites including model-constants-registry benchmark constants). Pattern is established (Category 5 + `--init` baseline reset).
+
+Already retired in session 19 (2026-05-18): `DEFAULT_ALERT_COOLDOWN_MINUTES`, `DEFAULT_MARKETING_RATE`, `DEFAULT_MISC_OPS_RATE` (commit `0ad1ae1d1`). Already retired in prior sessions and confirmed gone: `DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`.
 
 **Tier 2 — deferred cross-cutting refactors** (1-2 days each, dedicated focused session): plan docs exist at `docs/plans/t1-4-property-income-tax-rate-retirement.md` and `docs/plans/t1-4-land-value-percent-retirement.md`.
 
