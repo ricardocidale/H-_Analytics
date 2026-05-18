@@ -370,7 +370,6 @@ export const COMPANY_FUNDING_BUFFER = 100_000;
 export const RESERVE_ROUNDING_INCREMENT = 10_000;
 
 // ── Property Defaults ───────────────────────────────────────────────────
-export const DEFAULT_OCCUPANCY_GROWTH_STEP = 0.05;
 export const DEFAULT_PARTNER_COUNT = 3;
 
 export const DEFAULT_COST_OF_EQUITY = 0.22;

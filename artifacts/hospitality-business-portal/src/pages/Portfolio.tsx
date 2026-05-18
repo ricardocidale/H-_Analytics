@@ -36,7 +36,6 @@ import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_START_OCCUPANCY,
   DEFAULT_MAX_OCCUPANCY,
-  DEFAULT_OCCUPANCY_GROWTH_STEP,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_ROOM_COUNT,
@@ -81,7 +80,7 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
   startOccupancy: DEFAULT_START_OCCUPANCY,
   maxOccupancy: DEFAULT_MAX_OCCUPANCY,
   occupancyRampMonths: DEFAULT_OCCUPANCY_RAMP_MONTHS,
-  occupancyGrowthStep: DEFAULT_OCCUPANCY_GROWTH_STEP,
+  occupancyGrowthStep: 0.05, // monthly occupancy step bootstrap; canonical source is model_defaults.mc.property_defaults.occupancyGrowthStep
   type: "Full Equity",
   cateringBoostPercent: DEFAULT_CATERING_BOOST_PCT,
   country: "",
