@@ -21,10 +21,6 @@ import {
   DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_BUSINESS_INSURANCE_START,
-  DEFAULT_OFFICE_LEASE_START,
-  DEFAULT_PROFESSIONAL_SERVICES_START,
-  DEFAULT_TECH_INFRA_START,
 } from "@shared/constants";
 import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -59,10 +55,11 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-  officeLeaseStart: DEFAULT_OFFICE_LEASE_START,
-  professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
-  techInfraStart: DEFAULT_TECH_INFRA_START,
-  businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
+  // Year-1 overhead bootstrap; matches schema NOT NULL DEFAULTs in globalAssumptions.
+  officeLeaseStart: 36000,
+  professionalServicesStart: 24000,
+  techInfraStart: 18000,
+  businessInsuranceStart: 12000,
   standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: SEED_OPERATING_RESERVE_USD, buildingImprovements: 1200000 },
   debtAssumptions: SEED_DEBT_ASSUMPTIONS,
   commissionRate: DEFAULT_COMMISSION_RATE,

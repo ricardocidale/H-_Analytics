@@ -49,10 +49,6 @@ export * from './document-types';
 // Used in resolve-assumptions.ts, NOT in BUSINESS_MODEL_DEFAULTS (stays here).
 export const DEFAULT_UTILITIES_VARIABLE_SPLIT = 0.60;
 
-// Company-level annual business insurance ($, not a rate).
-// This is a company-overhead line item, not a per-property cost-rate.
-export const DEFAULT_BUSINESS_INSURANCE_START = 12000;
-
 // ──────────────────────────────────────────────────────────
 // SERVICE FEE CATEGORIES (GRANULAR BREAKDOWN)
 // Instead of a single base management fee, each property can break down fees
@@ -318,9 +314,10 @@ export const DEFAULT_REFI_PERIOD_YEARS = 3;
 
 // ── Management Company Cost Rates ───────────────────────────────────────
 // DEFAULT_STAFF_SALARY re-exported from constants-staffing (75_000)
-export const DEFAULT_OFFICE_LEASE_START = 36000;
-export const DEFAULT_PROFESSIONAL_SERVICES_START = 24000;
-export const DEFAULT_TECH_INFRA_START = 18000;
+// Year-1 overhead bootstrap values (office lease 36k, professional services 24k,
+// tech infra 18k, business insurance 12k) live on globalAssumptions columns
+// with NOT NULL DEFAULTs in lib/db/src/schema/config.ts. Admin-editable via
+// model_defaults rows under card="overhead".
 export const DEFAULT_TRAVEL_COST_PER_CLIENT = 5000;
 export const DEFAULT_IT_LICENSE_PER_CLIENT = 3600;
 export const DEFAULT_MARKETING_RATE = 0.05;

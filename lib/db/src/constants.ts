@@ -88,7 +88,6 @@ export const DEFAULT_COST_RATE_IT = 0.005;          // Information Technology
 export const DEFAULT_COST_RATE_FFE = 0.04;          // Furniture, Fixtures & Equipment reserve (FF&E)
 export const DEFAULT_COST_RATE_OTHER = 0.05;        // Miscellaneous / other operating expenses
 export const DEFAULT_COST_RATE_INSURANCE = 0.015;   // Property insurance (liability, property, business interruption)
-export const DEFAULT_BUSINESS_INSURANCE_START = 12000; // Company-level annual business insurance ($)
 
 // ──────────────────────────────────────────────────────────
 // MANAGEMENT COMPANY FEE DEFAULTS
@@ -347,9 +346,9 @@ export const DEFAULT_REFI_PERIOD_YEARS = 3;
 
 // ── Management Company Cost Rates ───────────────────────────────────────
 // DEFAULT_STAFF_SALARY re-exported from constants-staffing (75_000)
-export const DEFAULT_OFFICE_LEASE_START = 36000;
-export const DEFAULT_PROFESSIONAL_SERVICES_START = 24000;
-export const DEFAULT_TECH_INFRA_START = 18000;
+// Year-1 overhead bootstrap (office lease 36k, professional services 24k,
+// tech infra 18k, business insurance 12k) lives on globalAssumptions schema
+// columns + model_defaults rows under card="overhead". See lib/db/src/schema/config.ts.
 export const DEFAULT_TRAVEL_COST_PER_CLIENT = 5000;
 export const DEFAULT_IT_LICENSE_PER_CLIENT = 3600;
 export const DEFAULT_MARKETING_RATE = 0.05;

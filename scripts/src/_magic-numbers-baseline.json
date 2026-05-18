@@ -1890,7 +1890,14 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-quant-panel-prompt.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/reference-ranges/labor.ts"
+    "artifacts/api-server/src/seeds/reference-ranges/labor.ts",
+    "artifacts/api-server/src/syncHelpers.ts"
+  ],
+  "36000": [
+    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-quant-panel-prompt.ts",
+    "artifacts/api-server/src/seeds/reference-ranges/labor.ts",
+    "artifacts/api-server/src/syncHelpers.ts"
   ],
   "1000000": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",

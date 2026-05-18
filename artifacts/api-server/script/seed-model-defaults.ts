@@ -48,14 +48,10 @@ import {
   DEFAULT_SERVICE_FEE_CATEGORIES,
   DEFAULT_SERVICE_TEMPLATES,
   DEFAULT_STAFF_SALARY,
-  DEFAULT_OFFICE_LEASE_START,
-  DEFAULT_PROFESSIONAL_SERVICES_START,
-  DEFAULT_TECH_INFRA_START,
   DEFAULT_TRAVEL_COST_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
-  DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
@@ -158,14 +154,14 @@ export const SPECS: SeedSpec[] = [
   { key: "staffSalary",                 card: "compensation", value: DEFAULT_STAFF_SALARY,                   unit: "$",     label: "Default annual staff salary" },
 
   // ── Overhead ─────────────────────────────────────────────────────────
-  { key: "officeLeaseStart",            card: "overhead", value: DEFAULT_OFFICE_LEASE_START,                 unit: "$/yr",  label: "Office lease (year 1, annual)" },
-  { key: "professionalServicesStart",   card: "overhead", value: DEFAULT_PROFESSIONAL_SERVICES_START,        unit: "$/yr",  label: "Professional services (year 1)" },
-  { key: "techInfraStart",              card: "overhead", value: DEFAULT_TECH_INFRA_START,                   unit: "$/yr",  label: "Technology infrastructure (year 1)" },
+  { key: "officeLeaseStart",            card: "overhead", value: 36000,                                      unit: "$/yr",  label: "Office lease (year 1, annual)" },
+  { key: "professionalServicesStart",   card: "overhead", value: 24000,                                      unit: "$/yr",  label: "Professional services (year 1)" },
+  { key: "techInfraStart",              card: "overhead", value: 18000,                                      unit: "$/yr",  label: "Technology infrastructure (year 1)" },
   { key: "travelCostPerClient",         card: "overhead", value: DEFAULT_TRAVEL_COST_PER_CLIENT,             unit: "$/yr",  label: "Travel cost per managed client" },
   { key: "itLicensePerClient",          card: "overhead", value: DEFAULT_IT_LICENSE_PER_CLIENT,              unit: "$/yr",  label: "IT license cost per managed client" },
   { key: "marketingRate",               card: "overhead", value: DEFAULT_MARKETING_RATE,                     unit: "%",     label: "Company-level marketing rate" },
   { key: "miscOpsRate",                 card: "overhead", value: DEFAULT_MISC_OPS_RATE,                      unit: "%",     label: "Company-level miscellaneous ops rate" },
-  { key: "businessInsuranceStart",      card: "overhead", value: DEFAULT_BUSINESS_INSURANCE_START,           unit: "$/yr",  label: "Company business insurance (year 1)" },
+  { key: "businessInsuranceStart",      card: "overhead", value: 12000,                                      unit: "$/yr",  label: "Company business insurance (year 1)" },
 
   // ── Tax & Exit ───────────────────────────────────────────────────────
   { key: "companyTaxRate",              card: "tax_exit", value: DEFAULT_COMPANY_TAX_RATE,                   unit: "%",     label: "Company blended tax rate" },

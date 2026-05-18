@@ -27,7 +27,6 @@ import {
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_INSURANCE,
-  DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
@@ -47,9 +46,6 @@ import {
   DEFAULT_STAFF_TIER1_MAX_PROPERTIES,
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
   DEFAULT_STAFF_SALARY,
-  DEFAULT_OFFICE_LEASE_START,
-  DEFAULT_PROFESSIONAL_SERVICES_START,
-  DEFAULT_TECH_INFRA_START,
   DEFAULT_TRAVEL_COST_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_MARKETING_RATE,
@@ -172,10 +168,11 @@ export const globalAssumptions = pgTable("global_assumptions", {
   staffTier3Fte: real("staff_tier3_fte").notNull().default(7.0),
   
   // Cost variables - Fixed overhead
-  officeLeaseStart: real("office_lease_start").notNull().default(DEFAULT_OFFICE_LEASE_START),
-  professionalServicesStart: real("professional_services_start").notNull().default(DEFAULT_PROFESSIONAL_SERVICES_START),
-  techInfraStart: real("tech_infra_start").notNull().default(DEFAULT_TECH_INFRA_START),
-  businessInsuranceStart: real("business_insurance_start").notNull().default(DEFAULT_BUSINESS_INSURANCE_START),
+  // Year-1 overhead bootstrap defaults; admin-editable via model_defaults rows (card="overhead").
+  officeLeaseStart: real("office_lease_start").notNull().default(36000),
+  professionalServicesStart: real("professional_services_start").notNull().default(24000),
+  techInfraStart: real("tech_infra_start").notNull().default(18000),
+  businessInsuranceStart: real("business_insurance_start").notNull().default(12000),
   
   // Cost variables - Variable costs
   travelCostPerClient: real("travel_cost_per_client").notNull().default(DEFAULT_TRAVEL_COST_PER_CLIENT),
