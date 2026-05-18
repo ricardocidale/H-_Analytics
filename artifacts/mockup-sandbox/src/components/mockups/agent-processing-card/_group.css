@@ -28,16 +28,6 @@
   --color-accent-pop: hsl(var(--accent-pop));
 }
 
-@keyframes cube-spin {
-  0%   { transform: rotateX(20deg) rotateY(0deg); }
-  100% { transform: rotateX(20deg) rotateY(360deg); }
-}
-
-@keyframes cube-breathe {
-  0%, 100% { opacity: 0.85; }
-  50%       { opacity: 1; }
-}
-
 @keyframes progress-indeterminate {
   0%   { transform: translateX(-100%) scaleX(0.3); }
   40%  { transform: translateX(0%)    scaleX(0.7); }
