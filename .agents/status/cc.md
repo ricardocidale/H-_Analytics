@@ -4,16 +4,25 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T19:30:00Z
+Updated: 2026-05-18T21:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main`, in sync with `origin/main` after this commit's push.
+`main`, in sync with `origin/main` at `ae7c0afbb` after rebase + push.
 
 ## Last Commit on Branch
 
-`docs(conventions): Category 5 — Starter-Portfolio Seeds carve-out` (`fd4636223`)
+`T2-7 Batch 3: complete collapsible UI refactor (all 12 pages done)` — Replit's three commits rebased onto `99e6d86a1` (cost-conscious Claude Code defaults).
+
+## What CC Did This Session (2026-05-18 session 18 — short orientation + push)
+
+**Oriented on Replit handoff `.agents/handoffs/replit-to-cc-2026-05-18.md` and pushed Replit's 3 local commits to `origin/main`.**
+
+- Verified the third undisclosed commit (`5e00c0131`) was just the handoff doc itself (133-line doc-only diff), not a stealth code change.
+- `git push` initially rejected (remote had `99e6d86a1` "Set cost-conscious Claude Code defaults", a `.claude/settings.json` change unrelated to T2-7). Rebased cleanly (no conflicts — disjoint file sets) and pushed.
+- `origin/main` now at `ae7c0afbb` with T2-7 Batch 3 live (12 pages migrated to `CollapsibleSection`, `forceOpenId` + `onSectionOpen` API).
+- No CC code changes this session.
 
 ## What CC Did This Session (2026-05-18 session 17 — /ce-compound run)
 
