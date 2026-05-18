@@ -4,18 +4,25 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T10:00:00Z
+Updated: 2026-05-18T11:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main` at `776085c98`, synced with `origin/main`.
+`main` at `893a04868`, synced with `origin/main`.
 
 ## Last Commit on Branch
 
-`776085c98` — `feat(matteo-u8): route pdf-ocr-extraction through Mistral OCR 3 behind feature flag`.
+`893a04868` — `feat(t2-6): add POST/PATCH /api/admin/brands for brand CRUD`.
 
 ## What CC Did This Session (2026-05-18 session 15)
+
+**Shipped T2-6 CC portion — brand CRUD API routes (commit `893a04868`).**
+
+- `routes/admin/fees.ts`: added `POST /api/admin/brands` (create brand with slug + metadata) and `PATCH /api/admin/brands/:slug` (update display name / metadata). No new schema — `business_brands` table already covers all needed columns. `isDefault` is never writable via these routes (migration-only invariant preserved). Slug uniqueness enforced with explicit duplicate check before insert.
+- Replit can now build the admin UI on top of these routes (T2-6 UI portion — the create/edit brand form under Model Default Management Co → Brands tab).
+- T2-6 CC scope complete. UI portion is Replit-safe.
+- Both gates passed: `typecheck` clean, `check-magic-numbers` PASS.
 
 **Shipped T3-1 Matteo U8 — PDF OCR routing through Mistral OCR 3 (commit `776085c98`).**
 
@@ -72,9 +79,23 @@ None — work is on main, working tree clean.
 ## What's Pending
 
 - **T3-1 Matteo — Model Router Specialist is COMPLETE (all U1–U8 shipped).** Done-when criteria met: routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek + Gemini routing, cost-per-task JSONL log via `admin-llm-cost.ts`, cost visible in Admin LLM Workflows Cost tab.
-- **Next session priority:** T2-6 (generic brand-type slugs + admin UI) or T2-7 (horizontal tabs → collapsible UI on non-main pages). Both are Replit-safe and can run in parallel with Replit.
+- **T2-6 CC scope COMPLETE.** Brand CRUD API routes shipped. Replit UI portion: create/edit brand form under Admin → Model Defaults → Brands tab. Routes: `POST /api/admin/brands` (slug + name + metadata), `PATCH /api/admin/brands/:slug` (update display name/metadata). Brand list already at `GET /api/admin/brands`.
+- **Next session priority:** T2-7 (horizontal tabs → collapsible UI on non-main pages, Replit-safe), or any other CC-specific task. T2-6 call-site sweep (ensuring all brand references use slug lookup, not hardcoded display names) is low-priority unless audit reveals violations.
 - New T2 entries on plan added 2026-05-17 (Replit-safe, can run in parallel with Matteo): T2-6 (generic brand-type slugs + admin UI), T2-7 (horizontal tabs → collapsible UI on non-main pages). T2-5 (reference ranges singleton) is deferred pending ownership clarification.
 - Open TODO carried from prior sessions (CLAUDE.md): Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up).
+
+## Handoff to Replit — T2-6 UI
+
+**New API routes ready for UI work (`artifacts/api-server/src/routes/admin/fees.ts`):**
+- `POST /api/admin/brands` — create brand. Body: `{ slug: string, name: string, description?: string|null, businessModel?: "hotel"|"str", segment?: string|null, sortOrder?: number, isActive?: boolean }`. Returns `201 + brand row`. 409 if slug already exists.
+- `PATCH /api/admin/brands/:slug` — update brand metadata. Same fields as POST except slug is immutable. Returns updated brand row. 404 if slug not found.
+
+**Existing routes:**
+- `GET /api/admin/brands` — list all brands (already wired, already used in `BrandsTab.tsx`)
+
+**UI task:** Add "New Brand" button + form, and "Edit" capability per brand, to the existing `BrandsTab.tsx` at `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandsTab.tsx`. Fields: slug (create-only), display name, description, businessModel (hotel/str), segment, sortOrder, isActive toggle.
+
+---
 
 ## Handoff to Replit
 
