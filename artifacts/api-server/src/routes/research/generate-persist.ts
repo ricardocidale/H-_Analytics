@@ -3,9 +3,6 @@ import { storage } from "../../storage";
 import { getAuthUser } from "../../auth";
 import { logActivity } from "../helpers";
 import { validateResearchValues } from "@calc/research/validate-research";
-import {
-  DEFAULT_ROOM_COUNT,
-} from "@shared/constants";
 import { resolveDefault } from "../../defaults";
 import { logger } from "../../logger";
 import { logApiCost, estimateCost } from "../../middleware/cost-logger";
@@ -233,7 +230,7 @@ async function applyValidatedResearchValues(
     roomCount:
       property.roomCount ??
       (await resolveDefault<number>("mc.property_defaults.roomCount")) ??
-      DEFAULT_ROOM_COUNT,
+      10,
     startAdr:
       property.startAdr ??
       (await resolveDefault<number>("mc.property_defaults.startAdr")) ??

@@ -506,7 +506,9 @@
     "artifacts/api-server/src/routes/property-finder.ts",
     "artifacts/api-server/src/routes/property-photos.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
+    "artifacts/api-server/src/routes/research/generate-persist.ts",
     "artifacts/api-server/src/routes/research/web-search.ts",
+    "artifacts/api-server/src/routes/reserves-brand.ts",
     "artifacts/api-server/src/routes/risk-intelligence.ts",
     "artifacts/api-server/src/routes/scenario-helpers.ts",
     "artifacts/api-server/src/routes/scenarios.ts",
@@ -544,6 +546,7 @@
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-funding.ts",
     "lib/shared/src/dd-template.ts",
+    "lib/shared/src/field-registry.ts",
     "lib/shared/src/price-history.ts",
     "lib/shared/src/rebecca-settings.ts"
   ],

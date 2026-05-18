@@ -22,7 +22,6 @@ import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefre
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import {
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_ROOM_COUNT,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_OTHER,
@@ -389,7 +388,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Room Count"
           tooltip="Number of keys (rooms) for a new property. Boutique hotels are typically 10-100 rooms."
           value={draft.defaultRoomCount}
-          fallback={DEFAULT_ROOM_COUNT}
+          fallback={10}
           onChange={(_, v) => onChange("defaultRoomCount", Math.round(v))}
           min={1} max={500} step={1}
           testId="field-defaultRoomCount"
