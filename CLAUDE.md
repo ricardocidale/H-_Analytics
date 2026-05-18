@@ -45,9 +45,9 @@ There are no exceptions.
 
 ---
 
-## 2. Number Taxonomy — Category 2 is LEGACY DEBT (locked 2026-05-13)
+## 2. Number Taxonomy — Category 2 is LEGACY DEBT (locked 2026-05-13; Cat 5 added 2026-05-18)
 
-Every number falls into exactly one category. Never invent a fifth.
+Every number falls into exactly one category. Never invent a sixth.
 
 | Category | Name | Pattern |
 |---|---|---|
@@ -55,6 +55,7 @@ Every number falls into exactly one category. Never invent a fifth.
 | 2 | DEFAULT VARIABLES | **LEGACY** — Do NOT create new ones. See rule below. |
 | 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB — no `?? DEFAULT_*` |
 | 4 | TABLE-SOURCED VALUES | Authority rates. `getMarketRate()` or `getFactoryNumber()` |
+| 5 | STARTER-PORTFOLIO SEEDS | `SEED_*` calibrated bootstrap values in dedicated surfaces. See list below. |
 
 **Category 2 superseding rule:** Business and financial values must NOT
 exist as TypeScript constants — even named ones. `const BRACKET_DEFAULT_US_TERTIARY_EXIT_CAP = 0.0975`
@@ -502,6 +503,8 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 |---|---|
 | `references/openapi.md`, `references/server.md` | OpenAPI codegen + route conventions |
 | `docs/runbooks/schema-migrations.md` | Schema + migration + seed runbook (three-folder topology, runtime guards, drift recovery) |
+| `docs/concepts/numeric-values-explained.md` | Readable explainer for the five-category numeric rule (§1–§5) — start here when onboarding to the rule |
+| `docs/brainstorms/numeric-architecture-requirements.md` | Numeric architecture brainstorm — three-pillar model, Phase 2 design decisions D1–D5 |
 | `.local/tasks/task-800.md` | Architecture audit (scenarios, portfolios, sharing, roles) |
 | `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | LB slides canonical visual — every rebuild must pixel-match |
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |

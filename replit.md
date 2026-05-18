@@ -92,6 +92,8 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 | Topic | Where |
 |---|---|
 | Architecture, auth rules, number taxonomy | `CLAUDE.md` (canonical deep source) |
+| Numeric rule — readable explainer (start here) | `docs/concepts/numeric-values-explained.md` |
+| Numeric architecture brainstorm + Phase 2 decisions | `docs/brainstorms/numeric-architecture-requirements.md` |
 | Stack, monorepo structure, key commands | `CLAUDE.md` §§ "Stack", "Monorepo Structure", "Key Commands" |
 | Production deployment + env vars | `CLAUDE.md` §§ "Production Deployment", "Environment Variables (api-server)" |
 | LB Slides implementation detail | `docs/slide-system/lb-slides-implementation-reference.md` |
@@ -153,6 +155,6 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
+| 2026-05-18 | **Numeric architecture brainstorm + §2 campaign PAUSED.** New explainer at `docs/concepts/numeric-values-explained.md` documents the five-category rule. Brainstorm at `docs/brainstorms/numeric-architecture-requirements.md` with locked Phase 2 design decisions D1–D5: required-fields gate at entity creation (D1), tiered minimum + enrichment (D2), continuous Analyst proposals (D3), MC `bracket_mix` as Analyst input (D4), Rebecca conversational onboarding direction (D5). `DEFAULT_ADR_GROWTH_RATE` retirement reverted — campaign blocked until `computePropertyDefaults` is wired to read from `model_defaults`. CLAUDE.md §2 table updated to include Cat 5. |
 | 2026-05-17 | **Save-button audit implemented.** New `useUnsavedExitGuard` hook + `UnsavedExitDialog`. Wired into PropertyEdit (stays on page after save; header/footer reordered to Cancel\|Save and Analyst\|Cancel\|Save; alwaysActive), ModelDefaultsTab (tab-switch guard), CompanyBracketMix (beforeunload only — save is validation-gated), CompanyAssumptions form hook (beforeunload). Admin.tsx `handleNavigate` intercepts `confirmNavigation` from saveState. Gates: typecheck ✅ portal lint ✅. |
 | 2026-05-17 | **Analyst Tables moved: Admin → Model Defaults → Intelligence → Knowledge & Resources.** Removed from `AdminSidebar.tsx` `financial-defaults` group and `Admin.tsx` routing. Added to `IntelligenceSidebar.tsx` `knowledge-resources` group and `Intelligence.tsx` routing (lazy import + case + default-sections array). Gates: typecheck ✅. |
-| 2026-05-17 | **Brand Assets admin restructure (4-tab layout).** `BrandAssetsPage.tsx` rebuilt with tabs: App Logo (super-admin only, hidden for non-super-admins) · Logos (unchanged) · Animations (NEW — collapsible Rebecca/Analyst families via Card+Collapsible, read-only) · Other Graphics (renamed from "Brand Assets"). Backend: `PATCH /api/app-branding` upgraded to `requireSuperAdmin`. Shared `animationCatalog.tsx` is single source of truth for both Brand Assets and Intelligence Animations page. Gates: typecheck ✅, portal lint ✅. |
