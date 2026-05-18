@@ -25,7 +25,6 @@ import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_START_OCCUPANCY,
   DEFAULT_MAX_OCCUPANCY,
-  DEFAULT_OCCUPANCY_RAMP_MONTHS,
   DEFAULT_ROOM_COUNT,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_EVENTS,
@@ -383,7 +382,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Occupancy Ramp"
           tooltip="Number of months to ramp from starting occupancy to stabilized occupancy. Typically 3-12 months for boutique properties."
           value={draft.defaultOccupancyRampMonths}
-          fallback={DEFAULT_OCCUPANCY_RAMP_MONTHS}
+          fallback={6}
           onChange={(_, v) => onChange("defaultOccupancyRampMonths", Math.round(v))}
           min={0} max={24} step={1}
           testId="field-defaultOccupancyRampMonths"

@@ -62,7 +62,6 @@ import {
   DEFAULT_MAX_OCCUPANCY,
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_START_OCCUPANCY,
-  DEFAULT_OCCUPANCY_RAMP_MONTHS,
 } from "@shared/constants";
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
@@ -178,7 +177,7 @@ export const SPECS: SeedSpec[] = [
   { key: "startOccupancy",              card: "property_defaults", value: DEFAULT_START_OCCUPANCY,           unit: "%",      label: "Starting occupancy (month 1)" },
   { key: "adrGrowthRate",               card: "property_defaults", value: DEFAULT_ADR_GROWTH_RATE,           unit: "%",      label: "Annual ADR growth rate" },
   { key: "stabilizationMonths",         card: "property_defaults", value: 36,                               unit: "months", label: "Months to stabilize" },
-  { key: "occupancyRampMonths",         card: "property_defaults", value: DEFAULT_OCCUPANCY_RAMP_MONTHS,     unit: "months", label: "Occupancy ramp duration" },
+  { key: "occupancyRampMonths",         card: "property_defaults", value: 6,                                unit: "months", label: "Occupancy ramp duration" },
   { key: "occupancyGrowthStep",         card: "property_defaults", value: 0.05,                              unit: "%",      label: "Occupancy growth step per period" },
   { key: "propertyInflationRate",       card: "property_defaults", value: 0.03,                              unit: "%",      label: "Property-level cost inflation (annual)" },
   // STR platform fee — blended Airbnb 15.5% / VRBO 8% / Booking 15%.

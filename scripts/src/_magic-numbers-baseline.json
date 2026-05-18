@@ -313,7 +313,8 @@
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-funding.ts",
     "lib/shared/src/constants-staffing.ts",
-    "lib/shared/src/constants.ts"
+    "lib/shared/src/constants.ts",
+    "lib/shared/src/field-registry.ts"
   ],
   "8": [
     "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",

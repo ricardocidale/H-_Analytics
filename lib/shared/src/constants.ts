@@ -194,8 +194,6 @@ export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
   },
 };
 
-export const DEFAULT_OCCUPANCY_RAMP_MONTHS = 6;
-
 // ──────────────────────────────────────────────────────────
 // PROPERTY-LEVEL DEFAULTS
 // ──────────────────────────────────────────────────────────
