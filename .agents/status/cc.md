@@ -4,18 +4,28 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T16:30:00Z
+Updated: 2026-05-18T17:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main`, ahead of `origin/main` by 11 commits.
+`main`, ahead of `origin/main` by 12 commits.
 
 ## Last Commit on Branch
 
-`refactor(T1-4): migrate DEFAULT_REINVESTMENT_RATE to schema default`
+`refactor(T1-4): migrate DEFAULT_OCCUPANCY_GROWTH_STEP to inline literals`
 
-## What CC Did This Session (2026-05-18 session 17)
+## What CC Did This Session (2026-05-18 session 17 — three T1-4 increments)
+
+**Shipped T1-4 increment — DEFAULT_OCCUPANCY_GROWTH_STEP retired (commit `5d02e7e18`).**
+
+- Removed the TS constant `DEFAULT_OCCUPANCY_GROWTH_STEP = 0.05` from both canonical constants files + the client-side re-export.
+- Schema column `properties.occupancyGrowthStep` is `notNull()` with no `.default()` — every insert must supply a value. Bootstrap paths now inline `0.05`:
+  - `seed-model-defaults.ts` SPECS entry
+  - `seeds/property-data.ts` (12 inline replacements via `replace_all`)
+  - `Portfolio.tsx` new-property form template (with source-citation comment pointing to model_defaults)
+- Engine read is already `property.occupancyGrowthStep` (no `??` fallback to remove).
+- Gates: typecheck clean, check-magic-numbers PASS, engine tests (41/41) PASS.
 
 **Shipped T1-4 increment — DEFAULT_REINVESTMENT_RATE retired (commit `5f0c73402`).**
 
