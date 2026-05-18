@@ -21,13 +21,13 @@ T2-7 replaces horizontal-tab navigation on non-main pages with a collapsible UI 
 | `pages/PropertyDetail.tsx` | `/properties/:id` | Individual property page |
 | `pages/PropertyFinder.tsx` | `/properties` | Properties list page |
 
-### Ambiguous — needs owner decision
+### Resolved — `CompanyAssumptions` is in scope
 
-**`pages/CompanyAssumptions.tsx`** (`/company/assumptions`) — the canonical "Form/Editor" page (referenced in CLAUDE.md §"Canonical Page Archetypes"). Uses `CompanyAssumptionsTabsView` with tabs: Funding, Fees, Staffing, Overhead, Branding (approximate — tabs are server-driven). It is a separate route from `Company.tsx` but lives under `/company`. If the "Management Company page" exclusion covers the whole `/company` subtree, this page is excluded. **Recommended:** confirm with owner before touching.
+**`pages/CompanyAssumptions.tsx`** (`/company/assumptions`) is **in scope** for the collapsible refactor (owner decision, 2026-05-18). The "Management Company page" exclusion covers only the main `Company.tsx` overview at `/company` — not the `/company/assumptions` editor. This page uses `CompanyAssumptionsTabsView` and is the canonical "Form/Editor" archetype; the refactor must preserve per-tab Save + AnalystButton semantics per CLAUDE.md.
 
 ---
 
-## In-scope pages (11 candidates)
+## In-scope pages (12 candidates)
 
 ### 1. `pages/Analysis.tsx`
 **Route:** `/analysis`  
@@ -80,7 +80,13 @@ T2-7 replaces horizontal-tab navigation on non-main pages with a collapsible UI 
 **Tabs:** DSCR Sizing · Debt Yield · Stress Test · Prepayment (4 tabs)  
 **Indicator hypothesis:** Each tab is a financing calculation mode. Collapsible rows with a "current sizing result" metric chip (e.g., "DSCR: 1.32x") per row would let users see all four outputs simultaneously.
 
-### 11. `pages/CompanyResearch.tsx`
+### 11. `pages/CompanyAssumptions.tsx`
+**Route:** `/company/assumptions`
+**Sub-component:** `components/company-assumptions/CompanyAssumptionsTabsView.tsx` renders the tab bar
+**Tabs:** server-driven (`TAB_LABELS[tabKeys]`) — typically Funding, Fees, Staffing, Overhead, Branding
+**Indicator hypothesis:** Canonical Form/Editor archetype — each tab carries per-tab Save state and an AnalystButton. Collapsible rows must preserve per-section Save semantics (dirty flag, save mutation) and AnalystButton per section. Likely the highest-value collapsible refactor since users currently lose context switching tabs mid-edit. **Care needed:** preserve `onSaveStateChange` upward signaling to PageHeader (see `.local/tasks/research-center-save-button.md` for the prior pattern).
+
+### 12. `pages/CompanyResearch.tsx`
 **Route:** `/company/research`  
 **Tabs:** Two-level nested tabs — 3 groups (Operations / Marketing / Industry) each with 5 sub-tabs  
 **Sub-tabs:**
@@ -164,7 +170,8 @@ Easiest-first, highest-value-first:
 8. `SpecialistPage.tsx` — dynamic tabs, needs care
 9. `PropertyMarketResearch.tsx` — 8 tabs, research sections
 10. `LbSlides.tsx` — 7 tabs + factory 6 tabs (two separate tab bars on same page)
-11. `CompanyResearch.tsx` — nested tabs, highest complexity, last
+11. `CompanyAssumptions.tsx` — canonical Form/Editor; preserve per-tab Save + AnalystButton
+12. `CompanyResearch.tsx` — nested tabs, highest complexity, last
 
 ---
 
