@@ -3,7 +3,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { users } from "./auth";
 import { properties } from "./properties";
-import { DEFAULT_MAX_STALENESS_HOURS } from "../constants";
 import type { MarketResearchContent, PromptConditions } from "./types/jsonb-shapes";
 import type { PriceEvent } from "../price-history";
 
@@ -155,7 +154,7 @@ export const marketRates = pgTable("market_rates", {
   fetchedAt: timestamp("fetched_at"),
   isManual: boolean("is_manual").notNull().default(false),
   manualNote: text("manual_note"),
-  maxStalenessHours: integer("max_staleness_hours").notNull().default(DEFAULT_MAX_STALENESS_HOURS),
+  maxStalenessHours: integer("max_staleness_hours").notNull().default(24), // hours; bootstrap value, per-row overridable
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -316,7 +316,6 @@ export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_MAX_STALENESS_HOURS = 24;
 export const USE_STABLE_SCENARIO_LOAD = true;
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
 
