@@ -77,7 +77,12 @@ constants structurally unnecessary, not just stylistically bad.
 - Category 1: math/physics absolutes (12, 365, 30.5, π, 86400, etc.)
 - Structural clamps/indices: `0`, `1`, `-1`
 - Algorithm calibration constants: non-financial, non-admin-configurable parameters (IRS/GAAP-derived engine parameters like `NOL_UTILIZATION_CAP = 0.8`; rule-ordering integers like `PRIORITY_* = 100`)
-- `SEED_*` named constants in migration guard files (`artifacts/api-server/src/migrations/*.ts`) — bootstrap-only, source citation required, never imported by runtime code
+- **Starter-portfolio seeds** — `SEED_*` named constants (or inline literals with provenance comments) in dedicated bootstrap surfaces, calibrated values that populate the dev DB and the prod starter portfolio at first launch. Bootstrap-only, never imported by runtime engine/calc/route code. Mandatory provenance: each `SEED_*` constant carries a comment block citing the calibration source (date, target metric, runbook link). On prod-DB conflict (user/admin saved over the seed), the DB row wins via `onConflictDoNothing()` in the seed script. Allowed locations:
+  - `artifacts/api-server/src/migrations/*.ts` — migration guards (existing)
+  - `artifacts/api-server/src/seeds/**` — seed data files (entire subtree)
+  - `artifacts/api-server/script/seed-*.ts` — seed scripts (outside scanner scope)
+  - `artifacts/api-server/src/syncHelpers.ts` — one-shot sync payload constructor
+  - `lib/shared/src/constants.ts` — cross-package `SEED_*` only (e.g., `SEED_EXIT_CAP_RATE_LUXURY`, `SEED_MEDELLIN_DUPLEX_START_ADR`)
 - Test assertion / fixture values (`*.test.ts`, `*.spec.ts`) — checker skips these files entirely
 
 **Canonical violation + fix** (additional patterns in skill):

@@ -48,9 +48,29 @@ const SCAN_DIRS = [
   "lib/analytics/src",
 ];
 
-/** Server source, excluding the migrations directory (generated DDL). */
+/**
+ * Server source, excluding directories whose literals are §2 bootstrap surfaces:
+ * - `migrations/` — generated DDL + SEED_* migration guards (artifacts/api-server/src/migrations/*.ts)
+ * - `seeds/` — starter-portfolio scenario seeds (SEED_* constants for the pre-launch
+ *   property cohort + management-company assumptions). Per CLAUDE.md §2, these are
+ *   calibrated bootstrap values, not runtime business assumptions; the prod DB row
+ *   supersedes on conflict via `onConflictDoNothing()` in seed-model-defaults.ts.
+ */
 const SERVER_DIR = "artifacts/api-server/src";
-const SERVER_EXCLUDE_DIRS = new Set(["migrations"]);
+const SERVER_EXCLUDE_DIRS = new Set(["migrations", "seeds"]);
+
+/**
+ * Specific files (relative to WORKSPACE_ROOT) treated as §2 bootstrap surfaces.
+ * Each entry must point to code whose literals exclusively populate seed data
+ * paths — never imported by runtime engine/calc/route code.
+ *
+ * - `artifacts/api-server/src/syncHelpers.ts` — `SEED_GLOBAL_DEFAULTS` and related
+ *   one-shot population payloads. Used by seed scripts and dev-only sync helpers;
+ *   not on the runtime read path.
+ */
+const SKIP_REL_PATHS = new Set<string>([
+  "artifacts/api-server/src/syncHelpers.ts",
+]);
 
 /** Directories to skip everywhere. */
 const SKIP_DIRS = new Set([
@@ -342,7 +362,10 @@ function* walkDir(dir: string, excludeDirs?: Set<string>): Generator<string> {
       CHECKED_EXTENSIONS.has(path.extname(entry.name)) &&
       !Array.from(SKIP_FILE_SUFFIXES).some(s => entry.name.endsWith(s))
     ) {
-      yield path.join(dir, entry.name);
+      const absPath = path.join(dir, entry.name);
+      const relPath = path.relative(WORKSPACE_ROOT, absPath);
+      if (SKIP_REL_PATHS.has(relPath)) continue;
+      yield absPath;
     }
   }
 }

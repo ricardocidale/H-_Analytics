@@ -1,5 +1,5 @@
 ---
-title: "Magic-Numbers Ratchet: Test Exclusion and Content-Hash Deduplication"
+title: "Magic-Numbers Ratchet: Test Exclusion, Content-Hash Deduplication, and Starter-Portfolio Seed Carve-Out"
 date: 2026-05-01
 last_updated: 2026-05-18
 category: tooling
@@ -14,6 +14,7 @@ applies_when:
   - "Industry-spec dimensional values (PDF page sizes, HD/4K resolutions, DPI, RGBA channels) trip the gate"
   - "Tempted to wrap a literal in a route-local ALL_CAPS const to satisfy the gate (the masking-literal anti-pattern)"
   - "Choosing a home for a new DEFAULT_* or operational constant"
+  - "Calibrated starter-portfolio values (SEED_*) needed for dev DB / prod first-install bootstrap"
 tags: [magic-numbers, ratchet, testing, shared-constants, deduplication, industry-standards, masking-anti-pattern, business-assumptions]
 related_components: [scripts/src/check-magic-numbers.ts, scripts/src/_magic-numbers-baseline.json, .agents/skills/no-magic-numbers/SKILL.md]
 ---
@@ -22,13 +23,15 @@ related_components: [scripts/src/check-magic-numbers.ts, scripts/src/_magic-numb
 
 ## Problem
 
-Five classes of false positives cause the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
+Six classes of false positives cause the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
 
 1. **Test fixture values** — `.test.ts` files contain literal values that are inputs under test (e.g., `score: 0.75`, `weight: 80`). These are assertions, not production magic numbers.
 2. **Mirror inflation** — `lib/shared/src/` is mirrored verbatim to `artifacts/api-server/src/shared/`. Every constant defined once was counted in 2 files, pushing many legitimate constants over the 4-file threshold.
 3. **Regulatory citation fragments** — strings like `"IRS Publication 946"` or `"NOM-030-SSA3-2013"` contain digit sequences the scanner extracts as bare numerals.
 4. **Industry-standard dimensional/encoding constants** *(2026-05-08)* — PDF page sizes (`595 × 842` for A4 per ISO 216, `612 × 792` for US Letter), HD/4K resolutions (`1920 × 1080`, `1280 × 720`, `3840 × 2160` per ITU-R BT.709/2020), canonical slide canvas (`960 × 540`), DPI conventions (`72` PDF / `96` CSS), unit conversions (`25.4` mm/inch, `2.54` cm/inch — NIST exact), and 8-bit color depth (`256`/`255`). These are spec-fixed by external standards bodies and don't carry the cross-jurisdictional drift risk the gate exists to catch.
-5. **Regex literal digits** *(2026-05-18)* — The scanner strips string literals before extracting tokens but does **not** strip regex literals (`/.../`). Two patterns inside a regex literal are falsely extracted as standalone numerals:
+5. **Starter-portfolio seed surfaces** *(2026-05-18)* — Calibrated `SEED_*` constants and inline literals for the pre-launch property cohort + management-company assumptions are STRUCTURALLY duplicated across seed files (e.g., 12 properties each setting `occupancyGrowthStep: 0.05`). These values are scenario-balancing calibrations, not runtime business assumptions. They populate the dev DB and the prod starter portfolio at first install; the prod DB row wins on conflict via `onConflictDoNothing()` in `seed-model-defaults.ts`. CLAUDE.md §2 Category 5 (added 2026-05-18) codifies this exception; the scanner now skips the surfaces listed under "Solution 6" below.
+
+6. **Regex literal digits** *(2026-05-18)* — The scanner strips string literals before extracting tokens but does **not** strip regex literals (`/.../`). Two patterns inside a regex literal are falsely extracted as standalone numerals:
    - **Numeric quantifiers**: `{6}` in `/^#[0-9A-Fa-f]{6}$/` — the digit is preceded by `{`, absent from the lookbehind exclusion set `[a-zA-Z_$0-9#]`.
    - **Character-class digit ranges**: `[a-z0-9]` in `/^[a-z0-9]+.../` — the trailing digit `9` is preceded by `-` (range dash), also absent from the exclusion set.
 
@@ -96,6 +99,35 @@ Added 18 spec-fixed values to `ALLOWED_DUPLICATED_VALUES`. Each entry cites the 
 // 8-bit color depth
 "256", "255",
 ```
+
+### 5. Starter-portfolio seed file carve-out *(2026-05-18)*
+
+Added directory-level and path-level skip rules so calibrated `SEED_*` values and inline literals in dedicated bootstrap surfaces don't trip the gate. CLAUDE.md §2 Category 5 codifies the rule; the scanner enforces it mechanically.
+
+```ts
+// scripts/src/check-magic-numbers.ts
+const SERVER_EXCLUDE_DIRS = new Set(["migrations", "seeds"]);
+
+const SKIP_REL_PATHS = new Set<string>([
+  "artifacts/api-server/src/syncHelpers.ts",
+]);
+```
+
+The walker now computes the path relative to WORKSPACE_ROOT for each candidate file and consults `SKIP_REL_PATHS` for single-file exclusions (`syncHelpers.ts` doesn't fit the directory-level pattern but holds `SEED_GLOBAL_DEFAULTS`-style payload constructors).
+
+Effect on baseline: re-init dropped the suspect count from 144 → 119 values. Seed-file duplications that were structurally legitimate (12 properties each setting `occupancyGrowthStep: 0.05`, market-rate seeds at `0.72`, etc.) no longer contribute to the ratchet.
+
+**The contract `SEED_*` constants in allowed locations must meet:**
+- `SEED_` prefix in the name (when named) — distinguishes calibration seeds from runtime `DEFAULT_*` legacy debt
+- Source citation in a comment block immediately above (date, target metric, runbook link, market-data reference)
+- Not imported by runtime engine/calc/route code — runtime reads come from the DB, populated by these seeds at install time
+
+**Locations the carve-out covers:**
+- `artifacts/api-server/src/migrations/*.ts` — existing (idempotent runtime guards)
+- `artifacts/api-server/src/seeds/**` — new (entire subtree)
+- `artifacts/api-server/script/seed-*.ts` — outside scanner scope by SCAN_DIRS (script directory not included)
+- `artifacts/api-server/src/syncHelpers.ts` — new (single file)
+- `lib/shared/src/constants.ts` — `SEED_*` named constants only (cross-package use)
 
 ## Scope clarification: what the gate is — and isn't — for *(2026-05-08)*
 

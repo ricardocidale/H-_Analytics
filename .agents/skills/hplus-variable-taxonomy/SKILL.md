@@ -313,6 +313,62 @@ costRateRooms:    property.costRateRooms ?? 0.20,
 
 ---
 
+## Category 5 — STARTER-PORTFOLIO SEEDS
+
+**Definition:** Calibrated numeric values for the pre-launch property cohort + management-company assumptions that ship with the app on first install. The chicken-and-egg constraint: you cannot seed a value from the DB before the DB exists. Category-5 surfaces hold these values as `SEED_*` named constants (or inline literals with provenance comments) **exclusively for DB-population code paths** — never for runtime engine/calc/route reads.
+
+**Why it's distinct from Category 2:** Category 2 (`DEFAULT_*`) is legacy debt — a runtime fallback when the DB row is missing. Category 5 (`SEED_*`) is structural — it's the source value the DB row is populated FROM at install time. After install, the prod DB owns the value; the TS constant is a historical artifact of the calibration run.
+
+**Conflict resolution:** On prod-DB conflict (the user/admin saved over the seed value), the DB row wins. `seed-model-defaults.ts` uses `onConflictDoNothing()` — re-running the seed against a prod DB with user edits leaves those edits intact.
+
+**H+ examples:**
+- `SEED_EXIT_CAP_RATE_LUXURY` (`lib/shared/src/constants.ts`) — calibrated to CBRE/JLL US luxury hospitality cap rate consensus 2025 (7.5-9.5% midpoint)
+- `SEED_MEDELLIN_DUPLEX_START_ADR` (`lib/shared/src/constants.ts`) — calibrated to AirDNA Q1-2026 El Poblado top-decile listings
+- `SEED_BRACKET_EXIT_CAP_RATE` (`artifacts/api-server/src/migrations/*.ts`) — migration bootstrap for `icp_brackets` rows
+- Inline literals in `artifacts/api-server/src/seeds/property-data.ts` — per-property calibrated values for the dev/starter portfolio
+
+**Allowed locations:**
+
+| Location | What may live here |
+|---|---|
+| `artifacts/api-server/src/migrations/*.ts` | `SEED_*` named bootstrap constants for runtime migration guards |
+| `artifacts/api-server/src/seeds/**` | `SEED_*` constants AND inline calibration literals for seed data (property-data.ts, market-rates.ts, etc.) |
+| `artifacts/api-server/script/seed-*.ts` | Inline literals for SPECS arrays that drive `seed-model-defaults` upserts |
+| `artifacts/api-server/src/syncHelpers.ts` | `SEED_GLOBAL_DEFAULTS` and one-shot sync payload constructors |
+| `lib/shared/src/constants.ts` | `SEED_*` constants only, when cross-package import is needed |
+
+**Mandatory contract:**
+
+1. **`SEED_` prefix** in the constant name (when named) — distinguishes from `DEFAULT_*` legacy debt
+2. **Source citation** in a comment block immediately above the declaration (or above the inline literal where named constants don't apply). Cite the calibration source: date, target metric, runbook link, market-data reference, audit.
+3. **Never imported by runtime engine/calc/route code.** The "is this category 5?" test is: does any file outside the allowed locations import this? If yes → it's the masking anti-pattern, not a seed.
+
+**Key rules:**
+
+1. Adding a new starter property? Define its calibrated values inline in `seeds/property-data.ts` with provenance comments, or as `SEED_*` constants in `lib/shared/src/constants.ts` if cross-package.
+2. Adding a new management-company assumption? Add a SPEC entry to `seed-model-defaults.ts` with an inline literal value, AND a corresponding schema column NOT NULL DEFAULT in `lib/db/src/schema/config.ts`.
+3. Calibrating the dev scenario? Document the run in `docs/runbooks/seed-calibration-<date>.md` and cite that runbook in each `SEED_*` provenance comment. The runbook is the audit trail proving the scenario balances.
+4. The cross-file ratchet (`check-magic-numbers.ts`) excludes all category-5 surfaces — cross-file duplication of seed literals does NOT regress the gate.
+
+**Code rule:**
+```ts
+// CORRECT — Category 5: calibrated, prefixed, cited, in an allowed location
+// (artifacts/api-server/src/seeds/property-data.ts)
+
+/** Source: scenario calibration 2026-05-13 — IRR target 28-38% midpoint.
+ *  See docs/runbooks/seed-calibration-2026-05-13.md */
+export const SEED_HUDSON_ESTATE_EXIT_CAP_RATE = 0.085;
+
+// WRONG — would be Category 5 by intent but no provenance, no SEED_ prefix
+export const HUDSON_ESTATE_EXIT_CAP_RATE = 0.085;
+
+// WRONG — wrong location (route file is runtime, not bootstrap)
+// artifacts/api-server/src/routes/properties.ts
+const SEED_DEFAULT_EXIT_CAP_RATE = 0.085;  // masking anti-pattern
+```
+
+---
+
 ## Category 4 — TABLE-SOURCED VALUES
 
 **Definition:** Financial numbers that live in database tables rather than
@@ -361,6 +417,7 @@ const DEFAULT_COLOMBIA_INFLATION = 0.06;
 | Engine / calc function reading an entity value | `property.field` — no `?? DEFAULT_X` | DB value guaranteed by resolver |
 | A bootstrap value in a migration SQL file | Inline SQL literal with source comment | Migration SQL only |
 | A bootstrap value in a migration guard .ts file | `SEED_*` named constant with source comment | `artifacts/api-server/src/migrations/*.ts` only |
+| A starter-portfolio calibration value (dev/prod first-install seed) | `SEED_*` named constant or inline literal — must carry source comment | `artifacts/api-server/src/seeds/**`, `script/seed-*.ts`, `syncHelpers.ts`, or `lib/shared/src/constants.ts` for cross-package SEED_* |
 | `0` used as a structural floor/clamp | Inline `0` is fine | Inline |
 | A test assertion or fixture value | Inline literal is fine | `*.test.ts` / `*.spec.ts` — checker skips these files |
 

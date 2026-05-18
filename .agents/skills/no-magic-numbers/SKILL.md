@@ -163,15 +163,54 @@ return arr.slice(0, MAX_ITEMS).join(", ");    // 0 = start index
 
 Allowed values in this category are typically `0`, `1`, `-1`, and structural expressions like `arr.length`. **Any literal larger than 1 in this category should be reviewed once more — it is usually a display cap (category 1) in disguise.**
 
+### 5. Starter-portfolio seed (`SEED_*`)
+
+The starter portfolio — the pre-launch dev properties + management-company assumptions that ship with the production app on first install — needs calibrated numeric values BEFORE the DB can be populated. You can't seed a value that doesn't exist yet. To resolve this chicken-and-egg, `SEED_*` named constants (or inline literals with provenance comments) are permitted in dedicated bootstrap surfaces.
+
+```ts
+// ALLOWED — calibrated to balance the L+B luxury scenario IRR within 28-38% target.
+// Source: docs/runbooks/seed-calibration-2026-05-13.md
+//         scenario midpoint per CBRE/JLL US luxury hospitality cap rate consensus (2025: 7.5-9.5%)
+export const SEED_EXIT_CAP_RATE_LUXURY = 0.085;
+```
+
+**Allowed locations (where SEED_* constants and inline calibration literals may live):**
+
+- `artifacts/api-server/src/migrations/*.ts` — migration guards (idempotent re-application of DDL + seed rows)
+- `artifacts/api-server/src/seeds/**` — seed data files (entire subtree, e.g., `property-data.ts`, `market-rates.ts`, `assumption-guardrails.ts`)
+- `artifacts/api-server/script/seed-*.ts` — seed scripts (already outside scanner scope by SCAN_DIRS)
+- `artifacts/api-server/src/syncHelpers.ts` — `SEED_GLOBAL_DEFAULTS` and one-shot sync payload constructor
+- `lib/shared/src/constants.ts` — `SEED_*` constants only, when cross-package import is needed (e.g., `SEED_EXIT_CAP_RATE_LUXURY` consumed by both seed scripts and migration guards)
+
+**Mandatory contract — every `SEED_*` constant must carry:**
+
+1. **Source citation** in a comment block immediately above the declaration. Cite the calibration source (date, target metric, runbook link, market-data reference, or audit). Example formats:
+   - `/** Source: docs/runbooks/seed-calibration-2026-05-13.md — IRR target 28-38% */`
+   - `/** Source: CBRE 2025 US Luxury Cap Rate Survey, midpoint of 7.5-9.5% range */`
+   - `/** Source: scenario calibration 2026-05-13 — bracket-mix exit cap blended weighted avg */`
+2. **The `SEED_` prefix** in the name. Distinguishes calibration seeds from runtime business assumptions (which would be `DEFAULT_*` — but `DEFAULT_*` is the legacy debt this skill exists to retire).
+3. **No imports from runtime engine/calc/route code.** Runtime code reads from the DB (the seeds populated those rows; the runtime path doesn't re-read the TS constant). The DB row wins on conflict — `onConflictDoNothing()` in `seed-model-defaults.ts` means user/admin edits saved to prod DB are NOT overwritten by re-seeding.
+
+**Why this category is conceptually different from categories 1-4:**
+
+Categories 1-4 are about *runtime read paths* — where the value comes from when the engine calculates. Category 5 is about *bootstrap data construction* — values that exist only to populate DB rows at install time. After install, the DB owns these values; the TS constant is a historical artifact of the calibration. The scanner skips category-5 surfaces entirely (file-glob-based exclusion in `check-magic-numbers.ts`), so cross-file duplication of seed literals does not regress the ratchet.
+
+**What this category does NOT permit:**
+
+- ❌ A `SEED_*` constant in a route file or engine module — runtime code paths must use DB reads.
+- ❌ A `DEFAULT_*` constant renamed to `SEED_*` to bypass the gate — the rename test is "does any runtime code import this?" If yes, it's still the masking anti-pattern.
+- ❌ Duplicated `SEED_*` definitions in multiple seed files — each seed value lives in exactly one place. The `lib/shared/src/constants.ts` location exists for cross-package sharing.
+
 ## The decision tree
 
 For every numeric literal you are about to write, ask in order:
 
 1. **Is it `0`, `1`, or `-1` used as a structural clamp/index/identity?** → Allowed (category 4).
 2. **Is it the result of a physical or mathematical derivation I can write in one line?** → Allowed if I write that derivation as a comment (category 2/3).
-3. **Will any other file ever need this same number?** → If yes, it MUST be a named constant in a shared module (category 1).
-4. **Could this number ever change without changing the file it lives in?** → If yes, it MUST be a named constant (category 1). The name is the explanation.
-5. **None of the above?** → It is a magic number. Promote it.
+3. **Am I in a starter-portfolio seed file** (`artifacts/api-server/src/{seeds,migrations}/**`, `artifacts/api-server/src/syncHelpers.ts`, or a `SEED_*` declaration in `lib/shared/src/constants.ts`)? → Allowed (category 5) **provided** a `SEED_` prefix + source-citation comment is in place. Do NOT use this category for any other location.
+4. **Will any other file ever need this same number?** → If yes, it MUST be a named constant in a shared module (category 1).
+5. **Could this number ever change without changing the file it lives in?** → If yes, it MUST be a named constant (category 1). The name is the explanation.
+6. **None of the above?** → It is a magic number. Promote it.
 
 ## Cross-file duplication is the worst failure mode
 
