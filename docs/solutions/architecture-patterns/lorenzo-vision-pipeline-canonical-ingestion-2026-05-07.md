@@ -1,6 +1,7 @@
 ---
 title: "Lorenzo Vision Pipeline — Canonical Spec Ingestion Architecture"
 date: 2026-05-07
+last_updated: 2026-05-18
 category: architecture-patterns
 module: slide-factory
 problem_type: architecture_pattern
@@ -79,19 +80,22 @@ Carlo lives at `artifacts/api-server/src/slides/minions/carlo.ts`. It is a pure 
 
 **Critical: regex literal workaround for the magic-number ratchet**
 
-The `check-magic-numbers.ts` script strips string literals (`"..."`, `'...'`, backtick strings) before scanning for numeric literals, but it does **not** strip regex literals (`/.../`). Any numeric quantifier `{N}` inside a regex literal — such as `{6}` in `/^#[0-9A-Fa-f]{6}$/` — will be flagged as a magic number.
+The `check-magic-numbers.ts` script strips string literals (`"..."`, `'...'`, backtick strings) before scanning for numeric literals, but it does **not** strip regex literals (`/.../`). Two patterns inside a regex literal will be falsely flagged:
 
-Workaround: use `new RegExp("string")` so the numeric quantifier lives inside a double-quoted string, which the scanner strips:
+- **Numeric quantifiers** — `{6}` in `/^#[0-9A-Fa-f]{6}$/` is preceded by `{`, which is not in the scanner's lookbehind exclusion set.
+- **Character-class digit ranges** — `[a-z0-9]` causes the trailing `9` to be flagged; it is preceded by `-` (the range dash), which is also absent from the lookbehind exclusion set.
+
+Workaround: use `new RegExp("string")` so the numeric characters live inside a double-quoted string, which the scanner strips:
 
 ```typescript
-// CORRECT — the "6" is inside a string literal, stripped by the scanner
+// CORRECT — digits are inside a string literal, stripped by the scanner
 const HEX_COLOR_RE = new RegExp("^#[0-9A-Fa-f]{6}$");
 
-// VIOLATION — the 6 is in a regex literal, visible to the scanner
+// VIOLATION — 6 is in a regex literal, visible to the scanner
 // const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 ```
 
-This workaround applies to any regex with numeric quantifiers (`{N}`, `{N,M}`). Reference the named constant, not the inline regex, at usage sites.
+This workaround applies to any regex literal with numeric quantifiers (`{N}`, `{N,M}`) or digit character-class ranges (`[a-z0-9]`, `[0-9a-f]`, etc.). Reference the named constant, not the inline regex, at usage sites.
 
 **Font weight bounds** — also constants in `deck-render-constants.ts`:
 ```typescript
@@ -142,12 +146,13 @@ ALDO_LINE_GROUP_Y_THRESHOLD_PX   = 3
 ALDO_CANVAS_WIDTH/HEIGHT         = 960 / 540
 CARLO_FONT_WEIGHT_MIN/MAX        = 100 / 900
 CARLO_MAX_ERRORS_IN_MSG          = 5
-LORENZO_VISION_MODEL             = "claude-opus-4-7"
 LORENZO_03_MAX_TOKENS            = 4096
 LORENZO_05_MAX_TOKENS            = 2048
 LORENZO_SCHEMA_VERSION           = "1.0.0"
 TOTAL_SLIDES                     = 6
 ```
+
+The Lorenzo vision model ID is **not** a TypeScript constant. It is resolved at runtime via `resolveLorenzoVisionModelId()` in `artifacts/api-server/src/slides/factory-v2-llm-resolver.ts`, which reads the `factory-v2-lorenzo-vision` `llm_slot` row from `admin_resources`. This follows the integration-identifier rule: model slugs must never appear as TypeScript string literals.
 
 ### Caching decision
 
@@ -165,7 +170,7 @@ Running either gate without the other creates a gap: Carlo alone misses semantic
 ## When to Apply
 
 - Any time the Lorenzo ingestion pipeline is extended with new validation steps.
-- When a regex validator with a numeric quantifier is added to Carlo — use `new RegExp("string")` to avoid the magic-number ratchet.
+- When a regex validator with a numeric quantifier or digit character-class range is added to Carlo — use `new RegExp("string")` to avoid the magic-number ratchet.
 - When deciding whether to add Enzo caching — weigh call frequency against implementation cost.
 - When Opus vision results look wrong (wrong font, merged blocks, missing elements) — verify `groupWordsIntoLines` threshold and the per-slide prompt wording.
 
@@ -227,7 +232,8 @@ if (!toolBlock) return { approved: true, notes: null };
 
 ## Related
 
-- `docs/solutions/tooling/magic-numbers-ratchet-improvements.md` — covers test exclusion and content-hash dedup for the ratchet; does NOT cover the regex literal workaround documented here
+- `docs/solutions/tooling/magic-numbers-ratchet-improvements.md` — covers test exclusion, content-hash dedup, and the regex literal false-positive class for the ratchet
+- `docs/solutions/build-errors/check-magic-numbers-regex-character-class-false-positive-2026-05-18.md` — deep dive on the character-class digit variant (`[a-z0-9]` → `9` flagged); this doc covers the quantifier variant (`{6}` → `6` flagged)
 - `docs/solutions/architecture-patterns/slide-factory-runs-schema-design-2026-05-07.md` — DB schema and status flow for `slide_factory_runs`
 - `artifacts/api-server/src/slides/deck-render-constants.ts` — all numeric constants for the pipeline
 - `artifacts/api-server/src/tests/carlo.test.ts` — 12 unit tests for Carlo validation edge cases

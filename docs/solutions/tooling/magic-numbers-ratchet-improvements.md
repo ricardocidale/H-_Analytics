@@ -1,7 +1,7 @@
 ---
 title: "Magic-Numbers Ratchet: Test Exclusion and Content-Hash Deduplication"
 date: 2026-05-01
-last_updated: 2026-05-08
+last_updated: 2026-05-18
 category: tooling
 module: scripts/check-magic-numbers
 problem_type: tooling_decision
@@ -22,12 +22,17 @@ related_components: [scripts/src/check-magic-numbers.ts, scripts/src/_magic-numb
 
 ## Problem
 
-Four classes of false positives caused the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
+Five classes of false positives cause the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
 
 1. **Test fixture values** — `.test.ts` files contain literal values that are inputs under test (e.g., `score: 0.75`, `weight: 80`). These are assertions, not production magic numbers.
 2. **Mirror inflation** — `lib/shared/src/` is mirrored verbatim to `artifacts/api-server/src/shared/`. Every constant defined once was counted in 2 files, pushing many legitimate constants over the 4-file threshold.
 3. **Regulatory citation fragments** — strings like `"IRS Publication 946"` or `"NOM-030-SSA3-2013"` contain digit sequences the scanner extracts as bare numerals.
 4. **Industry-standard dimensional/encoding constants** *(2026-05-08)* — PDF page sizes (`595 × 842` for A4 per ISO 216, `612 × 792` for US Letter), HD/4K resolutions (`1920 × 1080`, `1280 × 720`, `3840 × 2160` per ITU-R BT.709/2020), canonical slide canvas (`960 × 540`), DPI conventions (`72` PDF / `96` CSS), unit conversions (`25.4` mm/inch, `2.54` cm/inch — NIST exact), and 8-bit color depth (`256`/`255`). These are spec-fixed by external standards bodies and don't carry the cross-jurisdictional drift risk the gate exists to catch.
+5. **Regex literal digits** *(2026-05-18)* — The scanner strips string literals before extracting tokens but does **not** strip regex literals (`/.../`). Two patterns inside a regex literal are falsely extracted as standalone numerals:
+   - **Numeric quantifiers**: `{6}` in `/^#[0-9A-Fa-f]{6}$/` — the digit is preceded by `{`, absent from the lookbehind exclusion set `[a-zA-Z_$0-9#]`.
+   - **Character-class digit ranges**: `[a-z0-9]` in `/^[a-z0-9]+.../` — the trailing digit `9` is preceded by `-` (range dash), also absent from the exclusion set.
+
+   Both patterns fire even when the file contains no business-logic numbers. The fix is to use `new RegExp("string")` (digits move inside a string literal, which is stripped) or extract the regex to an `ALL_CAPS` named constant on its own line (definition lines are skipped by the checker).
 
 ## Solution
 
@@ -159,9 +164,12 @@ The scanner is a cross-file duplicate detector, not an in-file linter. Its value
 - Numeric literals in regulatory citation strings belong in `ALLOWED_DUPLICATED_VALUES` with a one-line justification noting the authority.
 - Industry-spec dimensional/encoding values belong in `ALLOWED_DUPLICATED_VALUES` with a citation of the standards body (PDF spec, ISO 216, ITU-R BT.709/2020, W3C CSS, NIST). If a value is a brand/design choice (e.g., "we picked 1920×1080 because L+B uses HD"), the *adoption* is a Cat-2 DEFAULT decision, but the literal `1920` itself is still spec-fixed and goes on the allowlist.
 - Reviewing a `const ALL_CAPS = <number>` definition? Verify the file is one of the three canonical constants files. Anywhere else, the named form is the masking anti-pattern — promote to the canonical file or route through `getFactoryNumber(key, country)` for jurisdiction-varying values.
+- When adding Zod `.regex()` validators or any inline regex literal with digit quantifiers or digit character-class ranges, use `new RegExp("string")` or extract to an `ALL_CAPS` named constant. An inline regex literal is not stripped by the scanner. See the "Regex literal digits" false-positive class above.
 
 ## Related Issues
 - `.agents/skills/no-magic-numbers/SKILL.md` — the discipline doc, kept in sync with this learning's scope clarification (in-scope vs. out-of-scope literal classes, masking anti-pattern, three canonical constants files)
 - ~~`docs/solutions/tooling/mirror-shared-package-sync.md`~~ — that doc described the manual mirror sync problem, which has since been resolved by collapsing to a direct tsconfig alias. The doc was deleted as part of the 2026-05-09 compound refresh.
 - `CLAUDE.md` §2 — the four-category number taxonomy that the masking-literal rule enforces
 - `docs/solutions/conventions/no-hardcoded-integration-identifiers-convention-2026-05-09.md` — the string-identifier extension of this rule: LLM model names, API slugs, MCP slugs, and endpoint URLs must come from `admin_resources` rows, not TypeScript constants. The `check-magic-numbers.ts` script cannot detect these; code review is the enforcement mechanism.
+- `docs/solutions/build-errors/check-magic-numbers-regex-character-class-false-positive-2026-05-18.md` — deep dive on the character-class digit variant, with root-cause analysis of the lookbehind exclusion gap and both fix options
+- `docs/solutions/architecture-patterns/lorenzo-vision-pipeline-canonical-ingestion-2026-05-07.md` — `new RegExp("string")` workaround applied to Carlo's hex-color validator (quantifier `{6}` variant)
