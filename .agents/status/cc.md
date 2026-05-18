@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T18:30:00Z
+Updated: 2026-05-18T19:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,7 +13,17 @@ Status: idle
 
 ## Last Commit on Branch
 
-`docs(t1-4): plan docs for 2 deferred constants + masterplan reality update`
+`feat(no-magic-numbers): add Category 5 — starter-portfolio seeds carve-out`
+
+## What CC Did This Session (2026-05-18 session 17 — late additions)
+
+**Shipped Category 5 — Starter-Portfolio Seeds (commit `ab1924923`).**
+
+User-requested rule modification to resolve the bootstrap chicken-and-egg: calibrated starter-portfolio values can't come from the DB before the DB exists. Category 5 codifies `SEED_*` constants and inline calibration literals in dedicated bootstrap surfaces — mandatory `SEED_` prefix + source-citation comment, never imported by runtime code, prod DB wins on conflict via `onConflictDoNothing()`.
+
+- Checker: added `"seeds"` to `SERVER_EXCLUDE_DIRS`, new `SKIP_REL_PATHS` set with `syncHelpers.ts`. Baseline 144 → 119 values (25 legitimate seed duplicates dropped).
+- Docs: CLAUDE.md §2 list expanded, replit.md harmonized, both skill files (no-magic-numbers + hplus-variable-taxonomy) gained Category 5 sections with examples and master-decision-table entry, magic-numbers-ratchet-improvements.md got solution 5 (seed file carve-out).
+- Gates: typecheck clean, check-magic-numbers PASS, baseline locked.
 
 ## What CC Did This Session (2026-05-18 session 17 — six T1-4 retirements + 2 deferral plans)
 
