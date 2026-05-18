@@ -143,7 +143,7 @@ export function generateCompanyProForma(
   const travelCostPerClient = global.travelCostPerClient ?? getFactoryNumber('benchmarkStaffDefaultTravelPerClient');
   const itLicensePerClient = global.itLicensePerClient ?? getFactoryNumber('benchmarkStaffDefaultItLicensePerClient');
   const marketingRate = global.marketingRate;
-  const miscOpsRate = global.miscOpsRate ?? 0.03;
+  const miscOpsRate = global.miscOpsRate;
   const companyTaxRate = global.companyTaxRate
     ?? getFactoryNumber('taxRate', global.companyCountry ?? null, global.companyStateProvince ?? null);
   const capitalRaise1Amount = global.capitalRaise1Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;

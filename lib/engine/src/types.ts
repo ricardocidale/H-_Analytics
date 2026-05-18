@@ -248,7 +248,7 @@ export interface GlobalInput {
   businessInsuranceStart?: number;
   travelCostPerClient?: number;
   itLicensePerClient?: number;
-  miscOpsRate?: number;
+  miscOpsRate: number;
   // Expense rates
   eventExpenseRate?: number;
   otherExpenseRate?: number;

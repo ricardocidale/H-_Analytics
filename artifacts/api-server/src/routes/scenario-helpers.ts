@@ -76,6 +76,7 @@ export function extractScenarioComputeInputs(scenario: { globalAssumptions: unkn
     modelStartDate: (scenarioGA?.modelStartDate as string) ?? new Date().toISOString().slice(0, 10),
     inflationRate: Number(scenarioGA?.inflationRate ?? getFactoryNumber('inflationRate')),
     marketingRate: Number(scenarioGA?.marketingRate ?? 0.05),
+    miscOpsRate: Number(scenarioGA?.miscOpsRate ?? 0.03),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
       amortizationYears: Number(dbDebt?.amortizationYears ?? DEFAULT_TERM_YEARS),
