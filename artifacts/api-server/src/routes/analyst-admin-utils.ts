@@ -11,6 +11,7 @@ export function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: nu
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
     inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate', 'US')),
     marketingRate: Number(ga.marketingRate ?? 0.05),
+    miscOpsRate: Number(ga.miscOpsRate ?? 0.03),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
       amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),

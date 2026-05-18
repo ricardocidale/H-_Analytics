@@ -54,8 +54,8 @@ spawn({
 | `title` | `string` | ✅ | — |
 | `captions` | `string[]` | ✅ | — |
 | `caption` | `string` | — | `undefined` (use captions[] rotation) |
-| `animation` | `React.ReactNode` | — | `<AnalystSwissCube size={40} />` |
-| `progress` | `number` (0–100) | — | `undefined` (indeterminate) |
+| `animation` | `React.ReactNode` | — | `<AnalystSwissCube size={80} />` |
+| `progress` | `number` (0–100) | — | `undefined` (indeterminate pulsing bar) |
 | `onCancel` | `() => void` | — | `undefined` |
 
 ### `update(patch): void`
@@ -86,20 +86,42 @@ dismiss();
 
 ## Animation selection guide
 
+The card renders the animation inside a **full-width dark stage** (`background: #111009`).
+Choose animations whose palette reads well on a near-black field — most do by design.
+The recommended minimum size is **80 px**; the stage comfortably holds up to 180 px.
+
 Default for all jobs: `AnalystSwissCube` (monochrome minimalist — no override needed).
 
 To use a different animation from the portfolio, pass a `React.ReactNode` as `animation`:
 
 ```ts
-import { AnalystThinkingCube } from "@/components/agent-animations/AnalystThinkingCube";
-import { AnalystNexusCore }    from "@/components/agent-animations/AnalystNexusCore";
+import { AnalystThinkingCube }   from "@/components/agent-animations/AnalystThinkingCube";
+import { AnalystNexusCore }      from "@/components/agent-animations/AnalystNexusCore";
+import { RebeccaSwissOrbit }     from "@/components/agent-animations/RebeccaSwissOrbit";
+import { RebeccaCaveSequence }   from "@/components/agent-animations/RebeccaCaveSequence";
 
-// Heavier quant job (keep as override if AnalystSwissCube too minimal)
-spawn({ …, animation: <AnalystThinkingCube size={40} /> });
+// Heavier quant job
+spawn({ …, animation: <AnalystThinkingCube size={80} /> });
 
-// Data synthesis (many sources converging)
-spawn({ …, animation: <AnalystNexusCore size={40} /> });
+// Data synthesis — many sources converging
+spawn({ …, animation: <AnalystNexusCore size={80} /> });
+
+// Rebecca-persona job (orbital energy fields read well on dark stage)
+spawn({ …, animation: <RebeccaSwissOrbit size={168} /> });
+
+// Rebecca creative / exploratory job ("Lascaux Sequence" — cave art cycling)
+spawn({ …, animation: <RebeccaCaveSequence size={120} /> });
 ```
+
+### Quick-reference table
+
+| Job type | Recommended animation | Size |
+|---|---|---|
+| Analyst research (default) | `AnalystSwissCube` | 80 px |
+| Deep quant / multi-model | `AnalystThinkingCube` | 80 px |
+| Data synthesis / convergence | `AnalystNexusCore` | 80 px |
+| Rebecca research job | `RebeccaSwissOrbit` | 120–168 px |
+| Rebecca creative / exploratory | `RebeccaCaveSequence` | 100–120 px |
 
 The `AnalystSwissCube` is the app-wide default — use it unless there is a strong
 persona-specific reason to override. Consistency across jobs reduces cognitive load.
@@ -146,6 +168,53 @@ onPhase((phase) => update({ caption: phase }));
 
 When `caption` is set via `update`, it overrides the rotating array until the
 next `update` call or `dismiss`.
+
+---
+
+## Progress bar patterns
+
+### Indeterminate (default)
+
+Omit `progress` entirely. The bar pulses to signal "working, unknown duration."
+
+```ts
+spawn({ id, title, captions });  // no progress field
+```
+
+### Determinate — asymptotic curve (recommended for long jobs)
+
+For jobs with no real completion signal, drive the bar with an asymptotic curve that
+surges fast then decelerates, hovering near 90 % until the job resolves. This feels
+responsive without falsely promising 100 %.
+
+```ts
+// Formula: value = 90 × (1 − e^(−elapsed / τ))
+// τ = 22 s  →  reaches ~33 % at 8 s, ~63 % at 22 s, ~90 % at 60 s
+const asymptotic = (elapsed: number, tau = 22) =>
+  90 * (1 - Math.exp(-elapsed / tau));
+
+// In a tick effect:
+useEffect(() => {
+  if (!isGenerating) return;
+  const start = Date.now();
+  const id = setInterval(() => {
+    const elapsed = (Date.now() - start) / 1000;
+    update({ progress: asymptotic(elapsed) });
+  }, 500);
+  return () => clearInterval(id);
+}, [isGenerating]);
+```
+
+When the job completes, call `dismiss()` — do **not** animate to 100 % first;
+it creates a jarring pause. The card exits on dismiss and the bar disappears with it.
+
+### Determinate — real progress (SSE or WebSocket)
+
+If the server emits real progress events, pass them directly:
+
+```ts
+onProgress((pct) => update({ progress: pct }));
+```
 
 ---
 
