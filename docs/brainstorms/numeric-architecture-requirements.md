@@ -217,3 +217,71 @@ Each `icp_brackets` row that currently holds programmer-guessed values (exit cap
 | Sessions 17–20 committed retirements | KEEP — they went to appropriate surfaces; their seed rows are now debt markers |
 | `getFactoryNumber('adrGrowthRate')` | BLOCKED — key not in MODEL_CONSTANTS_REGISTRY, do not add it there; growth rates are a model_defaults concern, not a country-rate registry concern |
 | Schema `.default()` for financial values | Use as DB safety net only; never rely on it as application resolution |
+
+---
+
+## Phase 2 Design Decisions (locked by user 2026-05-18)
+
+### D1 — Required-fields gate fires at entity CREATION
+
+A property cannot be saved until the minimum required field set is complete. Same for management companies. No half-formed entities exist in the DB. Analyst research fires automatically on creation (it has guaranteed input).
+
+Implications:
+- `POST /api/properties` validates the minimum set server-side and rejects with field-level errors when incomplete
+- The UI new-property flow becomes a wizard or a single-page form with explicit completion validation — no "draft" state
+- The "Goal IRR" + "Number of rooms" answers given by the user are already in scope; the gate adds the rest
+
+### D2 — Tiered required-fields: minimum to fire + "enrich for better" prompt
+
+Two-step model:
+1. **Minimum gate (block at creation):** 3–5 fields that any research run absolutely needs. Candidates: country, address/area, business model, quality tier, room count (already required by schema).
+2. **Enrichment prompt (post-research):** After Analyst runs and produces ranges, surface a UI panel: "Add these N fields to tighten the ranges." Candidates: sqm, brand/comp set, open date, target ADR band, amenities tier, ownership structure.
+
+The exact field-set split between "minimum" and "enrichment" is still open — needs explicit design pass (see Open Questions below).
+
+Why this matters: lower entry friction (fast first run) + upgrade path (better quality on demand). Matches the Analyst-proposes / admin-disposes flow — first run produces "seed" proposals; enrichment fields trigger a follow-up run.
+
+### D3 — Continuous Analyst proposals (not one-shot)
+
+The Analyst re-researches periodically and writes new `proposedValue` rows; admin/user reviews and accepts. The `model_defaults` schema already supports this (`proposedValue`, `proposedAt`, `proposedAuthority`, `lastSetSource: 'seed' | 'manual' | 'analyst_accepted'`).
+
+Cadence options not yet decided:
+- Quarterly auto-run
+- On-demand "Re-research" button
+- Triggered by market-rate change events
+
+This decision tracks market drift over time — values don't go stale silently. Pending proposals queue is `SELECT * FROM model_defaults WHERE proposed_value IS NOT NULL`.
+
+### D4 — ICP for Management Company (clarified)
+
+Each MC stores a weighted `bracket_mix` in `global_assumptions.bracket_mix` (e.g., `[{slug: 'luxury-hotel', weight: 0.6}, {slug: 'upscale-str', weight: 0.4}]`). The mix is how the MC declares "the kinds of properties I manage." It drives:
+- Service consumption profile (hotel = all services; STR = marketing/branding only)
+- Target ADR band
+- Layer-2 financial overlay (exit cap rate, refi LTV) applied at property creation by weight-blending the matching bracket rows
+
+For Analyst research targeting the MC itself (company-level assumptions like marketing rate, partner comp, office lease), the bracket_mix is the input signal: "research benchmarks for an MC whose property portfolio is 60% luxury-hotel + 40% upscale-STR."
+
+---
+
+### D5 — Conversational onboarding via Rebecca (UX direction)
+
+The user has proposed Rebecca (existing KB-search chatbot) as the onboarding mechanism: she opens a conversation with the user, asks for the required fields naturally, and writes the answers into the same input fields the form would have used.
+
+**Scope notes:**
+- This is a UX-mechanism decision. It does NOT change D1–D4 (required-fields set, creation gate, tiered enrichment, continuous Analyst proposals are all UX-agnostic).
+- §7 agent-native parity requires the form path to exist regardless. Rebecca writes into the same server-side validation layer (`POST /api/properties`) that the form uses; both paths converge on the same required-field gate.
+- Rebecca is currently KB-search only. Conversational structured-field extraction is a real scope expansion — new Rebecca tools for: reading the required-fields schema, writing values, validating against server rules, handling user clarifications. **This is not free and deserves its own brainstorm/plan.** Captured here as a direction; design details deferred.
+
+**Why this is attractive:** Rebecca can adapt order (asking for address first if the user mentions a city), follow up naturally ("do you have the exact street address, or just the neighborhood?"), and explain WHY each field matters for research quality — all things a static form does poorly.
+
+**Open: default vs parallel** — see Open Question 6 below.
+
+---
+
+## Open Questions for Next Pass
+
+1. **What exact field set is the MINIMUM gate at property creation?** (5 candidates above; need to pick 3–4)
+2. **What exact field set is the ENRICHMENT prompt?** (the rest)
+3. **What is the equivalent minimum gate for a NEW management company?** (Goal IRR + bracket_mix already in scope; what else?)
+4. **What triggers continuous re-research?** (quarterly cron / market-event / manual button / all three)
+5. **Address/area — is structured (city/state/country) sufficient, or does the Analyst need a precise address for comparable-property lookup?**
