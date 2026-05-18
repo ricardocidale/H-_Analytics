@@ -222,20 +222,32 @@ function ProcessingCard({
             fontFamily: "var(--font-sans)",
           }}
         >
-          {/* CardHeader — p-6, flex row with animation + text + close */}
+          {/* Animation stage — full-width dark panel so orbital rings + sparks read clearly */}
           <div
             style={{
-              padding: 24,
+              background: "#111009",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "28px 0",
+              position: "relative",
+            }}
+          >
+            <RebeccaOrbit size={168} />
+          </div>
+
+          {/* CardHeader — title + description + close, no animation */}
+          <div
+            style={{
+              padding: "16px 20px 14px",
               display: "flex",
               flexDirection: "row",
               alignItems: "flex-start",
-              gap: 16,
+              gap: 12,
             }}
           >
-            <RebeccaOrbit size={80} />
-
             {/* CardTitle + CardDescription */}
-            <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               {/* CardTitle — heading-subsection: IBM Plex Sans 16px/600 */}
               <div
                 style={{
@@ -255,7 +267,7 @@ function ProcessingCard({
                   fontFamily: "var(--font-sans)",
                   fontSize: 14,
                   color: "hsl(var(--muted-foreground))",
-                  marginTop: 4,
+                  marginTop: 2,
                   lineHeight: 1.4,
                 }}
               >
@@ -263,7 +275,7 @@ function ProcessingCard({
               </div>
             </div>
 
-            {/* Close button — top-right, ghost */}
+            {/* Close button */}
             <button
               onClick={onDismiss}
               style={{
@@ -279,7 +291,7 @@ function ProcessingCard({
                 color: "hsl(var(--muted-foreground))",
                 transition: "background 0.15s",
                 flexShrink: 0,
-                marginTop: -2,
+                marginTop: 2,
               }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.background = "hsl(var(--accent))")
@@ -294,7 +306,7 @@ function ProcessingCard({
           </div>
 
           {/* Separator */}
-          <div style={{ height: 1, background: "hsl(var(--border))", marginBottom: 0 }} />
+          <div style={{ height: 1, background: "hsl(var(--border))" }} />
 
           {/* CardContent — px-6 py-4 */}
           <div style={{ padding: "16px 24px" }}>
