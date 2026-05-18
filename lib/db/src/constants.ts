@@ -324,9 +324,6 @@ export const WORKING_CAPITAL_DAYS_PER_MONTH = 30;
 export const DEFAULT_AR_DAYS = 30;
 export const DEFAULT_AP_DAYS = 45;
 
-// ── MIRR Defaults ───────────────────────────────────────────────────────
-export const DEFAULT_REINVESTMENT_RATE = 0.05;
-
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
 

@@ -26,7 +26,6 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_AR_DAYS,
   DEFAULT_AP_DAYS,
-  DEFAULT_REINVESTMENT_RATE,
   DEFAULT_COST_SEG_5YR_PCT,
   DEFAULT_COST_SEG_7YR_PCT,
   DEFAULT_COST_SEG_15YR_PCT,
@@ -214,7 +213,7 @@ export const properties = pgTable("properties", {
   apDays: integer("ap_days").notNull().default(DEFAULT_AP_DAYS),
 
   // MIRR
-  reinvestmentRate: real("reinvestment_rate").notNull().default(DEFAULT_REINVESTMENT_RATE),
+  reinvestmentRate: real("reinvestment_rate").notNull().default(0.05), // MIRR reinvestment-rate bootstrap; per-row overridable
 
   // Day-count convention
   dayCountConvention: text("day_count_convention").notNull().default('30/360'),

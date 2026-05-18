@@ -21,7 +21,6 @@ import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_AP_DAYS,
   DEFAULT_AR_DAYS,
-  DEFAULT_REINVESTMENT_RATE,
   DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE,
   DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS,
@@ -149,7 +148,7 @@ export const SEED_PROPERTY_DEFAULTS = {
   arDays: DEFAULT_AR_DAYS,
   dayCountConvention: '30/360',
   escalationMethod: 'annual',
-  reinvestmentRate: DEFAULT_REINVESTMENT_RATE,
+  reinvestmentRate: 0.05, // MIRR reinvestment-rate seed; matches schema bootstrap
   performanceTestEnabled: false,
   financialsComputedAt: null,
   feeSubordination: null,
