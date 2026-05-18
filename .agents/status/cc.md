@@ -4,18 +4,25 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T17:00:00Z
+Updated: 2026-05-18T17:30:00Z
 Status: idle
 
 ## Active Branch
 
-`main`, ahead of `origin/main` by 12 commits.
+`main`, in sync with `origin/main` after this commit's push.
 
 ## Last Commit on Branch
 
-`refactor(T1-4): migrate DEFAULT_OCCUPANCY_GROWTH_STEP to inline literals`
+`refactor(T1-4): migrate DEFAULT_AR_DAYS + DEFAULT_AP_DAYS to inline literals`
 
-## What CC Did This Session (2026-05-18 session 17 — three T1-4 increments)
+## What CC Did This Session (2026-05-18 session 17 — four T1-4 increments)
+
+**Shipped T1-4 paired increment — DEFAULT_AR_DAYS + DEFAULT_AP_DAYS retired (commit `ccb3efdcb`).**
+
+- Removed both TS constants from both canonical constants files. Schema column defaults → inline literals `30`/`45` (standard hospitality net-30/net-45 working capital terms). Seed inline. Engine `?? DEFAULT_*` fallbacks → inline `?? 30`/`?? 45` with comment.
+- Type-tightening of `PropertyInput.arDays/apDays` deferred to a future phase (would cascade to ~16 test fixtures in `engine-edge-cases.test.ts` — out of scope for this incremental retirement).
+- Ratchet: 30 (60→61 files) and 45 (13→15 files) crossed thresholds. Re-snapshotted baseline via `--init` per the magic-numbers-ratchet-improvements doc ("After every large constant-extraction sprint, re-init"). The new file entries are intentional §2-allowed bootstrap surfaces (schema defaults, seeds, engine fallbacks).
+- Gates: typecheck clean, check-magic-numbers PASS, check:schema-drift PASS, engine tests (41/41) PASS.
 
 **Shipped T1-4 increment — DEFAULT_OCCUPANCY_GROWTH_STEP retired (commit `5d02e7e18`).**
 
