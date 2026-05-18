@@ -80,6 +80,8 @@ function makeHotel(name: string, roomCount: number, startAdr: number): PropertyI
     ...BASE_COSTS,
     name,
     operationsStartDate: '2024-01-01',
+    arDays: 30,
+    apDays: 45,
     acquisitionDate: '2024-01-01',
     roomCount,
     startAdr,

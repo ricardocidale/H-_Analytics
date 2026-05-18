@@ -9,6 +9,8 @@ import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fireResearchConfetti } from "@/lib/confetti";
 import { useResearchQueue, getBackoffDelay } from "@/lib/research-queue";
+import { useProcessingCardStore } from "@/lib/processing-card";
+import { ANALYST_CAPTIONS } from "@/hooks/useProcessingCard";
 import type { OrchestratorMeta } from "../property-research/useResearchStream";
 
 export interface ResearchStreamError {
@@ -96,9 +98,11 @@ export function useCompanyResearchStream(onError?: (err: ResearchStreamError) =>
                   setOrchestratorMeta(parsed._orchestrator);
                 } else {
                   setPhases(prev => [...prev, data.data]);
+                  useProcessingCardStore.getState().update({ caption: data.data });
                 }
               } catch {
                 setPhases(prev => [...prev, data.data]);
+                useProcessingCardStore.getState().update({ caption: data.data });
               }
             }
             if (data.type === "done" || data.done) {
@@ -118,6 +122,17 @@ export function useCompanyResearchStream(onError?: (err: ResearchStreamError) =>
     setOrchestratorMeta(null);
 
     const queueId = `company-${Date.now()}`;
+    useProcessingCardStore.getState().spawn({
+      id: queueId,
+      title: "Analyst",
+      captions: ANALYST_CAPTIONS,
+      onCancel: () => {
+        abortRef.current?.abort();
+        abortRef.current = null;
+        setIsGenerating(false);
+      },
+    });
+
     getQueue().enqueue({
       id: queueId,
       label: "Company Research",
@@ -154,6 +169,7 @@ export function useCompanyResearchStream(onError?: (err: ResearchStreamError) =>
       }
     } finally {
       setIsGenerating(false);
+      useProcessingCardStore.getState().dismiss();
       setTimeout(() => getQueue().clearCompleted(), 15000);
     }
   }, [queryClient, executeStream, onError]);

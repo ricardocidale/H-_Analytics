@@ -64,6 +64,8 @@ const BASE_COSTS = {
 const MINIMAL_HOTEL: PropertyInput = {
   ...BASE_COSTS,
   operationsStartDate: '2024-01-01',
+  arDays: 30,
+  apDays: 45,
   roomCount: 10,
   startAdr: 150,
   adrGrowthRate: 0,
@@ -245,6 +247,8 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
     const zeroRevProp: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 0,       // zero ADR → zero revenue → NOI ≈ 0 (only fixed costs)
       adrGrowthRate: 0,
@@ -293,6 +297,8 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
     const makeRefiProp = (adr: number): PropertyInput => ({
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: adr,
       adrGrowthRate: 0,
@@ -356,6 +362,8 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
     const fullEquityProp: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 20,
       startAdr: 200,
       adrGrowthRate: 0,
@@ -411,6 +419,8 @@ describe('Phase 5 — refiMaxLtvToOriginal cap (T013)', () => {
   const cappedProp: PropertyInput = {
     ...BASE_COSTS,
     operationsStartDate: '2024-01-01',
+    arDays: 30,
+    apDays: 45,
     acquisitionDate: '2024-01-01',
     roomCount: 20,
     startAdr: 385,
@@ -496,6 +506,8 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       ...BASE_COSTS,
       acquisitionDate: '2024-01-01',
       operationsStartDate: '2024-07-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 150,
       adrGrowthRate: 0,
@@ -536,6 +548,8 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       ...BASE_COSTS,
       acquisitionDate: '2024-01-01',
       operationsStartDate: '2024-07-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 8,
       startAdr: 200,
       adrGrowthRate: 0,
@@ -569,6 +583,8 @@ describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () =>
       ...BASE_COSTS,
       acquisitionDate: '2024-07-01',
       operationsStartDate: '2024-07-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 150,
       adrGrowthRate: 0,
@@ -778,6 +794,8 @@ describe('Finding #4 — Incentive fee gated on post-debt-service levered cash (
     const prop: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: '2024-01-01',
       roomCount: 10,
       startAdr: 100,
@@ -849,6 +867,8 @@ describe('T013 — acquisitionInterestRate drives netCashFlowToInvestors', () =>
   const BASE_FINANCED: PropertyInput = {
     ...BASE_COSTS,
     operationsStartDate: '2024-01-01',
+    arDays: 30,
+    apDays: 45,
     acquisitionDate: '2024-01-01',
     roomCount: 15,
     startAdr: 200,

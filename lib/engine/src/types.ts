@@ -106,8 +106,8 @@ export interface PropertyInput {
   // Service fee categories
   feeCategories?: { name: string; rate: number; isActive: boolean; serviceMarkup?: number | null }[];
   // Working capital
-  arDays?: number | null;
-  apDays?: number | null;
+  arDays: number;
+  apDays: number;
   // MIRR
   reinvestmentRate?: number | null;
   // Day-count convention
