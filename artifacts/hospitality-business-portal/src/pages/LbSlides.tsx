@@ -453,8 +453,8 @@ export default function LbSlides() {
                     <Card>
                       <CardHeader>
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">PDF Render</CardTitle>
-                          <Badge variant={badge.variant}>{badge.label}</Badge>
+                          <CardTitle className="text-base min-w-0">PDF Render</CardTitle>
+                          <Badge variant={badge.variant} className="shrink-0">{badge.label}</Badge>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
