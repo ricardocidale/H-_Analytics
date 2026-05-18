@@ -4,20 +4,28 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T16:00:00Z
+Updated: 2026-05-18T16:30:00Z
 Status: idle
 
 ## Active Branch
 
-`main`, ahead of `origin/main` by 9 commits.
+`main`, ahead of `origin/main` by 11 commits.
 
 ## Last Commit on Branch
 
-`refactor(T1-4): migrate DEFAULT_MAX_STALENESS_HOURS to schema default`
+`refactor(T1-4): migrate DEFAULT_REINVESTMENT_RATE to schema default`
 
 ## What CC Did This Session (2026-05-18 session 17)
 
-**Shipped T1-4 increment — DEFAULT_MAX_STALENESS_HOURS retired.**
+**Shipped T1-4 increment — DEFAULT_REINVESTMENT_RATE retired (commit `5f0c73402`).**
+
+- Removed the TS constant `DEFAULT_REINVESTMENT_RATE = 0.05` from both canonical constants files.
+- Schema column `properties.reinvestmentRate` now uses raw literal `0.05` (SQL bootstrap pattern). Seed file `property-data.ts` uses `0.05` inline with a source-citation comment.
+- Dead imports removed from `lib/db/src/schema/config.ts` and `lib/db/src/schema/properties.ts` import block.
+- PropertyInput.reinvestmentRate is a passthrough field — engine doesn't read it; calc MIRR uses a separate `reinvestment_rate` input from the dispatch layer. No engine fallback to remove.
+- Gates: typecheck clean, check-magic-numbers PASS, check:schema-drift PASS, engine tests (41/41) PASS.
+
+**Shipped T1-4 increment — DEFAULT_MAX_STALENESS_HOURS retired (commit `b981c4e66`).**
 
 - Removed the TS constant `DEFAULT_MAX_STALENESS_HOURS = 24` from both canonical constants files (`lib/shared/src/constants.ts`, `lib/db/src/constants.ts`).
 - Schema column `marketResearch.maxStalenessHours` now uses raw literal `24` as the SQL bootstrap default (allowed per CLAUDE.md §2 — the `notNull().default(24)` is both the bootstrap and the not-null enforcement).
