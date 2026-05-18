@@ -24,8 +24,6 @@ import {
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_AR_DAYS,
-  DEFAULT_AP_DAYS,
   DEFAULT_COST_SEG_5YR_PCT,
   DEFAULT_COST_SEG_7YR_PCT,
   DEFAULT_COST_SEG_15YR_PCT,
@@ -209,8 +207,8 @@ export const properties = pgTable("properties", {
   performanceTestEnabled: boolean("performance_test_enabled").notNull().default(false),
 
   // Working capital
-  arDays: integer("ar_days").notNull().default(DEFAULT_AR_DAYS),
-  apDays: integer("ap_days").notNull().default(DEFAULT_AP_DAYS),
+  arDays: integer("ar_days").notNull().default(30),  // AR days bootstrap (standard hospitality net-30 receivables)
+  apDays: integer("ap_days").notNull().default(45),  // AP days bootstrap (standard hospitality net-45 payables)
 
   // MIRR
   reinvestmentRate: real("reinvestment_rate").notNull().default(0.05), // MIRR reinvestment-rate bootstrap; per-row overridable

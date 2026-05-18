@@ -19,8 +19,6 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_AP_DAYS,
-  DEFAULT_AR_DAYS,
   DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE,
   DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS,
@@ -143,8 +141,8 @@ export const SEED_PROPERTY_DEFAULTS = {
   // triage plan these were derived from.
 
   // Financial assumptions (exercise the schema default explicitly)
-  apDays: DEFAULT_AP_DAYS,
-  arDays: DEFAULT_AR_DAYS,
+  apDays: 45,  // standard hospitality net-45 payables; matches schema bootstrap
+  arDays: 30,  // standard hospitality net-30 receivables; matches schema bootstrap
   dayCountConvention: '30/360',
   escalationMethod: 'annual',
   reinvestmentRate: 0.05, // MIRR reinvestment-rate seed; matches schema bootstrap

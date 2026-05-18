@@ -17,8 +17,6 @@ import {
 } from '@norfolk/shared/constants';
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 import {
-  DEFAULT_AR_DAYS,
-  DEFAULT_AP_DAYS,
   DEFAULT_ESCALATION_METHOD,
   DEFAULT_COST_SEG_5YR_PCT,
   DEFAULT_COST_SEG_7YR_PCT,
@@ -217,8 +215,9 @@ export function resolvePropertyAssumptions(
     monthlyPayment = assertFinite(pmt(originalLoanAmount, monthlyRate, totalPayments), 'monthlyPayment');
   }
 
-  const arDays = property.arDays ?? DEFAULT_AR_DAYS;
-  const apDays = property.apDays ?? DEFAULT_AP_DAYS;
+  // AR/AP days fallbacks match the schema NOT NULL DEFAULTs (30/45); standard hospitality net terms.
+  const arDays = property.arDays ?? 30;
+  const apDays = property.apDays ?? 45;
   const escalationMethod = property.escalationMethod ?? DEFAULT_ESCALATION_METHOD;
 
   const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo' | 'vrbo_owner_managed') ?? 'hotel';

@@ -295,8 +295,6 @@ export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
 
 // ── Working Capital Defaults ────────────────────────────────────────────
 export const WORKING_CAPITAL_DAYS_PER_MONTH = 30;
-export const DEFAULT_AR_DAYS = 30;
-export const DEFAULT_AP_DAYS = 45;
 
 // ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
