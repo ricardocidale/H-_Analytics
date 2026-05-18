@@ -31,7 +31,7 @@ const documentAIService = new DocumentAIService();
 
 /** Confidence score for key-value pairs parsed from Mistral OCR markdown tables.
  *  Algorithm calibration heuristic — not financial, not admin-configurable. */
-const MISTRAL_OCR_TABLE_CONFIDENCE = 0.8;
+export const MISTRAL_OCR_TABLE_CONFIDENCE = 0.8;
 
 /** Allowlist of property columns that document extraction can write to.
  *  Prevents prototype pollution and arbitrary column writes from AI output. */
@@ -83,7 +83,7 @@ function normalizePercent(value: number, field: string): number {
   return PERCENT_FIELDS.has(field) && value > 1 ? value / 100 : value;
 }
 
-function parseMistralOcrPages(
+export function parseMistralOcrPages(
   ocrPages: Array<{ index: number; markdown: string }>,
 ): DocumentAIResult {
   const pages: DocumentAIResult["pages"] = [];
