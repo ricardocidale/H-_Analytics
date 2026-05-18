@@ -58,7 +58,6 @@ import {
   DEFAULT_LAND_VALUE_PERCENT,
   SEED_EXIT_CAP_RATE_LUXURY,
   DEFAULT_ROOM_COUNT,
-  DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
 } from "@shared/constants";
 import {
@@ -170,7 +169,7 @@ export const SPECS: SeedSpec[] = [
 
   // ── Property Defaults (MC-managed template for new properties) ───────
   { key: "roomCount",                   card: "property_defaults", value: DEFAULT_ROOM_COUNT,                unit: "rooms",  label: "Default room count for new property" },
-  { key: "startAdr",                    card: "property_defaults", value: DEFAULT_START_ADR,                 unit: "$",      label: "Starting ADR for new property" },
+  { key: "startAdr",                    card: "property_defaults", value: 250,                               unit: "$",      label: "Starting ADR for new property" },
   { key: "maxOccupancy",                card: "property_defaults", value: 0.85,                              unit: "%",      label: "Stabilized maximum occupancy" },
   { key: "startOccupancy",              card: "property_defaults", value: 0.55,                              unit: "%",      label: "Starting occupancy (month 1)" },
   { key: "adrGrowthRate",               card: "property_defaults", value: DEFAULT_ADR_GROWTH_RATE,           unit: "%",      label: "Annual ADR growth rate" },

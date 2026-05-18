@@ -1325,8 +1325,11 @@
     "artifacts/api-server/src/ai/exit-vertical-suggestion.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/routes/chat-insight.ts",
+    "artifacts/api-server/src/routes/research/generate-persist.ts",
+    "artifacts/api-server/src/routes/reserves-brand.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
-    "lib/engine/src/helpers/default-resolver.ts"
+    "lib/engine/src/helpers/default-resolver.ts",
+    "lib/shared/src/field-registry.ts"
   ],
   "300": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",

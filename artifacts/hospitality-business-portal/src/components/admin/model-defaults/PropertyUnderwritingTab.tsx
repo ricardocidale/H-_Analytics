@@ -21,7 +21,6 @@ import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import {
-  DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_ROOM_COUNT,
   DEFAULT_REV_SHARE_FB,
@@ -340,7 +339,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Starting ADR"
           tooltip="Average Daily Rate at property opening. This is the base rate before any growth adjustments."
           value={draft.defaultStartAdr}
-          fallback={DEFAULT_START_ADR}
+          fallback={250}
           onChange={(_, v) => onChange("defaultStartAdr", v)}
           min={50} max={1500} step={25}
           testId="field-defaultStartAdr"

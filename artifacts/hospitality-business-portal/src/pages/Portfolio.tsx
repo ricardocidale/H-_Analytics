@@ -36,7 +36,6 @@ import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_ROOM_COUNT,
-  DEFAULT_START_ADR,
 } from "@/lib/constants";
 import { PageTransition } from "@/components/ui/animated";
 import { AnimatedPage, AnimatedGrid } from "@/components/graphics";
@@ -72,7 +71,7 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
   preOpeningCosts: 0,
   operatingReserve: 0,
   roomCount: DEFAULT_ROOM_COUNT,
-  startAdr: DEFAULT_START_ADR,
+  startAdr: 250, // starting ADR bootstrap; canonical source is model_defaults.mc.property_defaults.startAdr
   adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
   startOccupancy: 0.55, // starting occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.startOccupancy
   maxOccupancy: 0.85, // stabilized-occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.maxOccupancy

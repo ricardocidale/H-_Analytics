@@ -5,7 +5,6 @@ import { logActivity } from "../helpers";
 import { validateResearchValues } from "@calc/research/validate-research";
 import {
   DEFAULT_ROOM_COUNT,
-  DEFAULT_START_ADR,
 } from "@shared/constants";
 import { resolveDefault } from "../../defaults";
 import { logger } from "../../logger";
@@ -238,7 +237,7 @@ async function applyValidatedResearchValues(
     startAdr:
       property.startAdr ??
       (await resolveDefault<number>("mc.property_defaults.startAdr")) ??
-      DEFAULT_START_ADR,
+      250,
     maxOccupancy:
       property.maxOccupancy ??
       (await resolveDefault<number>("mc.property_defaults.maxOccupancy")) ??
