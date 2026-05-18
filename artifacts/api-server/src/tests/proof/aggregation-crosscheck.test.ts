@@ -18,6 +18,8 @@ describe('T_C: Monthly-to-Yearly Aggregation Cross-Check (T007)', () => {
   const MINIMAL_HOTEL: PropertyInput = {
     name: 'Test Hotel',
     operationsStartDate: '2024-01-01',
+    arDays: 30,
+    apDays: 45,
     acquisitionDate: '2024-01-01',
     roomCount: 10,
     startAdr: 100,

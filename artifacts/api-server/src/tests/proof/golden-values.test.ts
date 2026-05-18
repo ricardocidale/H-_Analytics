@@ -84,6 +84,8 @@ describe('Golden Values — Business Model Baselines', () => {
     const input: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: '2024-01-01',
       roomCount: 20,
       startAdr: 150,
@@ -147,6 +149,8 @@ describe('Golden Values — Business Model Baselines', () => {
     const input: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: '2024-01-01',
       roomCount: 8,
       startAdr: 300,
@@ -207,6 +211,8 @@ describe('Golden Values — Business Model Baselines', () => {
     const input: PropertyInput = {
       ...BASE_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: '2024-01-01',
       roomCount: 5,           // ignored for revenue in per_property mode
       startAdr: 400,          // ignored for revenue; nightlyPropertyRate is used instead
@@ -271,6 +277,8 @@ describe('Golden Values — Business Model Baselines', () => {
       const input: PropertyInput = {
         ...BASE_COSTS,
         operationsStartDate: '2024-01-01',
+        arDays: 30,
+        apDays: 45,
         roomCount: 10,
         startAdr: 200,
         adrGrowthRate: 0,

@@ -15,6 +15,8 @@ import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fireResearchConfetti } from "@/lib/confetti";
 import { useResearchQueue, getBackoffDelay } from "@/lib/research-queue";
+import { useProcessingCardStore } from "@/lib/processing-card";
+import { ANALYST_CAPTIONS } from "@/hooks/useProcessingCard";
 import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
 
 interface UseResearchStreamOptions {
@@ -142,9 +144,11 @@ export function useResearchStream({ property, propertyId, global, onMissingRequi
                   setOrchestratorMeta(parsed._orchestrator);
                 } else {
                   setPhases(prev => [...prev, data.data]);
+                  useProcessingCardStore.getState().update({ caption: data.data });
                 }
               } catch {
                 setPhases(prev => [...prev, data.data]);
+                useProcessingCardStore.getState().update({ caption: data.data });
               }
             }
             if (data.type === "done" || data.done) {
@@ -188,6 +192,17 @@ export function useResearchStream({ property, propertyId, global, onMissingRequi
     setOrchestratorMeta(null);
 
     const queueId = `property-${propertyId}-${Date.now()}`;
+    useProcessingCardStore.getState().spawn({
+      id: queueId,
+      title: "Analyst",
+      captions: ANALYST_CAPTIONS,
+      onCancel: () => {
+        abortRef.current?.abort();
+        abortRef.current = null;
+        setIsGenerating(false);
+      },
+    });
+
     getQueue().enqueue({
       id: queueId,
       label: property?.name || `Property ${propertyId}`,
@@ -224,6 +239,7 @@ export function useResearchStream({ property, propertyId, global, onMissingRequi
       }
     } finally {
       setIsGenerating(false);
+      useProcessingCardStore.getState().dismiss();
       setTimeout(() => getQueue().clearCompleted(), 15000);
     }
   }, [property, global, propertyId, queryClient, executeStream]);

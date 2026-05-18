@@ -69,6 +69,8 @@ const BASE_COSTS = {
 const HOTEL_UNLEVERED: PropertyInput = {
   ...BASE_COSTS,
   operationsStartDate: '2024-01-01',
+  arDays: 30,
+  apDays: 45,
   roomCount: 10,
   startAdr: 150,
   adrGrowthRate: 0,
@@ -84,6 +86,8 @@ const HOTEL_UNLEVERED: PropertyInput = {
 const HOTEL_LEVERED: PropertyInput = {
   ...BASE_COSTS,
   operationsStartDate: '2024-01-01',
+  arDays: 30,
+  apDays: 45,
   acquisitionDate: '2024-01-01',
   roomCount: 10,
   startAdr: 150,

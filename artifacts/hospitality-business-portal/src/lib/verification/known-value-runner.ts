@@ -56,6 +56,8 @@ function buildEngineInputs(tc: TestCase): { property: import("@engine/types").Pr
   return {
     property: {
       operationsStartDate: opsDate,
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: opsDate,
       roomCount: tc.property.roomCount ?? 0,
       startAdr: tc.property.startAdr ?? 0,

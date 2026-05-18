@@ -39,6 +39,7 @@ import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndic
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
 import { usePanelManager, isRebeccaRailVisible } from "@/lib/panel-manager";
+import { AgentProcessingCard } from "@/components/ui/agent-processing-card";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -575,6 +576,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       {rebeccaEnabled && (
         <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
+      <AgentProcessingCard />
     </div>
   );
 }

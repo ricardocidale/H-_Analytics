@@ -6,6 +6,15 @@
     "CLAUDE_CODE_DISABLE_FAST_MODE": "1",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1"
   },
-  "enabledPlugins": {},
-  "extraKnownMarketplaces": {}
+  "enabledPlugins": {
+    "compound-engineering@compound-engineering-plugin": true
+  },
+  "extraKnownMarketplaces": {
+    "compound-engineering-plugin": {
+      "source": {
+        "source": "directory",
+        "path": "./vendor/compound-engineering-plugin"
+      }
+    }
+  }
 }

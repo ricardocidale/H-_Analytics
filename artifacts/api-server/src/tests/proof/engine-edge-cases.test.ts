@@ -97,6 +97,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 100,
       adrGrowthRate: 0,
@@ -135,6 +137,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-07-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 150,
       adrGrowthRate: 0,
@@ -172,6 +176,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 200,
       adrGrowthRate: 0,
@@ -204,6 +210,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 5,
       startAdr: 0.01,
       adrGrowthRate: 0,
@@ -247,6 +255,8 @@ describe('Engine Edge Cases (T011)', () => {
       exitCapRate: 0.085,
       dispositionCommission: 0.05,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 100,
       adrGrowthRate: 0,
@@ -277,6 +287,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 8,
       startAdr: 120,
       adrGrowthRate: 0,
@@ -310,6 +322,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 15,
       startAdr: 130,
       adrGrowthRate: 0.03,
@@ -348,6 +362,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 3,
       startAdr: 500,       // ignored for revenue (nightlyPropertyRate is used instead)
       adrGrowthRate: 0,
@@ -386,6 +402,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 6,
       startAdr: 350,
       adrGrowthRate: 0,
@@ -423,6 +441,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 120,
       adrGrowthRate: 0.02,
@@ -449,6 +469,8 @@ describe('Engine Edge Cases (T011)', () => {
     const base: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 12,
       startAdr: 200,
       adrGrowthRate: 0,
@@ -499,6 +521,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 100,
       adrGrowthRate: 0,
@@ -543,6 +567,8 @@ describe('Engine Edge Cases (T011)', () => {
     const prop: PropertyInput = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       roomCount: 10,
       startAdr: 0,
       adrGrowthRate: 0,
@@ -610,6 +636,8 @@ describe('Engine Edge Cases (T011)', () => {
     const sharedBase = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
+      arDays: 30,
+      apDays: 45,
       acquisitionDate: '2024-01-01',
       roomCount: 20,
       startAdr: 150,

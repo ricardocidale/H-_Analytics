@@ -215,9 +215,8 @@ export function resolvePropertyAssumptions(
     monthlyPayment = assertFinite(pmt(originalLoanAmount, monthlyRate, totalPayments), 'monthlyPayment');
   }
 
-  // AR/AP days fallbacks match the schema NOT NULL DEFAULTs (30/45); standard hospitality net terms.
-  const arDays = property.arDays ?? 30;
-  const apDays = property.apDays ?? 45;
+  const arDays = property.arDays;
+  const apDays = property.apDays;
   const escalationMethod = property.escalationMethod ?? DEFAULT_ESCALATION_METHOD;
 
   const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo' | 'vrbo_owner_managed') ?? 'hotel';
