@@ -89,7 +89,7 @@ export async function evaluateAlertRules(
     if (!breached) continue;
 
     if (rule.lastTriggeredAt) {
-      const cooldownMs = (rule.cooldownMinutes ?? 1440) * 60 * 1000;
+      const cooldownMs = rule.cooldownMinutes * 60 * 1000;
       if (Date.now() - new Date(rule.lastTriggeredAt).getTime() < cooldownMs) {
         continue;
       }
