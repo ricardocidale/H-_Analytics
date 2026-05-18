@@ -179,6 +179,14 @@ export interface BusinessModelDefaults {
   otherExpenseRate: number;
   platformFeeRate: number;
   preOpeningMonthlyBurn: number;
+  /**
+   * Default room (key/unit) count for a new property of this business model.
+   * Used by the Portfolio "Add Property" form, the stress-test endpoint, and
+   * the research/reserves resolvers when a property has no `roomCount` yet.
+   * Hotel/lodge anchor at 12 (small boutique baseline). STR variants anchor
+   * at 4 — typical mid-size luxury whole-unit STR (duplex / 2-4BR villa).
+   */
+  roomCount: number;
 }
 
 export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDefaults> = {
