@@ -23,6 +23,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PropertyStatus } from "@shared/constants";
+import { BUSINESS_MODEL_DEFAULTS } from "@shared/constants-business-models";
 import Layout from "@/components/Layout";
 import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { PageErrorState } from "@/components/ui/page-error-state";
@@ -69,7 +70,7 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
   buildingImprovements: 0,
   preOpeningCosts: 0,
   operatingReserve: 0,
-  roomCount: 10, // room-count bootstrap; canonical source is model_defaults.mc.property_defaults.roomCount
+  roomCount: BUSINESS_MODEL_DEFAULTS.hotel.roomCount, // hotel baseline; user picks model later
   startAdr: 250, // starting ADR bootstrap; canonical source is model_defaults.mc.property_defaults.startAdr
   adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
   startOccupancy: 0.55, // starting occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.startOccupancy

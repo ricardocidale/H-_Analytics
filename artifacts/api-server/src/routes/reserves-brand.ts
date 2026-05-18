@@ -12,6 +12,7 @@ import { logAndSendError, parseRouteId } from "./helpers";
 import { executeComputationTool } from "@calc/dispatch";
 import { computePropertyMetrics } from "@calc/research/property-metrics";
 import { isAdminRole } from "@shared/constants";
+import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from "@shared/constants-business-models";
 
 const DEFAULT_HOLD_PERIOD_YEARS = 10;
 
@@ -39,8 +40,9 @@ export function register(app: Express) {
         // count via the deterministic property-metrics calc. This keeps the
         // panel consistent with the rest of the app (same engine, same
         // numbers).
+        const bmDefaults = BUSINESS_MODEL_DEFAULTS[(property.businessModel as BusinessModelType) ?? "hotel"];
         const metrics = computePropertyMetrics({
-          room_count: property.roomCount ?? 10,
+          room_count: property.roomCount ?? bmDefaults.roomCount,
           adr: property.startAdr ?? 250,
           occupancy: property.maxOccupancy ?? property.startOccupancy ?? 0.55,
         });
@@ -54,7 +56,7 @@ export function register(app: Express) {
 
         const bundleJson = executeComputationTool("reserves_brand_bundle", {
           property_name: property.name,
-          room_count: property.roomCount ?? 10,
+          room_count: property.roomCount ?? bmDefaults.roomCount,
           annual_revenue: metrics.annual_total_revenue,
           // Brand-fee rates (franchise/royalty/marketing/loyalty/reservation/
           // tech) are defined as % of *room* revenue, not total revenue, so

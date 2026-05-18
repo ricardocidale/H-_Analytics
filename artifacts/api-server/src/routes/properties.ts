@@ -40,6 +40,7 @@ import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
 } from "@shared/constants";
+import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from "@shared/constants-business-models";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
@@ -161,14 +162,6 @@ export async function createPropertyRecord(
 }
 
 /**
- * Fallback room count used when seeding smart defaults on a property with no
- * roomCount set yet. 10 is the lower bound of the boutique-hotel size band
- * (see globalAssumptions.assetDefinition.minRooms default) — small enough to
- * compute reasonable per-key cost rates but not so small the result is noisy.
- */
-const SEED_FALLBACK_ROOM_COUNT = 10;
-
-/**
  * Apply Layer 2 smart defaults (qualityTier/businessModel/country/roomCount
  * → starting ADR, occupancy, cost rates, etc.) to an existing property, then
  * seed default fee categories. Only fills fields that are still null on the
@@ -192,7 +185,7 @@ export async function seedPropertyFees(
   const qualityTier = (row.qualityTier as string) || "Upscale";
   const businessModel = (row.businessModel as string) || "hotel";
   const country = (row.country as string) || "United States";
-  const roomCount = (row.roomCount as number) || SEED_FALLBACK_ROOM_COUNT;
+  const roomCount = (row.roomCount as number) || BUSINESS_MODEL_DEFAULTS[businessModel as BusinessModelType].roomCount;
   const stateProvince = (row.stateProvince as string) || undefined;
 
   const patch: Record<string, unknown> = {};
@@ -429,7 +422,7 @@ export function register(app: Express) {
       const qualityTier = (req.query.qualityTier as string) || "Upscale";
       const businessModel = (req.query.businessModel as string) || "hotel";
       const country = (req.query.country as string) || "United States";
-      const roomCount = Number(req.query.roomCount) || 10;
+      const roomCount = Number(req.query.roomCount) || BUSINESS_MODEL_DEFAULTS[businessModel as BusinessModelType].roomCount;
       const stateProvince = (req.query.stateProvince as string) || undefined;
 
       const defaults = computePropertyDefaults(

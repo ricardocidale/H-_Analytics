@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import "./_group.css";
@@ -19,79 +19,117 @@ function formatElapsed(s: number) {
   return `${m}m ${rem}s`;
 }
 
-// Real AnalystSwissCube — inlined from artifacts/hospitality-business-portal/src/components/agent-animations/AnalystSwissCube.tsx
-function AnalystSwissCube({ size = 112, className = "" }: { size?: number; className?: string }) {
-  const cubieSize = 14;
-  const gap = 1;
-  const offset = cubieSize + gap;
+// RebeccaOrbit (Swiss Orbit) — inlined from artifacts/hospitality-business-portal/src/components/agent-animations/RebeccaSwissOrbit.tsx
+function RebeccaOrbit({ size = 112, className = "" }: { size?: number; className?: string }) {
+  const palette = ["#f5f5f4", "#d6d3d1", "#a8a29e", "#78716c", "#44403c"];
 
-  const faces = [
-    { dir: "rotateY(0deg)",   bg: "#f5f5f4" },
-    { dir: "rotateY(90deg)",  bg: "#d6d3d1" },
-    { dir: "rotateY(180deg)", bg: "#a8a29e" },
-    { dir: "rotateY(-90deg)", bg: "#78716c" },
-    { dir: "rotateX(90deg)",  bg: "#e7e5e4" },
-    { dir: "rotateX(-90deg)", bg: "#44403c" },
-  ];
+  const tracks = useMemo(() => ([
+    { tilt: "rotateX(70deg)",              beads: 6, radius: 0.40, keyframes: [0, 80, 95, 110, 220, 360],    times: [0, 0.18, 0.34, 0.52, 0.78, 1], duration: 9  },
+    { tilt: "rotateY(70deg)",              beads: 5, radius: 0.34, keyframes: [0, -110, -130, -240, -360],   times: [0, 0.28, 0.46, 0.70, 1],       duration: 11 },
+    { tilt: "rotateZ(45deg) rotateX(60deg)", beads: 4, radius: 0.28, keyframes: [0, 60, 90, 200, 240, 360], times: [0, 0.14, 0.30, 0.50, 0.66, 1], duration: 13 },
+  ]), []);
+
+  const [spark, setSpark] = useState<{ t: number; b: number; key: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: number | undefined;
+    const fire = () => {
+      if (cancelled) return;
+      const t = Math.floor(Math.random() * tracks.length);
+      const b = Math.floor(Math.random() * tracks[t].beads);
+      setSpark((prev) => ({ t, b, key: (prev?.key ?? 0) + 1 }));
+      timeoutId = window.setTimeout(fire, 280 + Math.random() * 820);
+    };
+    timeoutId = window.setTimeout(fire, 250);
+    return () => { cancelled = true; if (timeoutId !== undefined) window.clearTimeout(timeoutId); };
+  }, [tracks]);
+
+  const [pulseKey, setPulseKey] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: number | undefined;
+    const tick = () => {
+      if (cancelled) return;
+      setPulseKey((k) => k + 1);
+      timeoutId = window.setTimeout(tick, 1600 + Math.random() * 1600);
+    };
+    timeoutId = window.setTimeout(tick, 800);
+    return () => { cancelled = true; if (timeoutId !== undefined) window.clearTimeout(timeoutId); };
+  }, []);
+
+  const half = size / 2;
 
   return (
     <div
       className={`relative flex items-center justify-center ${className}`}
-      style={{ width: size, height: size, perspective: "1000px" }}
+      style={{ width: size, height: size, perspective: "600px" }}
     >
-      <motion.div
-        className="relative z-10 flex items-center justify-center"
-        style={{ width: cubieSize, height: cubieSize, transformStyle: "preserve-3d", rotateX: -25 }}
-        animate={{ rotateY: [0, 360] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      >
-        {[-1, 0, 1].map((x) =>
-          [-1, 0, 1].map((y) =>
-            [-1, 0, 1].map((z) => (
-              <motion.div
-                key={`orbit-${x}-${y}-${z}`}
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ transformStyle: "preserve-3d" }}
-                animate={{
-                  rotateX: [0, x * 90, x * 90, 0,       0,       0,       x * -90, x * -90, 0, 0],
-                  rotateY: [0, 0,      y * 90, y * 90,  y * 90,  0,       0,       y * -90, 0, 0],
-                  rotateZ: [0, 0,      0,      0,       z * 90,  z * 90,  0,       0,       0, 0],
-                }}
-                transition={{
-                  duration: 6, repeat: Infinity, ease: "backInOut",
-                  times: [0, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1],
-                }}
-              >
-                <motion.div
-                  className="absolute"
-                  style={{ width: cubieSize, height: cubieSize, transformStyle: "preserve-3d" }}
-                  animate={{
-                    x: [x*offset, x*offset*1.3, x*offset, x*offset, x*offset*1.6, x*offset, x*offset, x*offset*1.2, x*offset],
-                    y: [y*offset, y*offset*1.3, y*offset, y*offset, y*offset*1.6, y*offset, y*offset, y*offset*1.2, y*offset],
-                    z: [z*offset, z*offset*1.3, z*offset, z*offset, z*offset*1.6, z*offset, z*offset, z*offset*1.2, z*offset],
-                  }}
-                  transition={{
-                    duration: 6, repeat: Infinity, ease: "easeInOut",
-                    times: [0, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 1],
-                  }}
-                >
-                  {faces.map((face, i) => (
-                    <div
-                      key={i}
-                      className="absolute inset-0 border-[1.5px] border-black"
-                      style={{
-                        backgroundColor: face.bg,
-                        transform: `${face.dir} translateZ(${cubieSize / 2}px)`,
-                        backfaceVisibility: "hidden",
-                      }}
+      <div className="relative" style={{ width: size, height: size, transformStyle: "preserve-3d", transform: "rotateX(-15deg)" }}>
+        {/* Pulsing core */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{ left: "50%", top: "50%", width: size * 0.18, height: size * 0.18, marginLeft: -(size * 0.09), marginTop: -(size * 0.09), background: "radial-gradient(circle at 32% 28%, #f5f5f4, #44403c)", border: "1.25px solid #000", zIndex: 4 }}
+          animate={{ scale: [1, 1.08, 1.04, 1.32, 1.12, 1.0, 1.18, 1.0], opacity: [1, 1, 0.95, 1, 0.88, 1, 1, 1] }}
+          transition={{ duration: 5.4, repeat: Infinity, ease: "easeInOut", times: [0, 0.10, 0.22, 0.38, 0.52, 0.68, 0.84, 1] }}
+        />
+        {/* Pulse ring */}
+        <motion.div
+          key={`pulse-${pulseKey}`}
+          className="absolute rounded-full"
+          style={{ left: "50%", top: "50%", width: size * 0.18, height: size * 0.18, marginLeft: -(size * 0.09), marginTop: -(size * 0.09), border: "1.25px solid #000", background: "transparent", zIndex: 3, pointerEvents: "none" }}
+          initial={{ scale: 1, opacity: 0.85 }}
+          animate={{ scale: 5, opacity: 0 }}
+          transition={{ duration: 1.4, ease: "easeOut" }}
+        />
+
+        {tracks.map((track, ti) => {
+          const r = size * track.radius;
+          return (
+            <motion.div
+              key={ti}
+              className="absolute"
+              style={{ left: "50%", top: "50%", width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, transformStyle: "preserve-3d", transform: track.tilt }}
+              animate={{ rotateZ: track.keyframes }}
+              transition={{ duration: track.duration, repeat: Infinity, ease: "easeInOut", times: track.times }}
+            >
+              <div className="absolute inset-0 rounded-full" style={{ border: "1px solid rgba(0,0,0,0.55)" }} />
+              {Array.from({ length: track.beads }).map((_, bi) => {
+                const angle = (bi / track.beads) * Math.PI * 2;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+                const beadSize = size * 0.11;
+                const bg = palette[(ti * 2 + bi) % palette.length];
+                const isSpark = spark?.t === ti && spark?.b === bi;
+                return (
+                  <Fragment key={`bead-${ti}-${bi}`}>
+                    <motion.div
+                      key={isSpark ? `spark-${spark!.key}` : `idle-${bi}`}
+                      className="absolute rounded-full"
+                      style={{ left: "50%", top: "50%", width: beadSize, height: beadSize, marginLeft: -beadSize / 2, marginTop: -beadSize / 2, background: isSpark ? `radial-gradient(circle at 32% 28%, #ffffff, #fafaf9 50%, ${bg} 90%)` : `radial-gradient(circle at 32% 28%, #ffffff, ${bg} 55%, #1c1917 130%)`, border: "1px solid #000", boxShadow: isSpark ? `0 0 ${size * 0.28}px rgba(255,255,255,0.95), 0 0 ${size * 0.10}px rgba(255,255,255,1)` : "none", zIndex: isSpark ? 6 : 1 }}
+                      initial={false}
+                      animate={isSpark ? { x: [x, x * 0.25, x * 0.6, x], y: [y, y * 0.25, y * 0.6, y], scale: [1, 2.1, 1.3, 1] } : { x, y, scale: 1 }}
+                      transition={isSpark ? { duration: 1.0, ease: [0.2, 0.8, 0.2, 1], times: [0, 0.35, 0.65, 1] } : { duration: 0.4, ease: "easeOut" }}
                     />
-                  ))}
-                </motion.div>
-              </motion.div>
-            ))
-          )
-        )}
-      </motion.div>
+                    {isSpark && (
+                      <motion.div
+                        key={`trail-${spark!.key}`}
+                        className="absolute"
+                        style={{ left: "50%", top: "50%", width: Math.hypot(x, y), height: 1.25, marginTop: -0.625, background: "linear-gradient(90deg, rgba(0,0,0,0.85), rgba(0,0,0,0))", transformOrigin: "0 50%", transform: `rotate(${Math.atan2(y, x)}rad)`, zIndex: 5, pointerEvents: "none" }}
+                        initial={{ opacity: 0.95, scaleX: 1 }}
+                        animate={{ opacity: 0, scaleX: 0.2 }}
+                        transition={{ duration: 0.7, ease: "easeOut" }}
+                      />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </motion.div>
+          );
+        })}
+
+        {/* Outer ring */}
+        <div className="absolute rounded-full" style={{ left: half - size * 0.46, top: half - size * 0.46, width: size * 0.92, height: size * 0.92, border: "1px solid rgba(0,0,0,0.35)", pointerEvents: "none" }} />
+      </div>
     </div>
   );
 }
@@ -166,92 +204,95 @@ function ProcessingCard({
             position: "absolute",
             bottom: 24,
             right: 24,
-            width: 308,
+            width: 340,
+            // shadcn Card: rounded-xl border bg-card text-card-foreground shadow
             background: "hsl(var(--card))",
-            border: "1px solid hsl(var(--border) / 0.7)",
-            borderRadius: 14,
-            boxShadow:
-              "0 20px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06)",
-            backdropFilter: "blur(8px)",
+            color: "hsl(var(--card-foreground))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 12, // rounded-xl
+            boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
             overflow: "hidden",
             fontFamily: "var(--font-sans)",
           }}
         >
-          {/* Subtle top accent line */}
+          {/* CardHeader — p-6, flex row with animation + text + close */}
           <div
             style={{
-              height: 2,
-              background: "hsl(var(--accent-pop))",
-              opacity: 0.7,
+              padding: 24,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 16,
             }}
-          />
+          >
+            <RebeccaOrbit size={80} />
 
-          <div style={{ padding: "14px 16px 16px" }}>
-            {/* Row 1: animation + title + close */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 12,
-              }}
-            >
-              <AnalystSwissCube size={56} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "hsl(var(--foreground))",
-                    letterSpacing: "0.03em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Analyst
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "hsl(var(--muted-foreground))",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  Research in progress
-                </div>
-              </div>
-              <button
-                onClick={onDismiss}
+            {/* CardTitle + CardDescription */}
+            <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
+              {/* CardTitle: font-semibold leading-none tracking-tight */}
+              <div
                 style={{
-                  width: 24,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 6,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "hsl(var(--muted-foreground))",
-                  transition: "background 0.15s",
-                  flexShrink: 0,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: "-0.01em",
+                  color: "hsl(var(--card-foreground))",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "hsl(var(--muted))")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
-                aria-label="Dismiss"
               >
-                <X size={13} />
-              </button>
+                Analyst
+              </div>
+              {/* CardDescription: text-sm text-muted-foreground, mt-1.5 */}
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "hsl(var(--muted-foreground))",
+                  marginTop: 6,
+                  lineHeight: 1.4,
+                }}
+              >
+                Research in progress
+              </div>
             </div>
 
-            {/* Row 2: animated caption */}
+            {/* Close button — top-right, ghost */}
+            <button
+              onClick={onDismiss}
+              style={{
+                width: 28,
+                height: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 6,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "hsl(var(--muted-foreground))",
+                transition: "background 0.15s",
+                flexShrink: 0,
+                marginTop: -2,
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "hsl(var(--accent))")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+              aria-label="Dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Separator */}
+          <div style={{ height: 1, background: "hsl(var(--border))", marginBottom: 0 }} />
+
+          {/* CardContent — px-6 py-4 */}
+          <div style={{ padding: "16px 24px" }}>
+            {/* Animated caption */}
             <div
               style={{
-                height: 36,
-                marginBottom: 12,
+                height: 40,
                 overflow: "hidden",
                 position: "relative",
               }}
@@ -267,11 +308,10 @@ function ProcessingCard({
                   style={{
                     position: "absolute",
                     inset: 0,
-                    fontSize: 12,
-                    lineHeight: 1.5,
+                    fontSize: 13,
+                    lineHeight: 1.55,
                     color: "hsl(var(--muted-foreground))",
                     margin: 0,
-                    fontStyle: "italic",
                   }}
                 >
                   {CAPTIONS[captionIdx]}
@@ -279,57 +319,59 @@ function ProcessingCard({
               </AnimatePresence>
             </div>
 
-            {/* Row 3: progress bar */}
-            <div style={{ marginBottom: 12 }}>
+            {/* Progress bar */}
+            <div style={{ marginTop: 14 }}>
               <IndeterminateBar />
             </div>
+          </div>
 
-            {/* Row 4: elapsed + cancel */}
-            <div
+          {/* Separator */}
+          <div style={{ height: 1, background: "hsl(var(--border))" }} />
+
+          {/* CardFooter — px-6 py-4, flex justify-between */}
+          <div
+            style={{
+              padding: "12px 24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                fontSize: 12,
+                color: "hsl(var(--muted-foreground))",
+                fontFamily: "'JetBrains Mono', monospace",
+                opacity: elapsed >= 5 ? 1 : 0,
+                transition: "opacity 0.4s",
               }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "hsl(var(--muted-foreground))",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  opacity: elapsed >= 5 ? 1 : 0,
-                  transition: "opacity 0.4s",
-                }}
-              >
-                {formatElapsed(elapsed)}
-              </span>
-              <button
-                onClick={onDismiss}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  background: "transparent",
-                  border: "1px solid hsl(var(--border))",
-                  cursor: "pointer",
-                  color: "hsl(var(--foreground))",
-                  fontFamily: "var(--font-sans)",
-                  transition: "background 0.15s, border-color 0.15s",
-                  letterSpacing: "0.01em",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "hsl(var(--muted))";
-                  e.currentTarget.style.borderColor = "hsl(var(--border))";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "hsl(var(--border))";
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+              {formatElapsed(elapsed)}
+            </span>
+            <button
+              onClick={onDismiss}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                padding: "6px 14px",
+                borderRadius: 6,
+                background: "transparent",
+                border: "1px solid hsl(var(--border))",
+                cursor: "pointer",
+                color: "hsl(var(--foreground))",
+                fontFamily: "var(--font-sans)",
+                transition: "background 0.15s",
+                letterSpacing: "0.01em",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "hsl(var(--accent))")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+            >
+              Cancel
+            </button>
           </div>
         </motion.div>
       )}

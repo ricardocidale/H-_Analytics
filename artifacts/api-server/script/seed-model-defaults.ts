@@ -24,7 +24,7 @@ import { pathToFileURL } from "url";
 import { resolve } from "path";
 import { db } from "../src/db";
 import { modelDefaults } from "@workspace/db";
-import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE } from "@shared/constants-business-models";
+import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, BUSINESS_MODEL_DEFAULTS } from "@shared/constants-business-models";
 import {
   DEFAULT_MODEL_START_DATE,
   DEFAULT_COMPANY_OPS_START_DATE,
@@ -167,7 +167,7 @@ export const SPECS: SeedSpec[] = [
   { key: "landValuePercent",            card: "tax_exit", value: DEFAULT_LAND_VALUE_PERCENT,                 unit: "%",     label: "Land value as % of property cost" },
 
   // ── Property Defaults (MC-managed template for new properties) ───────
-  { key: "roomCount",                   card: "property_defaults", value: 10,                                unit: "rooms",  label: "Default room count for new property" },
+  { key: "roomCount",                   card: "property_defaults", value: BUSINESS_MODEL_DEFAULTS.hotel.roomCount, unit: "rooms",  label: "Default room count for new property" },
   { key: "startAdr",                    card: "property_defaults", value: 250,                               unit: "$",      label: "Starting ADR for new property" },
   { key: "maxOccupancy",                card: "property_defaults", value: 0.85,                              unit: "%",      label: "Stabilized maximum occupancy" },
   { key: "startOccupancy",              card: "property_defaults", value: 0.55,                              unit: "%",      label: "Starting occupancy (month 1)" },

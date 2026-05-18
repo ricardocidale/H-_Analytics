@@ -37,6 +37,7 @@ import {
   DEFAULT_HMA_TERMINATION_NOTICE_MONTHS,
   DEFAULT_HMA_TERMINATION_FEE_MONTHS,
 } from "./constants-brand";
+import { BUSINESS_MODEL_DEFAULTS } from "./constants-business-models";
 
 export type FieldType = "rate" | "currency" | "integer" | "decimal";
 export type FieldScope = "property";
@@ -193,7 +194,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "integer",
     scope: "property",
     category: "revenue",
-    fallback: 10,
+    fallback: BUSINESS_MODEL_DEFAULTS.hotel.roomCount,
     gaSource: { kind: "direct", gaField: "defaultRoomCount" },
     engineImpact: true,
     validationMin: 1,

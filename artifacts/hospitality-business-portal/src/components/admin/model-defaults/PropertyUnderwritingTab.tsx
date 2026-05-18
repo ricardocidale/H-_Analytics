@@ -40,6 +40,7 @@ import {
   DEFAULT_LAND_VALUE_PERCENT,
   PLATFORM_FEE_RATES,
 } from "@shared/constants";
+import { BUSINESS_MODEL_DEFAULTS } from "@shared/constants-business-models";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Task #404 reconciliation — PERMANENT US-baseline fallback.
@@ -388,7 +389,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Room Count"
           tooltip="Number of keys (rooms) for a new property. Boutique hotels are typically 10-100 rooms."
           value={draft.defaultRoomCount}
-          fallback={10}
+          fallback={BUSINESS_MODEL_DEFAULTS.hotel.roomCount}
           onChange={(_, v) => onChange("defaultRoomCount", Math.round(v))}
           min={1} max={500} step={1}
           testId="field-defaultRoomCount"

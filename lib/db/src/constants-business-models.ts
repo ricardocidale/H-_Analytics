@@ -126,6 +126,14 @@ export interface BusinessModelDefaults {
   otherExpenseRate: number;
   platformFeeRate: number;
   preOpeningMonthlyBurn: number;
+  /**
+   * Default room (key/unit) count for a new property of this business model.
+   * Used by the Portfolio "Add Property" form, the stress-test endpoint, and
+   * the research/reserves resolvers when a property has no `roomCount` yet.
+   * Hotel/lodge anchor at 12 (small boutique baseline). STR variants anchor
+   * at 4 — typical mid-size luxury whole-unit STR (duplex / 2-4BR villa).
+   */
+  roomCount: number;
 }
 
 export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDefaults> = {
@@ -151,6 +159,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     otherExpenseRate: 0.60,         // 60% of other revenue (= DEFAULT_OTHER_EXPENSE_RATE)
     platformFeeRate: 0,             // N/A for hotels
     preOpeningMonthlyBurn: 0,
+    roomCount: 12,                  // small boutique baseline
   },
 
   lodge: {
@@ -175,6 +184,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     otherExpenseRate: 0.55,     // 55% of other revenue
     platformFeeRate: 0,         // Direct bookings, no platform fees
     preOpeningMonthlyBurn: 0,
+    roomCount: 12,              // small boutique baseline
   },
 
   vrbo: {
@@ -204,6 +214,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     otherExpenseRate: 0.50,     // 50% of other revenue
     platformFeeRate: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,  // blended Airbnb 15.5% / VRBO 8% / Booking 15%
     preOpeningMonthlyBurn: 0,
+    roomCount: 4,               // mid-size luxury STR (duplex / 2-4BR villa)
   },
 
   vrbo_owner_managed: {
@@ -244,6 +255,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     otherExpenseRate: DEFAULT_VRBO_OWNER_MANAGED_OTHER_EXPENSE_RATE,    // lower than hotel; fewer overhead components
     platformFeeRate: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,            // blended Airbnb/VRBO/Booking commission
     preOpeningMonthlyBurn: 0,
+    roomCount: 4,                                                       // mid-size luxury STR (duplex / 2-4BR villa)
   },
 };
 

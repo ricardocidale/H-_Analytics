@@ -17,6 +17,7 @@ import {
   persistCompanyGuidance,
 } from "./generate-persist-guidance";
 import { indexMarketResearchReport } from "../../ai/vector-indexing";
+import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from "@shared/constants-business-models";
 
 export interface PersistResearchInput {
   req: Request;
@@ -226,11 +227,12 @@ async function applyValidatedResearchValues(
     return;
   }
 
+  const bmDefaults = BUSINESS_MODEL_DEFAULTS[(property.businessModel as BusinessModelType) ?? "hotel"];
   const validated = validateResearchValues(researchValues, {
     roomCount:
       property.roomCount ??
       (await resolveDefault<number>("mc.property_defaults.roomCount")) ??
-      10,
+      bmDefaults.roomCount,
     startAdr:
       property.startAdr ??
       (await resolveDefault<number>("mc.property_defaults.startAdr")) ??
