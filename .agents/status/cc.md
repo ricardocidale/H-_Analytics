@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T19:00:00Z
+Updated: 2026-05-18T19:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,7 +13,17 @@ Status: idle
 
 ## Last Commit on Branch
 
-`feat(no-magic-numbers): add Category 5 — starter-portfolio seeds carve-out`
+`docs(conventions): Category 5 — Starter-Portfolio Seeds carve-out` (`fd4636223`)
+
+## What CC Did This Session (2026-05-18 session 17 — /ce-compound run)
+
+**Shipped Category 5 convention doc via /ce-compound full mode (commit `fd4636223`).**
+
+- `docs/solutions/conventions/category-5-starter-portfolio-seeds-carve-out-2026-05-18.md` — knowledge-track convention codifying the rule extension from commit `ab1924923`. 5-section knowledge-track structure (Context, Guidance, Why This Matters, When to Apply, Examples) with mandatory contract, before/after walkthrough using `DEFAULT_BUSINESS_INSURANCE_START`, and 8 cross-references (ratchet doc, onConflictDoNothing origin, sibling §1 convention, barrel-shadow risk, both skill files, CLAUDE.md/replit.md, original commit).
+- Phase 1 subagents (Context Analyzer + Solution Extractor + Related Docs Finder + Session Historian) all completed. Frontmatter validated via `validate-frontmatter.py` (exit 0).
+- Phase 2.5 SKIPPED — Related Docs Finder reported no stale candidates (the ratchet doc already incorporates Cat 5; no other doc enumerates a four-category list that would now be drift-prone).
+- Phase 3 SKIPPED — documentation, not code; the embedded TS examples are illustrative.
+- Discoverability check PASSED — CLAUDE.md §6 already surfaces `docs/solutions/` explicitly.
 
 ## What CC Did This Session (2026-05-18 session 17 — late additions)
 
@@ -171,11 +181,22 @@ None — work is on main, working tree clean.
 
 ## What's Pending
 
-- **T3-1 Matteo — Model Router Specialist is COMPLETE (all U1–U8 shipped).** Done-when criteria met: routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek + Gemini routing, cost-per-task JSONL log via `admin-llm-cost.ts`, cost visible in Admin LLM Workflows Cost tab.
-- **T2-6 CC scope COMPLETE.** Brand CRUD API routes shipped. Replit UI portion: create/edit brand form under Admin → Model Defaults → Brands tab. Routes: `POST /api/admin/brands` (slug + name + metadata), `PATCH /api/admin/brands/:slug` (update display name/metadata). Brand list already at `GET /api/admin/brands`.
-- **Next session priority:** T2-7 (horizontal tabs → collapsible UI on non-main pages, Replit-safe), or any other CC-specific task. T2-6 call-site sweep (ensuring all brand references use slug lookup, not hardcoded display names) is low-priority unless audit reveals violations.
-- New T2 entries on plan added 2026-05-17 (Replit-safe, can run in parallel with Matteo): T2-6 (generic brand-type slugs + admin UI), T2-7 (horizontal tabs → collapsible UI on non-main pages). T2-5 (reference ranges singleton) is deferred pending ownership clarification.
-- Open TODO carried from prior sessions (CLAUDE.md): Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each as cleaned up).
+### Next CC session pickup (also captured in CC's memory at `project_next_session_priorities.md`)
+
+**Tier 1 — bounded T1-4 retirements** (1-3 hr each, CC-only): `DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`, `DEFAULT_ADR_GROWTH_RATE`, `DEFAULT_MARKETING_RATE`+`DEFAULT_MISC_OPS_RATE`, `DEFAULT_TRAVEL_COST_PER_CLIENT`+`DEFAULT_IT_LICENSE_PER_CLIENT`, `DEFAULT_ALERT_COOLDOWN_MINUTES`. Pattern is established (Category 5 + `--init` baseline reset).
+
+**Tier 2 — deferred cross-cutting refactors** (1-2 days each, dedicated focused session): plan docs exist at `docs/plans/t1-4-property-income-tax-rate-retirement.md` and `docs/plans/t1-4-land-value-percent-retirement.md`.
+
+### Completed CC work this session (status reference)
+
+- **T3-1 Matteo — Model Router Specialist** COMPLETE (all U1–U8). Routing table in `admin_resources kind=llm_slot`, Mistral OCR 3 + DeepSeek + Gemini routing, cost-per-task JSONL log, cost visible in Admin LLM Workflows Cost tab.
+- **T2-6 CC scope** COMPLETE. Brand CRUD API routes shipped (`POST /api/admin/brands`, `PATCH /api/admin/brands/:slug`). UI portion is Replit-safe — see Handoff section below.
+- **T2-7 audit** COMPLETE. `docs/plans/t2-7-tab-audit.md` lists 12 in-scope pages with indicator hypotheses. `CompanyAssumptions` confirmed in scope per 2026-05-18 owner decision. UI implementation is Replit-safe.
+- **Category 5 rule extension** COMPLETE. CLAUDE.md §2 + replit.md + both skill files + ratchet doc + conventions doc all harmonized. Checker file-glob carve-out shipped; baseline locked at 119 suspects.
+
+### Open TODO carried forward
+
+Tier 1 T1-4 backlog above (incremental — check off each as cleaned up).
 
 ## Handoff to Replit — T2-6 UI
 
@@ -194,7 +215,21 @@ None — work is on main, working tree clean.
 
 All clean on `main`. No CC-specific work outstanding.
 
-Outstanding Replit UI tasks (still on Replit's plate, unchanged from prior handoff):
+### NEW for Replit awareness (2026-05-18, session 17)
+
+**Category 5 — Starter-Portfolio Seeds is now codified** (commit `ab1924923` + convention doc `fd4636223`). What this means for Replit:
+- `SEED_*` named constants and inline calibration literals are permitted in: `artifacts/api-server/src/migrations/*.ts`, `artifacts/api-server/src/seeds/**`, `artifacts/api-server/script/seed-*.ts`, `artifacts/api-server/src/syncHelpers.ts`, and (cross-package `SEED_*` only) `lib/shared/src/constants.ts`.
+- Contract: `SEED_` prefix on named constants + source-citation comment block (date, target metric, runbook link, market reference) + NEVER imported by runtime engine/calc/route code + prod DB wins on conflict via `onConflictDoNothing()`.
+- The magic-numbers checker (`scripts/src/check-magic-numbers.ts`) skips these locations mechanically. Baseline went 144 → 119 suspects.
+- Full convention: `docs/solutions/conventions/category-5-starter-portfolio-seeds-carve-out-2026-05-18.md`.
+- Implementation/checker mechanics: `docs/solutions/tooling/magic-numbers-ratchet-improvements.md` (Solution 5).
+- CLAUDE.md §2 "ONLY numbers allowed in TypeScript" list now includes Category 5 as the fifth bullet. replit.md inviolable-rules summary harmonized.
+
+**T2-7 audit doc ready for Replit-driven implementation:** `docs/plans/t2-7-tab-audit.md` — 12 in-scope pages with tab labels, indicator hypotheses, and suggested implementation order. AgentRosterAccordion pattern documented as the model. `CompanyAssumptions` confirmed in scope (preserve per-tab Save + AnalystButton semantics).
+
+### Outstanding Replit UI tasks (unchanged from prior handoff)
+
+- **T2-6 UI:** brand create/edit form in `BrandsTab.tsx`. Routes live: `POST /api/admin/brands`, `PATCH /api/admin/brands/:slug`. Details in the T2-6 UI handoff section above.
 - T2-4 UI: "Verify deck" button in Slide Factory Tab 6 — `POST /api/slide-factory-runs/:id/verify` → `GET /api/slide-factory-runs/:id/verification`. Severity: ok=emerald, advisory=sky, warning=amber, block=red.
 - T2-3 UI: "Improve with AI" button on `descriptionImproved` textarea in `BasicInfoSection.tsx` — `POST /api/properties/:id/rewrite-description { text: string }`.
 - T2-2 UI: Portfolio selector on property list — `GET /api/portfolios`, `PUT /api/properties/:id/portfolio { portfolioId: N | null }`.
