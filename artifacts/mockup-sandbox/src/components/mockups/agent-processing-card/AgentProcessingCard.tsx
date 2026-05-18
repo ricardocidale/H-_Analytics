@@ -134,27 +134,30 @@ function RebeccaOrbit({ size = 112, className = "" }: { size?: number; className
   );
 }
 
-function IndeterminateBar() {
+function ProgressBar({ progress }: { progress: number }) {
   return (
     <div
       style={{
         width: "100%",
-        height: 3,
+        height: 4,
         background: "hsl(var(--muted))",
         borderRadius: 99,
         overflow: "hidden",
-        position: "relative",
       }}
+      role="progressbar"
+      aria-valuenow={Math.round(progress)}
+      aria-valuemin={0}
+      aria-valuemax={100}
     >
-      <div
+      <motion.div
         style={{
-          position: "absolute",
-          inset: 0,
+          height: "100%",
           background: "hsl(var(--accent-pop))",
           borderRadius: 99,
-          animation: "progress-indeterminate 1.8s ease-in-out infinite",
-          transformOrigin: "left center",
+          originX: 0,
         }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
       />
     </div>
   );
@@ -170,6 +173,10 @@ function ProcessingCard({
   const [captionIdx, setCaptionIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Asymptotic progress: fast start, decelerates toward ~90%, never reaches 100
+  // until the job resolves. Formula: 90 * (1 - e^(-elapsed/22))
+  const progress = Math.min(90, 90 * (1 - Math.exp(-elapsed / 22)));
 
   useEffect(() => {
     if (!visible) return;
@@ -229,24 +236,26 @@ function ProcessingCard({
 
             {/* CardTitle + CardDescription */}
             <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
-              {/* CardTitle: font-semibold leading-none tracking-tight */}
+              {/* CardTitle — heading-subsection: IBM Plex Sans 16px/600 */}
               <div
                 style={{
+                  fontFamily: "var(--font-sans)",
                   fontWeight: 600,
-                  fontSize: 15,
-                  lineHeight: 1,
+                  fontSize: 16,
+                  lineHeight: 1.4,
                   letterSpacing: "-0.01em",
                   color: "hsl(var(--card-foreground))",
                 }}
               >
                 Analyst
               </div>
-              {/* CardDescription: text-sm text-muted-foreground, mt-1.5 */}
+              {/* CardDescription — text-sm: 14px / muted */}
               <div
                 style={{
+                  fontFamily: "var(--font-sans)",
                   fontSize: 14,
                   color: "hsl(var(--muted-foreground))",
-                  marginTop: 6,
+                  marginTop: 4,
                   lineHeight: 1.4,
                 }}
               >
@@ -308,8 +317,9 @@ function ProcessingCard({
                   style={{
                     position: "absolute",
                     inset: 0,
-                    fontSize: 13,
-                    lineHeight: 1.55,
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
                     color: "hsl(var(--muted-foreground))",
                     margin: 0,
                   }}
@@ -321,7 +331,7 @@ function ProcessingCard({
 
             {/* Progress bar */}
             <div style={{ marginTop: 14 }}>
-              <IndeterminateBar />
+              <ProgressBar progress={progress} />
             </div>
           </div>
 
@@ -351,17 +361,16 @@ function ProcessingCard({
             <button
               onClick={onDismiss}
               style={{
-                fontSize: 13,
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
                 fontWeight: 500,
                 padding: "6px 14px",
-                borderRadius: 6,
+                borderRadius: "var(--radius-sm)",
                 background: "transparent",
                 border: "1px solid hsl(var(--border))",
                 cursor: "pointer",
                 color: "hsl(var(--foreground))",
-                fontFamily: "var(--font-sans)",
                 transition: "background 0.15s",
-                letterSpacing: "0.01em",
               }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.background = "hsl(var(--accent))")
