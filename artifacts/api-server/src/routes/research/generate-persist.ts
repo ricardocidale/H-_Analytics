@@ -6,7 +6,6 @@ import { validateResearchValues } from "@calc/research/validate-research";
 import {
   DEFAULT_ROOM_COUNT,
   DEFAULT_START_ADR,
-  DEFAULT_MAX_OCCUPANCY,
 } from "@shared/constants";
 import { resolveDefault } from "../../defaults";
 import { logger } from "../../logger";
@@ -243,7 +242,7 @@ async function applyValidatedResearchValues(
     maxOccupancy:
       property.maxOccupancy ??
       (await resolveDefault<number>("mc.property_defaults.maxOccupancy")) ??
-      DEFAULT_MAX_OCCUPANCY,
+      0.85,
     purchasePrice: property.purchasePrice ?? undefined,
     costRateRooms: property.costRateRooms ?? undefined,
     costRateFB: property.costRateFB ?? undefined,

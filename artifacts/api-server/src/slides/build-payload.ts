@@ -19,7 +19,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEFAULT_MAX_OCCUPANCY,
   DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
@@ -279,7 +278,7 @@ export async function buildSlidePayload(
     county: (p.county ?? "") as string, country: property.country ?? "",
     purchasePrice: property.purchasePrice ?? 0, roomCount: property.roomCount ?? 0,
     startAdr: property.startAdr ?? 0,
-    maxOccupancy: property.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
+    maxOccupancy: property.maxOccupancy ?? 0.85,
     businessModel: property.businessModel ?? "hotel",
     hospitalityType: (p.hospitalityType ?? "") as string,
     qualityTier: (p.qualityTier ?? "") as string,

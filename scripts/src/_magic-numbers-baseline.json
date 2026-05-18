@@ -1959,8 +1959,13 @@
     "artifacts/api-server/src/ai/specialists/portfolio-raise-runner.ts",
     "artifacts/api-server/src/integrations/document-ai.ts",
     "artifacts/api-server/src/pdf/design-pass.ts",
+    "artifacts/api-server/src/routes/properties.ts",
+    "artifacts/api-server/src/routes/research/generate-persist.ts",
+    "artifacts/api-server/src/slides/build-payload.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/analyst/quality/quality-scorer.ts",
+    "lib/engine/src/helpers/default-resolver.ts",
+    "lib/shared/src/field-registry.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
   ],
   "0.6": [

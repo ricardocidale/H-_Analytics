@@ -14,7 +14,6 @@ import { getCountryDefaults, getUsStateDefaults } from '@norfolk/shared/countryD
 import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@norfolk/shared/constants-business-models';
 import {
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_MAX_OCCUPANCY,
   QUALITY_TIER_OCCUPANCY_BRACKETS,
   DEFAULT_FALLBACK_OCCUPANCY,
   SCALE_THRESHOLD_SMALL_ROOMS,
@@ -187,8 +186,8 @@ export function computePropertyDefaults(
   const adrGrowthRate = DEFAULT_ADR_GROWTH_RATE;
   sources.adrGrowthRate = "constant:DEFAULT_ADR_GROWTH_RATE";
 
-  const maxOccupancy = maxOccupancyFromProperty ?? DEFAULT_MAX_OCCUPANCY;
-  sources.maxOccupancy = maxOccupancyFromProperty != null ? "property:maxOccupancy" : "constant:DEFAULT_MAX_OCCUPANCY";
+  const maxOccupancy = maxOccupancyFromProperty ?? 0.85;
+  sources.maxOccupancy = maxOccupancyFromProperty != null ? "property:maxOccupancy" : "constant:0.85";
 
   // ── 4. Scale adjustment (small property cost premium) ────────────────────
   let scaleAdjustment = 0;

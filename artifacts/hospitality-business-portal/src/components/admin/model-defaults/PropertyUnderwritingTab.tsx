@@ -23,7 +23,6 @@ import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./anal
 import {
   DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
-  DEFAULT_MAX_OCCUPANCY,
   DEFAULT_ROOM_COUNT,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_EVENTS,
@@ -371,7 +370,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Stabilized Occupancy"
           tooltip="Target occupancy after ramp-up period. Luxury boutique hotels typically stabilize at 75-85%."
           value={draft.defaultMaxOccupancy}
-          fallback={DEFAULT_MAX_OCCUPANCY}
+          fallback={0.85}
           onChange={(_, v) => onChange("defaultMaxOccupancy", v)}
           min={0.3} max={1} step={0.01}
           testId="field-defaultMaxOccupancy"

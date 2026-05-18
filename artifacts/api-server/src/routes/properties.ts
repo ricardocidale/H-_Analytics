@@ -39,7 +39,6 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEFAULT_MAX_OCCUPANCY,
 } from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
@@ -1072,7 +1071,7 @@ Rewritten description:`;
         roomCount: body.roomCount,
         startAdr: body.startAdr,
         startOccupancy: body.startOccupancy ?? 0.55,
-        maxOccupancy: body.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
+        maxOccupancy: body.maxOccupancy ?? 0.85,
         revShareFB: body.revShareFB ?? DEFAULT_REV_SHARE_FB,
         revShareEvents: body.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS,
         revShareOther: body.revShareOther ?? DEFAULT_REV_SHARE_OTHER,

@@ -231,7 +231,6 @@ export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
 
 export const DEFAULT_ROOM_COUNT = 10;
 export const DEFAULT_START_ADR = 250;
-export const DEFAULT_MAX_OCCUPANCY = 0.85;
 export const DEFAULT_ADR_GROWTH_RATE = 0.03;
 
 // ──────────────────────────────────────────────────────────

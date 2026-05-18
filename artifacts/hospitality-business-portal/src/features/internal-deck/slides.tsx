@@ -35,7 +35,7 @@ import {
 } from "./helpers";
 import { getCanonicalPhoto } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
-import { DEFAULT_PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_MAX_OCCUPANCY } from "@shared/constants";
+import { DEFAULT_PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 
 // ── Canvas aliases ──────────────────────────────────────────────────────────
 const W = CANVAS.width;   // 960
@@ -632,7 +632,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
 
   const stableOcc = stable && stable.availableRooms > 0
     ? Math.min(STABLE_OCC_CEILING, Math.max(STABLE_OCC_FLOOR, stable.soldRooms / stable.availableRooms))
-    : (property.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY);
+    : (property.maxOccupancy ?? 0.85);
   const stableAdr = stable?.cleanAdr ?? property.startAdr ?? 0;
   const stableRevpar = stableAdr * stableOcc;
 
