@@ -104,16 +104,36 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-4: DEFAULT_* constants → model_defaults DB rows (incremental)
-**Status:** ✅ Phase complete (2026-05-16)
-**Progress:** (1) Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals. (2) `PropertyInput.exitCapRate/dispositionCommission/landValuePercent` and `LoanParams` equivalents promoted to required `number` — DB NOT NULL guarantee enforced at the type boundary. (3) All `?? DEFAULT_*` dead-code fallbacks removed from engine and calc layers (cashFlowAggregator, yearlyAggregator, loanCalculations, resolve-assumptions, exit-scenarios). Proof test fixtures updated. Committed 2026-05-16 (6d8cbaf0f).
-**Context:** CLAUDE.md §2 prohibits TypeScript constants for financial values. ~5+ legacy `DEFAULT_*` constants remain in `lib/shared/src/constants*.ts`. Each session should clean one up.
+**Status:** ✅ Phase 1 complete (2026-05-16) + 6 incremental retirements (2026-05-18, session 17) + 2 cross-cutting refactors deferred to dedicated plan docs.
+**Progress phase 1 (commit `6d8cbaf0f`):** Schema (`lib/db/src/schema/properties.ts`) no longer imports `DEFAULT_EXIT_CAP_RATE`, `DEFAULT_COMMISSION_RATE`, `DEFAULT_LAND_VALUE_PERCENT`, or `DEFAULT_PROPERTY_INCOME_TAX_RATE` — replaced with inline numeric literals. `PropertyInput.exitCapRate/dispositionCommission/landValuePercent` and `LoanParams` equivalents promoted to required `number`. All `?? DEFAULT_*` dead-code fallbacks removed from engine and calc layers.
+
+**Phase 2 retirements shipped 2026-05-18 (session 17):**
+| Commit | Constant(s) retired |
+|---|---|
+| `b981c4e66` | `DEFAULT_MAX_STALENESS_HOURS` |
+| `5f0c73402` | `DEFAULT_REINVESTMENT_RATE` |
+| `5d02e7e18` | `DEFAULT_OCCUPANCY_GROWTH_STEP` |
+| `ccb3efdcb` | `DEFAULT_AR_DAYS` + `DEFAULT_AP_DAYS` (paired) |
+| `fe730c7c9` | `DEFAULT_PROPERTY_INFLATION_RATE` + `DEFAULT_COMPANY_INFLATION_RATE` (paired) |
+| `b34b8d20a` | `DEFAULT_OFFICE_LEASE_START` + `DEFAULT_PROFESSIONAL_SERVICES_START` + `DEFAULT_TECH_INFRA_START` + `DEFAULT_BUSINESS_INSURANCE_START` (overhead quadruple) |
+
+**Deferred — plan required (cross-cutting refactors, NOT 1–3-hour increments):**
+- `DEFAULT_PROPERTY_INCOME_TAX_RATE` (20+ sites across client + calc + engine + verification) — see `docs/plans/t1-4-property-income-tax-rate-retirement.md`
+- `DEFAULT_LAND_VALUE_PERCENT` (30+ sites including 10 client-side `??` chains) — see `docs/plans/t1-4-land-value-percent-retirement.md`
+
+**Remaining bounded targets (still incremental-eligible):**
+- `DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`, `DEFAULT_ADR_GROWTH_RATE` — share the PropertyUnderwritingTab/Portfolio.tsx admin UI + route fallback profile; moderate cascade per constant
+- `DEFAULT_MARKETING_RATE`, `DEFAULT_MISC_OPS_RATE`, `DEFAULT_TRAVEL_COST_PER_CLIENT`, `DEFAULT_IT_LICENSE_PER_CLIENT` — overhead rate cluster, audit before classifying
+- `DEFAULT_ALERT_COOLDOWN_MINUTES` — has notifications/engine.ts `??` fallback
+
+**Context:** CLAUDE.md §2 prohibits TypeScript constants for financial values.
 **Done when (per constant):**
 - Constant removed from `constants*.ts`
-- Corresponding `model_defaults` row added via SQL migration with source comment
-- Engine reads the value via `getModelDefault(key)` (no TS fallback)
-- `check-magic-numbers` script passes
+- Corresponding `model_defaults` row added (already seeded for most via `seed-model-defaults.ts`) OR per-row schema column NOT NULL DEFAULT carries the bootstrap (e.g., `intelligence.maxStalenessHours`)
+- Engine reads the value via DB column (no TS fallback) OR keeps `?? <literal>` inline if PropertyInput type-tightening is deferred
+- `check-magic-numbers` script passes (re-init baseline as needed per the documented `--init` flow for intentional bootstrap-literal additions)
 
-**Effort:** 1–3 hours per constant
+**Effort:** 1–3 hours per constant for bounded targets; 1–2 days for cross-cutting refactors (see plan docs)
 **Owner:** CC only (constants files are in protected surface)
 
 ---
