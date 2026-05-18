@@ -1,14 +1,15 @@
 /**
  * SlideFactoryPanel — Slide Factory V2 pipeline wizard
  *
- * 6-tab wizard driven by run status.
+ * 6-step pipeline driven by run status. Each step is a collapsible section;
+ * the current step is automatically expanded as the run progresses.
  *
- *   Tab 1  f-brief       new / brief_ready
- *   Tab 2  f-lorenzo     ingesting
- *   Tab 3  f-properties  ingested
- *   Tab 4  f-lucca       drafting / draft_review
- *   Tab 5  f-agents      building / complete / error
- *   Tab 6  f-download    complete / error
+ *   Step 1  f-brief       new / brief_ready
+ *   Step 2  f-lorenzo     ingesting
+ *   Step 3  f-properties  ingested
+ *   Step 4  f-lucca       drafting / draft_review
+ *   Step 5  f-agents      building / complete / error
+ *   Step 6  f-download    complete / error
  *
  * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
  * immediately starts Lucca. Both endpoints return 202 Accepted.
@@ -16,8 +17,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 import { FACTORY_TABS } from "./SlideFactoryConstants";
 import { statusBadge, statusToTab } from "./SlideFactoryUtils";
@@ -66,6 +67,60 @@ export function SlideFactoryPanel() {
     );
   }
 
+  const getStepContent = (value: string): React.ReactNode => {
+    switch (value) {
+      case "f-brief":
+        return <FactoryBriefTab run={run} onRunUpdate={handleRunUpdate} />;
+      case "f-lorenzo":
+        return run ? (
+          <FactoryLorenzoTab run={run} />
+        ) : (
+          <PlaceholderTab
+            title="Lorenzo — Canonical ingestion"
+            description="Lorenzo will process the brief once it has been accepted."
+          />
+        );
+      case "f-properties":
+        return run?.status === "ingested" ? (
+          <FactoryPropertiesTab run={run} onRunUpdate={handleRunUpdate} />
+        ) : (
+          <PlaceholderTab
+            title="Properties"
+            description="Waiting for Lorenzo to finish ingesting the brief."
+          />
+        );
+      case "f-lucca":
+        return run && (run.status === "drafting" || run.status === "draft_review") ? (
+          <FactoryLuccaTab run={run} onRunUpdate={handleRunUpdate} />
+        ) : (
+          <PlaceholderTab
+            title="Lucca — Drafting"
+            description="Lucca will draft slide content once properties are assigned."
+          />
+        );
+      case "f-agents":
+        return run && (run.status === "building" || run.status === "complete" || run.status === "error") ? (
+          <FactoryAgentsTab run={run} />
+        ) : (
+          <PlaceholderTab
+            title="Agents — Building slides"
+            description="The slide agents will build each individual slide once the draft review is complete."
+          />
+        );
+      case "f-download":
+        return run && (run.status === "complete" || run.status === "rebuilding" || run.status === "error") ? (
+          <FactoryDownloadTab run={run} onRunUpdate={handleRunUpdate} />
+        ) : (
+          <PlaceholderTab
+            title="Complete — Download deck"
+            description="The deck will be available for download once all slides are built and approved."
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -77,77 +132,27 @@ export function SlideFactoryPanel() {
         )}
       </div>
 
-      <Tabs value={activeTab}>
-        <CurrentThemeTab
-          tabs={FACTORY_TABS.map(({ value, label }) => ({
-            value,
-            label,
-            disabled: value !== activeTab,
-            tooltipTitle: value !== activeTab ? "Complete the previous step to unlock" : undefined,
-          })) satisfies CurrentThemeTabItem[]}
-          activeTab={activeTab}
-          onTabChange={() => {}}
-        />
-
-        <TabsContent value="f-brief" className="mt-4">
-          <FactoryBriefTab run={run} onRunUpdate={handleRunUpdate} />
-        </TabsContent>
-
-        <TabsContent value="f-lorenzo" className="mt-4">
-          {run ? (
-            <FactoryLorenzoTab run={run} />
-          ) : (
-            <PlaceholderTab
-              title="Lorenzo — Canonical ingestion"
-              description="Lorenzo will process the brief once it has been accepted."
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="f-properties" className="mt-4">
-          {run?.status === "ingested" ? (
-            <FactoryPropertiesTab run={run} onRunUpdate={handleRunUpdate} />
-          ) : (
-            <PlaceholderTab
-              title="Properties"
-              description="Waiting for Lorenzo to finish ingesting the brief."
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="f-lucca" className="mt-4">
-          {run && (run.status === "drafting" || run.status === "draft_review") ? (
-            <FactoryLuccaTab run={run} onRunUpdate={handleRunUpdate} />
-          ) : (
-            <PlaceholderTab
-              title="Lucca — Drafting"
-              description="Lucca will draft slide content once properties are assigned."
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="f-agents" className="mt-4">
-          {run && (run.status === "building" || run.status === "complete" || run.status === "error") ? (
-            <FactoryAgentsTab run={run} />
-          ) : (
-            <PlaceholderTab
-              title="Agents — Building slides"
-              description="The slide agents will build each individual slide once the draft review is complete."
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="f-download" className="mt-4">
-          {run && (run.status === "complete" || run.status === "rebuilding" || run.status === "error") ? (
-            <FactoryDownloadTab run={run} onRunUpdate={handleRunUpdate} />
-          ) : (
-            <PlaceholderTab
-              title="Complete — Download deck"
-              description="The deck will be available for download once all slides are built and approved."
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      <CollapsibleSection
+        defaultOpenId={activeTab}
+        forceOpenId={activeTab}
+        items={FACTORY_TABS.map(({ value, label }) => ({
+          id: value,
+          summary: (
+            <span className="flex items-center gap-2">
+              {label}
+              {activeTab === value && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] text-green-700 border-green-300 dark:text-green-400 dark:border-green-700"
+                >
+                  Active
+                </Badge>
+              )}
+            </span>
+          ),
+          expandedContent: getStepContent(value),
+        }))}
+      />
     </div>
   );
 }

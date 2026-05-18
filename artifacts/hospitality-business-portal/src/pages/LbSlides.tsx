@@ -19,7 +19,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -256,7 +256,7 @@ export default function LbSlides() {
   const { data: propertiesRaw = [], isLoading: propsLoading } = useProperties();
   const { data: savedConfig, isLoading: configLoading } = useLbConfig();
 
-  const [activeTab, setActiveTab] = useState<SlideTab>("config");
+  const [forcedSection, setForcedSection] = useState<SlideTab | undefined>("config");
   const [slide1Id, setSlide1Id] = useState<number | null>(null);
   const [slide2Id, setSlide2Id] = useState<number | null>(null);
   const [slide3Id, setSlide3Id] = useState<number | null>(null);
@@ -347,16 +347,6 @@ export default function LbSlides() {
   };
   const badge = statusBadgeMap[status] ?? statusBadgeMap.idle;
 
-  const noPropertyForTab: Record<SlideTab, boolean> = {
-    config: false,
-    s1: !slide1Id,
-    s2: !slide2Id,
-    s3: !slide3Id,
-    s4: false,
-    s5: !slide5Id,
-    s6: false,
-  };
-
   return (
     <Layout>
       <AnimatedPage>
@@ -379,262 +369,291 @@ export default function LbSlides() {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SlideTab)}>
-            <CurrentThemeTab
-              tabs={[
-                { value: "config", label: "Setup" },
-                { value: "s1", label: "1 · Spotlight", suffix: <ReadinessTabBadge staleMissingCount={r1?.staleMissingCount} /> },
-                { value: "s2", label: "2 · Gallery", suffix: <ReadinessTabBadge staleMissingCount={r2?.staleMissingCount} /> },
-                { value: "s3", label: "3 · Investment", suffix: <ReadinessTabBadge staleMissingCount={r3?.staleMissingCount} /> },
-                { value: "s4", label: "4 · Portfolio" },
-                { value: "s5", label: "5 · Financials", suffix: <ReadinessTabBadge staleMissingCount={r5?.staleMissingCount} /> },
-                { value: "s6", label: "6 · Statement" },
-              ] satisfies CurrentThemeTabItem[]}
-              activeTab={activeTab}
-              onTabChange={(v) => setActiveTab(v as SlideTab)}
-            />
+          <CollapsibleSection
+            defaultOpenId="config"
+            forceOpenId={forcedSection}
+            lazyMount
+            items={[
+              {
+                id: "config",
+                summary: "Setup",
+                expandedContent: (
+                  <div className="space-y-4">
+                    {/* Property assignments */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Property Assignments</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <p className="text-sm text-muted-foreground">
+                          Slides 1, 2, 3, and 5 each spotlight one property. Slides 4 and 6 are auto-generated.
+                          After saving here, use the slide sections below to author copy for each property.
+                        </p>
 
-            {/* ── Config & Render tab ─────────────────────────────────── */}
-            <TabsContent value="config" className="mt-4 space-y-4">
-              {/* Property assignments */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Property Assignments</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <p className="text-sm text-muted-foreground">
-                    Slides 1, 2, 3, and 5 each spotlight one property. Slides 4 and 6 are auto-generated.
-                    After saving here, use the slide tabs to author copy for each property.
-                  </p>
+                        <SlidePropertySelector slideNum={1} description="Pipeline Spotlight · hero photo + specs" value={slide1Id} onChange={setSlide1Id} properties={propertiesRaw} disabled={isLoading} />
+                        <SlidePropertySelector slideNum={2} description="Photo Gallery · 2×2 photo showcase" value={slide2Id} onChange={setSlide2Id} properties={propertiesRaw} disabled={isLoading} />
+                        <SlidePropertySelector slideNum={3} description="Investment Model · concept + market rationale" value={slide3Id} onChange={setSlide3Id} properties={propertiesRaw} disabled={isLoading} />
+                        <SlidePropertySelector slideNum={5} description="Financial Snapshot · transformation plan" value={slide5Id} onChange={setSlide5Id} properties={propertiesRaw} disabled={isLoading} />
 
-                  <SlidePropertySelector slideNum={1} description="Pipeline Spotlight · hero photo + specs" value={slide1Id} onChange={setSlide1Id} properties={propertiesRaw} disabled={isLoading} />
-                  <SlidePropertySelector slideNum={2} description="Photo Gallery · 2×2 photo showcase" value={slide2Id} onChange={setSlide2Id} properties={propertiesRaw} disabled={isLoading} />
-                  <SlidePropertySelector slideNum={3} description="Investment Model · concept + market rationale" value={slide3Id} onChange={setSlide3Id} properties={propertiesRaw} disabled={isLoading} />
-                  <SlidePropertySelector slideNum={5} description="Financial Snapshot · transformation plan" value={slide5Id} onChange={setSlide5Id} properties={propertiesRaw} disabled={isLoading} />
+                        <div className="rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 text-sm space-y-0.5">
+                          <p className="font-medium text-foreground/80 text-xs uppercase tracking-wide mb-1">Auto-generated — no assignment needed</p>
+                          <p className="text-muted-foreground text-xs">Slide 4 — Portfolio grid of all properties with hero photos</p>
+                          <p className="text-muted-foreground text-xs">Slide 6 — 10-year aggregated USALI consolidated income statement</p>
+                        </div>
 
-                  <div className="rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 text-sm space-y-0.5">
-                    <p className="font-medium text-foreground/80 text-xs uppercase tracking-wide mb-1">Auto-generated — no assignment needed</p>
-                    <p className="text-muted-foreground text-xs">Slide 4 — Portfolio grid of all properties with hero photos</p>
-                    <p className="text-muted-foreground text-xs">Slide 6 — 10-year aggregated USALI consolidated income statement</p>
-                  </div>
-
-                  <Button
-                    onClick={handleSave}
-                    disabled={saveMutation.isPending || isLoading}
-                    className="w-full sm:w-auto"
-                  >
-                    {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                    Save configuration
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Readiness summary */}
-              {(slide1Id || slide2Id || slide3Id || slide5Id) && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Slide Readiness</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                      { num: 1, label: "Spotlight", r: r1 },
-                      { num: 2, label: "Gallery", r: r2 },
-                      { num: 3, label: "Investment", r: r3 },
-                      { num: 5, label: "Financials", r: r5 },
-                    ].map(({ num, label, r }) => {
-                      const missing = r?.staleMissingCount;
-                      return (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => setActiveTab(`s${num}` as SlideTab)}
-                          className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                        <Button
+                          onClick={handleSave}
+                          disabled={saveMutation.isPending || isLoading}
+                          className="w-full sm:w-auto"
                         >
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                            Slide {num}
-                          </span>
-                          <span className="text-xs text-foreground">{label}</span>
-                          {missing == null ? (
-                            <Badge variant="secondary" className="text-[10px]">Loading…</Badge>
-                          ) : missing === 0 ? (
-                            <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px]">Ready</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px]">{missing} slot{missing !== 1 ? "s" : ""} missing/stale</Badge>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                          {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                          Save configuration
+                        </Button>
+                      </CardContent>
+                    </Card>
 
-              {/* PDF render */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">PDF Render</CardTitle>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
+                    {/* Readiness summary — click a card to open that slide section */}
+                    {(slide1Id || slide2Id || slide3Id || slide5Id) && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">Slide Readiness</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {[
+                            { num: 1, label: "Spotlight", r: r1 },
+                            { num: 2, label: "Gallery", r: r2 },
+                            { num: 3, label: "Investment", r: r3 },
+                            { num: 5, label: "Financials", r: r5 },
+                          ].map(({ num, label, r }) => {
+                            const missing = r?.staleMissingCount;
+                            return (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => setForcedSection(`s${num}` as SlideTab)}
+                                className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                              >
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                  Slide {num}
+                                </span>
+                                <span className="text-xs text-foreground">{label}</span>
+                                {missing == null ? (
+                                  <Badge variant="secondary" className="text-[10px]">Loading…</Badge>
+                                ) : missing === 0 ? (
+                                  <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px]">Ready</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px]">{missing} slot{missing !== 1 ? "s" : ""} missing/stale</Badge>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* PDF render */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">PDF Render</CardTitle>
+                          <Badge variant={badge.variant}>{badge.label}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {renderStatus?.lastRenderedAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Last rendered: {new Date(renderStatus.lastRenderedAt).toLocaleString()}
+                          </p>
+                        )}
+                        {renderStatus?.lastError && (
+                          <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
+                            Error: {renderStatus.lastError}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Opens a headless browser, loads all 6 slides at native 960×540, and exports a single
+                          print-ready PDF. Takes ~30–60 seconds.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Button
+                            onClick={() => renderMutation.mutate()}
+                            disabled={!allConfigured || renderMutation.isPending || status === "rendering"}
+                            variant="default"
+                            title={!allConfigured ? "Assign all four properties before rendering" : undefined}
+                          >
+                            {status === "rendering" ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <IconRefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            {status === "rendering" ? "Rendering…" : "Render PDF"}
+                          </Button>
+                          {status === "ready" && (
+                            <Button asChild variant="outline">
+                              <a href="/api/lb-slides/download/combined.pdf" download="lb-slide-deck.pdf">
+                                <IconDownload className="w-4 h-4 mr-2" />
+                                Download PDF
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                        {!allConfigured && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Assign all four properties above and save before rendering.
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {renderStatus?.lastRenderedAt && (
-                    <p className="text-xs text-muted-foreground">
-                      Last rendered: {new Date(renderStatus.lastRenderedAt).toLocaleString()}
-                    </p>
-                  )}
-                  {renderStatus?.lastError && (
-                    <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
-                      Error: {renderStatus.lastError}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    Opens a headless browser, loads all 6 slides at native 960×540, and exports a single
-                    print-ready PDF. Takes ~30–60 seconds.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                      onClick={() => renderMutation.mutate()}
-                      disabled={!allConfigured || renderMutation.isPending || status === "rendering"}
-                      variant="default"
-                      title={!allConfigured ? "Assign all four properties before rendering" : undefined}
-                    >
-                      {status === "rendering" ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <IconRefreshCw className="w-4 h-4 mr-2" />
-                      )}
-                      {status === "rendering" ? "Rendering…" : "Render PDF"}
-                    </Button>
-                    {status === "ready" && (
-                      <Button asChild variant="outline">
-                        <a href="/api/lb-slides/download/combined.pdf" download="lb-slide-deck.pdf">
-                          <IconDownload className="w-4 h-4 mr-2" />
-                          Download PDF
-                        </a>
-                      </Button>
+                ),
+              },
+              {
+                id: "s1",
+                summary: "1 · Spotlight",
+                indicators: [<ReadinessTabBadge key="r1" staleMissingCount={r1?.staleMissingCount} />],
+                expandedContent: (
+                  <div className="space-y-3">
+                    <CanonicalReferenceToggle slideNum={1} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    {!slide1Id ? (
+                      <NoPropertyNotice slideNum={1} onGoToConfig={() => setForcedSection("config")} />
+                    ) : (
+                      <Slide1EditorPanel propertyId={slide1Id} />
                     )}
                   </div>
-                  {!allConfigured && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Assign all four properties above and save before rendering.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ── Slide editor tabs ──────────────────────────────────── */}
-            <TabsContent value="s1" className="mt-4 space-y-3">
-              <CanonicalReferenceToggle slideNum={1} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              {noPropertyForTab.s1 ? (
-                <NoPropertyNotice slideNum={1} onGoToConfig={() => setActiveTab("config")} />
-              ) : (
-                <Slide1EditorPanel propertyId={slide1Id!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="s2" className="mt-4 space-y-3">
-              <CanonicalReferenceToggle slideNum={2} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              {noPropertyForTab.s2 ? (
-                <NoPropertyNotice slideNum={2} onGoToConfig={() => setActiveTab("config")} />
-              ) : (
-                <Slide2EditorPanel propertyId={slide2Id!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="s3" className="mt-4 space-y-3">
-              <CanonicalReferenceToggle slideNum={3} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              {noPropertyForTab.s3 ? (
-                <NoPropertyNotice slideNum={3} onGoToConfig={() => setActiveTab("config")} />
-              ) : (
-                <Slide3EditorPanel propertyId={slide3Id!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="s4" className="mt-4 space-y-4">
-              <CanonicalReferenceToggle slideNum={4} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Slide 4 — Portfolio Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Slide 4 is a portfolio grid auto-generated from all properties. You can add an optional
-                    section subtitle that appears below the slide header.
-                  </p>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">
-                      Section subtitle{" "}
-                      <span className="font-normal text-muted-foreground">(optional)</span>
-                    </label>
-                    <Input
-                      value={slide4Subtitle}
-                      onChange={e => setSlide4Subtitle(e.target.value.slice(0, SLIDE4_SUBTITLE_MAX))}
-                      placeholder="e.g. Current acquisition pipeline across active markets"
-                      maxLength={SLIDE4_SUBTITLE_MAX}
-                    />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {slide4Subtitle.length}/{SLIDE4_SUBTITLE_MAX}
-                    </p>
+                ),
+              },
+              {
+                id: "s2",
+                summary: "2 · Gallery",
+                indicators: [<ReadinessTabBadge key="r2" staleMissingCount={r2?.staleMissingCount} />],
+                expandedContent: (
+                  <div className="space-y-3">
+                    <CanonicalReferenceToggle slideNum={2} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    {!slide2Id ? (
+                      <NoPropertyNotice slideNum={2} onGoToConfig={() => setForcedSection("config")} />
+                    ) : (
+                      <Slide2EditorPanel propertyId={slide2Id} />
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={saveMutation.isPending}
-                  >
-                    {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                    Save Slide 4
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="s5" className="mt-4 space-y-3">
-              <CanonicalReferenceToggle slideNum={5} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              {noPropertyForTab.s5 ? (
-                <NoPropertyNotice slideNum={5} onGoToConfig={() => setActiveTab("config")} />
-              ) : (
-                <Slide5EditorPanel propertyId={slide5Id!} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="s6" className="mt-4 space-y-4">
-              <CanonicalReferenceToggle slideNum={6} showCanonical={showCanonical} onToggle={toggleCanonical} />
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Slide 6 — Consolidated Income Statement</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Slide 6 is the 10-year aggregated USALI pro forma, calculated automatically from all
-                    portfolio properties. You can add an optional disclaimer for the callout box at the bottom.
-                  </p>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">
-                      Disclaimer{" "}
-                      <span className="font-normal text-muted-foreground">(optional)</span>
-                    </label>
-                    <Textarea
-                      value={slide6Disclaimer}
-                      onChange={e => setSlide6Disclaimer(e.target.value.slice(0, SLIDE6_DISCLAIMER_MAX))}
-                      placeholder="e.g. All projections are based on management's best estimates and subject to change."
-                      rows={3}
-                      maxLength={SLIDE6_DISCLAIMER_MAX}
-                    />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {slide6Disclaimer.length}/{SLIDE6_DISCLAIMER_MAX}
-                    </p>
+                ),
+              },
+              {
+                id: "s3",
+                summary: "3 · Investment",
+                indicators: [<ReadinessTabBadge key="r3" staleMissingCount={r3?.staleMissingCount} />],
+                expandedContent: (
+                  <div className="space-y-3">
+                    <CanonicalReferenceToggle slideNum={3} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    {!slide3Id ? (
+                      <NoPropertyNotice slideNum={3} onGoToConfig={() => setForcedSection("config")} />
+                    ) : (
+                      <Slide3EditorPanel propertyId={slide3Id} />
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={saveMutation.isPending}
-                  >
-                    {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                    Save Slide 6
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                ),
+              },
+              {
+                id: "s4",
+                summary: "4 · Portfolio",
+                expandedContent: (
+                  <div className="space-y-4">
+                    <CanonicalReferenceToggle slideNum={4} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Slide 4 — Portfolio Overview</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Slide 4 is a portfolio grid auto-generated from all properties. You can add an optional
+                          section subtitle that appears below the slide header.
+                        </p>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            Section subtitle{" "}
+                            <span className="font-normal text-muted-foreground">(optional)</span>
+                          </label>
+                          <Input
+                            value={slide4Subtitle}
+                            onChange={e => setSlide4Subtitle(e.target.value.slice(0, SLIDE4_SUBTITLE_MAX))}
+                            placeholder="e.g. Current acquisition pipeline across active markets"
+                            maxLength={SLIDE4_SUBTITLE_MAX}
+                          />
+                          <p className="text-xs text-muted-foreground text-right">
+                            {slide4Subtitle.length}/{SLIDE4_SUBTITLE_MAX}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleSave}
+                          disabled={saveMutation.isPending}
+                        >
+                          {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                          Save Slide 4
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ),
+              },
+              {
+                id: "s5",
+                summary: "5 · Financials",
+                indicators: [<ReadinessTabBadge key="r5" staleMissingCount={r5?.staleMissingCount} />],
+                expandedContent: (
+                  <div className="space-y-3">
+                    <CanonicalReferenceToggle slideNum={5} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    {!slide5Id ? (
+                      <NoPropertyNotice slideNum={5} onGoToConfig={() => setForcedSection("config")} />
+                    ) : (
+                      <Slide5EditorPanel propertyId={slide5Id} />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                id: "s6",
+                summary: "6 · Statement",
+                expandedContent: (
+                  <div className="space-y-4">
+                    <CanonicalReferenceToggle slideNum={6} showCanonical={showCanonical} onToggle={toggleCanonical} />
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Slide 6 — Consolidated Income Statement</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Slide 6 is the 10-year aggregated USALI pro forma, calculated automatically from all
+                          portfolio properties. You can add an optional disclaimer for the callout box at the bottom.
+                        </p>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            Disclaimer{" "}
+                            <span className="font-normal text-muted-foreground">(optional)</span>
+                          </label>
+                          <Textarea
+                            value={slide6Disclaimer}
+                            onChange={e => setSlide6Disclaimer(e.target.value.slice(0, SLIDE6_DISCLAIMER_MAX))}
+                            placeholder="e.g. All projections are based on management's best estimates and subject to change."
+                            rows={3}
+                            maxLength={SLIDE6_DISCLAIMER_MAX}
+                          />
+                          <p className="text-xs text-muted-foreground text-right">
+                            {slide6Disclaimer.length}/{SLIDE6_DISCLAIMER_MAX}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleSave}
+                          disabled={saveMutation.isPending}
+                        >
+                          {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                          Save Slide 6
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       </AnimatedPage>
     </Layout>

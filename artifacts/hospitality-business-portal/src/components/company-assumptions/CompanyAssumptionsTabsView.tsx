@@ -1,14 +1,21 @@
 /**
- * CompanyAssumptionsTabsView — Renders the 5-tab editor body for the Company
- * Assumptions page. Pure presentational composition; all state and handlers
- * are passed in. Extracted from `client/src/pages/CompanyAssumptions.tsx`
- * (task #471). The legacy `Company` tab (CompanySetupSection + TaxSection)
- * has been removed; those identity / tax fields are managed via
- * Admin → Model Defaults.
+ * CompanyAssumptionsTabsView — Renders the collapsible sections editor body
+ * for the Company Assumptions page. Pure presentational composition; all
+ * state and handlers are passed in. Extracted from
+ * `client/src/pages/CompanyAssumptions.tsx` (task #471).
+ *
+ * T2-7 (2026-05-18): Converted from horizontal tabs to CollapsibleSection.
+ * Each tab is now a collapsible section. Per-section Save / Cancel / Analyst
+ * buttons appear at the bottom of each section's expanded content. The
+ * `onSectionOpen` callback notifies the parent when a section is expanded so
+ * the parent can sync the URL (`?tab=`) and route Analyst calls correctly.
+ *
+ * The legacy `Company` tab (CompanySetupSection + TaxSection) has been
+ * removed; those identity / tax fields are managed via Admin → Model Defaults.
  */
 import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
 import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
-import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { SaveButton } from "@/components/ui/save-button";
 import { Button } from "@/components/ui/button";
 import { CancelButton } from "@/components/ui/cancel-button";
@@ -121,7 +128,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
     guidance,
   } = props;
 
-  const gating = getTabGating(activeTab);
   const freshnessStatus = computeFreshnessStatus({
     researchUpdatedAt: companyResearchUpdatedAt,
     lastAssumptionChangeAt,
@@ -139,13 +145,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
           />
         );
       case "funding":
-        // The funding tab balances two columns at md+:
-        //   col 1 → Capital Raises (the two tranches stacked vertically)
-        //   col 2 → Cost of Capital → Convertible Terms (two smaller cards)
-        // Capital Stack Discipline was moved to Admin → App Defaults →
-        // Management Company → Capital Stack Discipline (task #1400) and is
-        // no longer rendered here. The Analyst verdict renders below the grid
-        // full-width — the 5-dimension stack reads better as one wide column.
         return (
           <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 items-start">
@@ -218,29 +217,46 @@ export function CompanyAssumptionsTabsView(props: Props) {
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabKey)} className="space-y-6">
-      <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <CurrentThemeTab
-          tabs={tabKeys.map((k) => ({
-            value: k,
-            label: TAB_LABELS[k],
-            statusDot: tabWarnings[k]?.length > 0 ? "text-amber-500" : undefined,
-          }))}
-          activeTab={activeTab}
-          onTabChange={(v) => onTabChange(v as TabKey)}
-          rightContent={(() => {
-            const activeDirty = TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k));
-            const activeNeverSaved = !savedTabs.has(activeTab);
-            // Pre-selection badge state (Task C): on the Funding tab,
-            // when no ICP model is saved, replace the regular AnalystButton
-            // with a blue/muted "Select a model first" badge that opens
-            // the picker directly. The Analyst can't run without a model
-            // (server returns 400 ICP_MODEL_REQUIRED), so funneling the
-            // user to the picker first avoids a wasted click.
-            const showIcpPicker =
-              activeTab === "funding" && !icpModelTier && !!onSelectIcpModel;
-            return (
-              <div className="flex items-center gap-2">
+    <CollapsibleSection
+      defaultOpenId={activeTab}
+      forceOpenId={activeTab}
+      onSectionOpen={(id) => onTabChange(id as TabKey)}
+      items={tabKeys.map((tab) => {
+        const gating = getTabGating(tab);
+        const tabDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
+        const neverSaved = !savedTabs.has(tab);
+        const showIcpPicker = tab === "funding" && !icpModelTier && !!onSelectIcpModel;
+        const hasWarnings = (tabWarnings[tab]?.length ?? 0) > 0;
+
+        return {
+          id: tab,
+          summary: (
+            <span className="flex items-center gap-2">
+              {TAB_LABELS[tab]}
+              {hasWarnings && (
+                <span
+                  className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                  aria-label="has warnings"
+                />
+              )}
+            </span>
+          ),
+          indicators: hasWarnings
+            ? [
+                <span key="warn" className="text-xs text-amber-600 dark:text-amber-400">
+                  {tabWarnings[tab].length} warning{tabWarnings[tab].length !== 1 ? "s" : ""}
+                </span>,
+              ]
+            : undefined,
+          expandedContent: (
+            <div className="space-y-6" data-testid={`tab-content-${tab}`}>
+              <TabWarningsPanel
+                companyId={companyId}
+                warnings={tabWarnings[tab]}
+                onDismissWarning={(fieldName) => onDismissWarning(tab, fieldName)}
+              />
+              {renderBody(tab)}
+              <div className="flex items-center gap-2 pt-4 border-t border-border/30">
                 {showIcpPicker ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -251,8 +267,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
                         data-testid="button-select-icp-model"
                         className={cn(
                           "h-7 gap-1.5 text-xs",
-                          // Blue/muted palette so it reads as informational
-                          // rather than the amber "ready to run" Analyst CTA.
                           "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100 hover:text-sky-900",
                           "dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 dark:hover:bg-sky-900/40",
                         )}
@@ -273,49 +287,33 @@ export function CompanyAssumptionsTabsView(props: Props) {
                     isRunning={isGenerating}
                     disabled={!gating.enabled}
                     disabledReason={gating.reason}
-                    tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
+                    tooltip={`Consult the Analyst on ${TAB_LABELS[tab]}`}
                     size="sm"
                     freshnessStatus={freshnessStatus}
-                    dataTestId={`button-analyst-${activeTab}`}
+                    dataTestId={`button-analyst-${tab}`}
                   />
                 )}
-                {onCancelTab && (activeDirty || activeNeverSaved) && (
+                {onCancelTab && (tabDirty || neverSaved) && (
                   <CancelButton
                     size="sm"
                     onClick={onCancelTab}
-                    disabled={savingTab === activeTab && isUpdatePending}
-                    data-testid={`button-cancel-tab-${activeTab}`}
+                    disabled={savingTab === tab && isUpdatePending}
+                    data-testid={`button-cancel-tab-${tab}`}
                   />
                 )}
                 <SaveButton
-                  onClick={() => onSaveTab(activeTab, { force: activeNeverSaved && !activeDirty })}
-                  isPending={savingTab === activeTab && isUpdatePending}
-                  hasChanges={activeDirty || activeNeverSaved}
+                  onClick={() => onSaveTab(tab, { force: neverSaved && !tabDirty })}
+                  isPending={savingTab === tab && isUpdatePending}
+                  hasChanges={tabDirty || neverSaved}
                   alwaysActive
                   size="sm"
-                  data-testid={`button-save-tab-${activeTab}`}
+                  data-testid={`button-save-tab-${tab}`}
                 />
               </div>
-            );
-          })()}
-        />
-      </div>
-
-      {tabKeys.map((tab) => (
-        <TabsContent
-          key={tab}
-          value={tab}
-          className="mt-0 space-y-6"
-          data-testid={`tab-content-${tab}`}
-        >
-          <TabWarningsPanel
-            companyId={companyId}
-            warnings={tabWarnings[tab]}
-            onDismissWarning={(fieldName) => onDismissWarning(tab, fieldName)}
-          />
-          {renderBody(tab)}
-        </TabsContent>
-      ))}
-    </Tabs>
+            </div>
+          ),
+        };
+      })}
+    />
   );
 }

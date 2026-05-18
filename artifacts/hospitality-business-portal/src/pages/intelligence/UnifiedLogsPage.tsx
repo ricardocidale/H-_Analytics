@@ -27,7 +27,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { RUN_TYPE_LABELS, ANALYST_BRAND, AGENTS, ORCHESTRATORS, type RunType } from "@/lib/agent-taxonomy";
 import { IconList, IconBot, IconBrain, IconWand2, IconActivity } from "@/components/icons";
@@ -496,24 +496,33 @@ function RunsTab() {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function UnifiedLogsPage() {
-  const [activeTab, setActiveTab] = useState("runs");
-  const tabs: CurrentThemeTabItem[] = [
-    { value: "runs", label: "Runs", icon: IconList },
-    { value: "self-tests", label: "Self-tests", icon: IconActivity },
-  ];
   return (
     <div className="space-y-4" data-testid="unified-logs-page">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <CurrentThemeTab tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-
-        <TabsContent value="runs" className="mt-4">
-          <RunsTab />
-        </TabsContent>
-
-        <TabsContent value="self-tests" className="mt-4">
-          <SelfTestsTab />
-        </TabsContent>
-      </Tabs>
+      <CollapsibleSection
+        defaultOpenAll
+        items={[
+          {
+            id: "runs",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconList className="w-4 h-4 shrink-0" />
+                Runs
+              </span>
+            ),
+            expandedContent: <RunsTab />,
+          },
+          {
+            id: "self-tests",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconActivity className="w-4 h-4 shrink-0" />
+                Self-tests
+              </span>
+            ),
+            expandedContent: <SelfTestsTab />,
+          },
+        ]}
+      />
     </div>
   );
 }

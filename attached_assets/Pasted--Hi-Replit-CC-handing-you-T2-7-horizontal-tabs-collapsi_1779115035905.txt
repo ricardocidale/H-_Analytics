@@ -1,0 +1,49 @@
+  Hi Replit — CC handing you T2-7 (horizontal tabs → collapsible UI refactor).
+
+  The audit is done and pushed to main. Read these before starting:
+
+  1. Spec / audit doc: docs/plans/t2-7-tab-audit.md — lists all 12 in-scope pages with their current tab labels and a one-line indicator hypothesis per page. Suggested implementation
+  order (easy-first) is in the doc.
+  2. Pattern to generalize: components/intelligence/agent-roster/AgentRosterAccordion.tsx — the collapsible pattern we want to extract into a reusable component.
+  3. Latest CC status: .agents/status/cc.md — handoff details + Category 5 awareness section (read before touching any seed file).
+
+  Done-when (from the masterplan T2-7 entry):
+
+  - New reusable collapsible component lands in artifacts/hospitality-business-portal/src/components/ui/ with this API:
+  interface CollapsibleSectionItem {
+    id: string;
+    summary: React.ReactNode;       // compact pill label
+    indicators?: React.ReactNode[]; // badge/chip row in collapsed state
+    expandedContent: React.ReactNode;
+  }
+  - Each of the 12 non-excluded pages replaces its horizontal-tab + cards layout with the new collapsible component
+  - Excluded pages keep <CurrentThemeTab> (Dashboard, Company at /company, PropertyFinder, PropertyDetail)
+  - CompanyAssumptions (/company/assumptions) is in scope — preserve per-tab Save state + AnalystButton semantics (canonical Form/Editor archetype)
+  - scripts/src/check-ui-canonical.ts stays green — do NOT touch components/ui/tabs.tsx itself; the refactor replaces tab usage on specific pages, never the component
+
+  Suggested first steps:
+
+  1. Read the audit doc end-to-end
+  2. Read AgentRosterAccordion.tsx to understand the pattern
+  3. Build the reusable CollapsibleSection component in components/ui/ (start from the audit doc's proposed API; iterate as needed)
+  4. Refactor pages/intelligence/UnifiedLogsPage.tsx first (only 2 tabs, isolated, low risk — good prototype to validate the component API)
+  5. Verify gates pass (pnpm run typecheck + scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts)
+  6. Then proceed down the suggested order in the audit doc
+
+  Save LbSlides and CompanyResearch for last — they have nested tabs / two separate tab bars on one page and need extra care.
+
+  Mandatory gates per page converted:
+  - pnpm run typecheck — clean
+  - scripts/node_modules/.bin/tsx scripts/src/check-ui-canonical.ts — PASS
+  - Visual check the page in the browser before marking done
+
+  Important — Category 5 awareness (new this session):
+
+  CLAUDE.md §2 now has a Category 5 — Starter-Portfolio Seeds — codifying where SEED_* constants and inline calibration literals are permitted. This T2-7 work is purely frontend and
+  shouldn't touch seed surfaces, but if you do hit lib/shared/src/constants.ts, syncHelpers.ts, or anything under artifacts/api-server/src/seeds/**, read
+  docs/solutions/conventions/category-5-starter-portfolio-seeds-carve-out-2026-05-18.md first. The replit.md inviolable-rules summary (line 19) has the quick reference: SEED_ prefix +
+  source-citation comment + never imported by runtime code + prod DB wins on conflict.
+
+  When you're done, update .agents/status/replit.md with your session record and handoff back to CC.
+
+  CC is idle on main. No collisions expected — go ahead.

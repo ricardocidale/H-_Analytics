@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
-import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { IconFileCheck, IconActivity } from "@/components/icons";
 import { Share2 } from "@/components/icons/themed-icons";
 import { useAuth } from "@/lib/auth";
@@ -13,19 +13,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 
-type HelpTab = "user-manual" | "guided-tour" | "architecture";
-
 export default function Help() {
   const { isAdmin } = useAuth();
-  const [tab, setTab] = useState<HelpTab>("user-manual");
   const { triggerPrompt } = useWalkthroughStore();
-
-  useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      setTab("user-manual");
-    }
-  }, []);
   const queryClient = useQueryClient();
 
   const handleStartTour = useCallback(async () => {
@@ -39,63 +29,79 @@ export default function Help() {
     triggerPrompt();
   }, [queryClient, triggerPrompt]);
 
-  const tabs = [
-    { value: "user-manual" as const, label: "User Manual", icon: IconFileCheck },
-    ...(isAdmin ? [{ value: "architecture" as const, label: "Architecture", icon: Share2 }] : []),
-    { value: "guided-tour" as const, label: "Guided Tour", icon: IconActivity },
+  const items = [
+    {
+      id: "user-manual",
+      summary: (
+        <span className="flex items-center gap-2">
+          <IconFileCheck className="w-4 h-4 shrink-0" />
+          User Manual
+        </span>
+      ),
+      expandedContent: <UserManual embedded />,
+    },
+    ...(isAdmin
+      ? [
+          {
+            id: "architecture",
+            summary: (
+              <span className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 shrink-0" />
+                Architecture
+              </span>
+            ),
+            expandedContent: <DiagramsTab />,
+          },
+        ]
+      : []),
+    {
+      id: "guided-tour",
+      summary: (
+        <span className="flex items-center gap-2">
+          <IconActivity className="w-4 h-4 shrink-0" />
+          Guided Tour
+        </span>
+      ),
+      expandedContent: (
+        <Card className="bg-card border-border shadow-sm rounded-lg">
+          <div className="p-8 text-center space-y-6">
+            <div className="w-16 h-16 rounded-lg bg-primary/15 flex items-center justify-center mx-auto">
+              <IconActivity className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-display font-semibold">Interactive Guided Tour</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Walk through the key features of the application step by step. The tour highlights
+                navigation, tools, and important areas of the interface.
+              </p>
+            </div>
+            <Button
+              variant="default"
+              onClick={handleStartTour}
+              data-testid="button-start-guided-tour"
+            >
+              <IconActivity className="w-4 h-4" />
+              Start Guided Tour
+            </Button>
+          </div>
+        </Card>
+      ),
+    },
   ];
 
   return (
     <AnimatedPage>
-    <Layout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Help"
-          subtitle="Documentation, verification guides, and interactive tours"
-          variant="dark"
-        />
-
-        <Tabs value={tab} onValueChange={(v) => setTab(v as HelpTab)} className="w-full">
-          <CurrentThemeTab
-            tabs={tabs}
-            activeTab={tab}
-            onTabChange={(v) => setTab(v as HelpTab)}
+      <Layout>
+        <div className="space-y-6">
+          <PageHeader
+            title="Help"
+            subtitle="Documentation, verification guides, and interactive tours"
+            variant="dark"
           />
 
-          <TabsContent value="user-manual" className="space-y-6 mt-6">
-            <UserManual embedded />
-          </TabsContent>
-          {isAdmin && (
-            <TabsContent value="architecture" className="space-y-6 mt-6">
-              <DiagramsTab />
-            </TabsContent>
-          )}
-          <TabsContent value="guided-tour" className="space-y-6 mt-6">
-            <Card className="bg-card border-border shadow-sm rounded-lg">
-              <div className="p-8 text-center space-y-6">
-                <div className="w-16 h-16 rounded-lg bg-primary/15 flex items-center justify-center mx-auto">
-                  <IconActivity className="w-8 h-8 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-display font-semibold">Interactive Guided Tour</h2>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Walk through the key features of the application step by step. The tour highlights navigation, tools, and important areas of the interface.
-                  </p>
-                </div>
-                <Button
-                  variant="default"
-                  onClick={handleStartTour}
-                  data-testid="button-start-guided-tour"
-                >
-                  <IconActivity className="w-4 h-4" />
-                  Start Guided Tour
-                </Button>
-              </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Layout>
+          <CollapsibleSection defaultOpenId="user-manual" items={items} />
+        </div>
+      </Layout>
     </AnimatedPage>
   );
 }

@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { CurrentThemeTab } from "@/components/ui/tabs";
-import type { CurrentThemeTabItem } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { IconPlay, IconPause } from "@/components/icons";
 import { REBECCA_CARDS, ANALYST_CARDS } from "@/components/admin/brand-assets/animationCatalog";
 import type { AnimCard } from "@/components/admin/brand-assets/animationCatalog";
-
-type AnimTab = "rebecca" | "analyst";
-
-const TABS: CurrentThemeTabItem[] = [
-  { value: "rebecca", label: "Rebecca" },
-  { value: "analyst", label: "The Analyst" },
-];
 
 function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
   const [playingIds, setPlayingIds] = useState<Set<string>>(new Set());
@@ -30,7 +22,7 @@ function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
       {cards.map((card) => {
         const isPlaying = playingIds.has(card.id);
         return (
@@ -77,24 +69,27 @@ function AnimationCardGrid({ cards }: { cards: AnimCard[] }) {
 }
 
 export default function AnimationsPage() {
-  const [activeTab, setActiveTab] = useState<AnimTab>("rebecca");
-
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-6">
         Motion and animation assets for agent personas. Press play to preview each animation.
       </p>
 
-      <div className="mb-6">
-        <CurrentThemeTab
-          tabs={TABS}
-          activeTab={activeTab}
-          onTabChange={(v) => setActiveTab(v as AnimTab)}
-        />
-      </div>
-
-      {activeTab === "rebecca" && <AnimationCardGrid cards={REBECCA_CARDS} />}
-      {activeTab === "analyst" && <AnimationCardGrid cards={ANALYST_CARDS} />}
+      <CollapsibleSection
+        defaultOpenAll
+        items={[
+          {
+            id: "rebecca",
+            summary: "Rebecca",
+            expandedContent: <AnimationCardGrid cards={REBECCA_CARDS} />,
+          },
+          {
+            id: "analyst",
+            summary: "The Analyst",
+            expandedContent: <AnimationCardGrid cards={ANALYST_CARDS} />,
+          },
+        ]}
+      />
     </div>
   );
 }

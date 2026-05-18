@@ -5,7 +5,6 @@ import Layout from "@/components/Layout";
 import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { PageErrorState } from "@/components/ui/page-error-state";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { useMarketResearch, useGlobalAssumptions } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExportToolbar } from "@/components/ui/export-toolbar";
@@ -29,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RevenueFees, CostStructure, VendorIntelligence, CompetitivePosition } from "@/components/company-research/sections/OperationsSections";
 import { GuestPersonas, CapitalInvestor, MarketSizing, RegionalOpportunities } from "@/components/company-research/sections/MarketingSections";
 import { HospitalityOverview, SupplyDemand, EconomicClimate, TrendsInnovation } from "@/components/company-research/sections/IndustrySections";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 type GroupKey = "operations" | "marketing" | "industry";
 
@@ -67,14 +67,6 @@ export default function CompanyResearch() {
   const { data: globalRes, isLoading: loadingGlobal } = useMarketResearch("global");
   const { data: globalAssumptions } = useGlobalAssumptions();
   const [activeGroup, setActiveGroup] = useState<GroupKey>("operations");
-  const [subTabByGroup, setSubTabByGroup] = useState<Record<GroupKey, string>>({
-    operations: SUB_TABS.operations[0].value,
-    marketing: SUB_TABS.marketing[0].value,
-    industry: SUB_TABS.industry[0].value,
-  });
-  const subTab = subTabByGroup[activeGroup];
-  const setSubTab = (v: string) =>
-    setSubTabByGroup((prev) => ({ ...prev, [activeGroup]: v }));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
   const { requestSave, SaveDialog } = useExportSave();
@@ -103,6 +95,43 @@ export default function CompanyResearch() {
   }
   if (errorCompany) {
     return <PageErrorState message="Failed to load company research" />;
+  }
+
+  function getSectionContent(value: string): React.ReactNode {
+    switch (value) {
+      case "revenue-fees":
+        return <RevenueFees content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />;
+      case "cost-structure":
+        return <CostStructure content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />;
+      case "vendor-intel":
+        return <VendorIntelligence content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />;
+      case "competitive":
+        return <CompetitivePosition content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />;
+      case "criteria-ops":
+        return <ResearchCriteriaTab type="operations" />;
+      case "personas":
+        return <GuestPersonas hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "capital":
+        return <CapitalInvestor hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "market-sizing":
+        return <MarketSizing content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "regional":
+        return <RegionalOpportunities hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "criteria-mkt":
+        return <ResearchCriteriaTab type="marketing" />;
+      case "hospitality":
+        return <HospitalityOverview content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "supply-demand":
+        return <SupplyDemand content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "economic":
+        return <EconomicClimate hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "trends":
+        return <TrendsInnovation hasData={hasGlobal} onGenerate={generateResearch} />;
+      case "criteria-ind":
+        return <ResearchCriteriaTab type="industry" />;
+      default:
+        return null;
+    }
   }
 
   return (
@@ -209,61 +238,19 @@ export default function CompanyResearch() {
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
-                    <CurrentThemeTab
-                      tabs={SUB_TABS[activeGroup].map((t) => ({ value: t.value, label: t.label, icon: t.icon })) satisfies CurrentThemeTabItem[]}
-                      activeTab={subTab}
-                      onTabChange={setSubTab}
-                    />
-
-                    <TabsContent value="revenue-fees" className="mt-4">
-                      <RevenueFees content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="cost-structure" className="mt-4">
-                      <CostStructure content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="vendor-intel" className="mt-4">
-                      <VendorIntelligence content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="competitive" className="mt-4">
-                      <CompetitivePosition content={companyContent} hasData={hasCompany} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="criteria-ops" className="mt-4">
-                      <ResearchCriteriaTab type="operations" />
-                    </TabsContent>
-
-                    <TabsContent value="personas" className="mt-4">
-                      <GuestPersonas hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="capital" className="mt-4">
-                      <CapitalInvestor hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="market-sizing" className="mt-4">
-                      <MarketSizing content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="regional" className="mt-4">
-                      <RegionalOpportunities hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="criteria-mkt" className="mt-4">
-                      <ResearchCriteriaTab type="marketing" />
-                    </TabsContent>
-
-                    <TabsContent value="hospitality" className="mt-4">
-                      <HospitalityOverview content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="supply-demand" className="mt-4">
-                      <SupplyDemand content={globalContent} hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="economic" className="mt-4">
-                      <EconomicClimate hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="trends" className="mt-4">
-                      <TrendsInnovation hasData={hasGlobal} onGenerate={generateResearch} />
-                    </TabsContent>
-                    <TabsContent value="criteria-ind" className="mt-4">
-                      <ResearchCriteriaTab type="industry" />
-                    </TabsContent>
-                  </Tabs>
+                  <CollapsibleSection
+                    defaultOpenId={SUB_TABS[activeGroup][0].value}
+                    items={SUB_TABS[activeGroup].map((t) => ({
+                      id: t.value,
+                      summary: (
+                        <span className="flex items-center gap-2">
+                          <t.icon className="w-4 h-4 shrink-0" />
+                          {t.label}
+                        </span>
+                      ),
+                      expandedContent: getSectionContent(t.value),
+                    }))}
+                  />
                 </motion.div>
               </AnimatePresence>
             </>

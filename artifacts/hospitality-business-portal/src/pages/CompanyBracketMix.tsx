@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconTarget,
@@ -50,12 +50,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const TABS: CurrentThemeTabItem[] = [
-  { value: "bracket-mix", label: "Bracket Mix", icon: IconTarget },
-  { value: "market-evidence", label: "Market Evidence", icon: IconDatabase },
-  { value: "data-sources", label: "Data Sources", icon: IconGlobe },
-  { value: "legacy-icp", label: "Legacy ICP", icon: IconBookOpen },
-];
 
 function DataCard({ label, value }: { label: string; value: string }) {
   return (
@@ -1150,7 +1144,6 @@ function LegacyIcpTab({
 export function IcpMixContent() {
   const { data: global, isLoading } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
-  const [activeTab, setActiveTab] = useState("bracket-mix");
 
   const g = global as unknown as { icpConfig?: unknown; icpDescriptive?: unknown } | undefined;
 
@@ -1184,17 +1177,51 @@ export function IcpMixContent() {
 
   return (
     <div className="space-y-6">
-      <CurrentThemeTab tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-      <div>
-        {activeTab === "bracket-mix" && <BracketMixTab />}
-        {activeTab === "market-evidence" && (
-          <MarketEvidenceTab global={global} properties={properties} />
-        )}
-        {activeTab === "data-sources" && <DataSourcesTab />}
-        {activeTab === "legacy-icp" && (
-          <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />
-        )}
-      </div>
+      <CollapsibleSection
+        defaultOpenId="bracket-mix"
+        items={[
+          {
+            id: "bracket-mix",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconTarget className="w-4 h-4 shrink-0" />
+                Bracket Mix
+              </span>
+            ),
+            expandedContent: <BracketMixTab />,
+          },
+          {
+            id: "market-evidence",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconDatabase className="w-4 h-4 shrink-0" />
+                Market Evidence
+              </span>
+            ),
+            expandedContent: <MarketEvidenceTab global={global} properties={properties} />,
+          },
+          {
+            id: "data-sources",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconGlobe className="w-4 h-4 shrink-0" />
+                Data Sources
+              </span>
+            ),
+            expandedContent: <DataSourcesTab />,
+          },
+          {
+            id: "legacy-icp",
+            summary: (
+              <span className="flex items-center gap-2">
+                <IconBookOpen className="w-4 h-4 shrink-0" />
+                Legacy ICP
+              </span>
+            ),
+            expandedContent: <LegacyIcpTab icpConfig={icpConfig} icpDescriptive={icpDescriptive} />,
+          },
+        ]}
+      />
     </div>
   );
 }

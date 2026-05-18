@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -166,8 +166,6 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   }
 
   const { definition, config, assignments } = data;
-  const current = activeTab ?? tabsList[0]?.value;
-
   return (
     <div className="space-y-6" data-testid={`specialist-page-${specialistId}`}>
       <div className="space-y-2">
@@ -242,56 +240,63 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
       {tabsList.length === 0 ? (
         <Card><CardContent className="py-8 text-sm text-muted-foreground">This Specialist declares no capability tabs.</CardContent></Card>
       ) : (
-        <Tabs value={current} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <CurrentThemeTab
-            tabs={tabsList.map((t) => ({ value: t.value, label: t.label })) satisfies CurrentThemeTabItem[]}
-            activeTab={current}
-            onTabChange={(v) => setActiveTab(v as TabValue)}
-          />
-
-          <TabsContent value="workflow">
-            <WorkflowTab
-              specialistId={specialistId}
-              description={definition.description}
-              assignments={assignments}
-            />
-          </TabsContent>
-          <TabsContent value="identity">
-            <IdentityTab specialistId={specialistId} />
-          </TabsContent>
-          <TabsContent value="sources">
-            <SourcesTab specialistId={specialistId} />
-          </TabsContent>
-          {tabsList.find((t) => t.value === "required-fields") && (
-            <TabsContent value="required-fields">
-              <RequiredFieldsTab
-                specialistId={specialistId}
-                config={config}
-                candidateFields={data.definition.candidateFields ?? []}
-                prerequisites={data.definition.prerequisites ?? []}
-              />
-            </TabsContent>
-          )}
-          {tabsList.find((t) => t.value === "llm-config") && (
-            <TabsContent value="llm-config"><LlmConfigTab specialistId={specialistId} config={config} /></TabsContent>
-          )}
-          {tabsList.find((t) => t.value === "resource-assignments") && (
-            <TabsContent value="resource-assignments"><ResourceAssignmentsTab specialistId={specialistId} assignments={assignments} /></TabsContent>
-          )}
-          {tabsList.find((t) => t.value === "runtime") && (
-            <TabsContent value="runtime">
-              <div className="space-y-6">
-                {(definition.constantsOwned ?? []).length > 0 && (
-                  <CadenceCard specialistId={specialistId} config={config} />
-                )}
-                <RuntimeTab specialistId={specialistId} config={config} />
-              </div>
-            </TabsContent>
-          )}
-          {tabsList.find((t) => t.value === "audit") && (
-            <TabsContent value="audit"><AuditTab specialistId={specialistId} /></TabsContent>
-          )}
-        </Tabs>
+        <CollapsibleSection
+          key={specialistId}
+          defaultOpenId={tabsList[0]?.value}
+          forceOpenId={activeTab}
+          items={tabsList.map((t) => {
+            let content: React.ReactNode;
+            switch (t.value) {
+              case "workflow":
+                content = (
+                  <WorkflowTab
+                    specialistId={specialistId}
+                    description={definition.description}
+                    assignments={assignments}
+                  />
+                );
+                break;
+              case "identity":
+                content = <IdentityTab specialistId={specialistId} />;
+                break;
+              case "sources":
+                content = <SourcesTab specialistId={specialistId} />;
+                break;
+              case "required-fields":
+                content = (
+                  <RequiredFieldsTab
+                    specialistId={specialistId}
+                    config={config}
+                    candidateFields={data.definition.candidateFields ?? []}
+                    prerequisites={data.definition.prerequisites ?? []}
+                  />
+                );
+                break;
+              case "llm-config":
+                content = <LlmConfigTab specialistId={specialistId} config={config} />;
+                break;
+              case "resource-assignments":
+                content = <ResourceAssignmentsTab specialistId={specialistId} assignments={assignments} />;
+                break;
+              case "runtime":
+                content = (
+                  <div className="space-y-6">
+                    {(definition.constantsOwned ?? []).length > 0 && (
+                      <CadenceCard specialistId={specialistId} config={config} />
+                    )}
+                    <RuntimeTab specialistId={specialistId} config={config} />
+                  </div>
+                );
+                break;
+              case "audit":
+                content = <AuditTab specialistId={specialistId} />;
+                break;
+              default:
+                content = null;
+            }
+            return { id: t.value, summary: t.label, expandedContent: content };
+          })}
+        />
       )}
     </div>
   );

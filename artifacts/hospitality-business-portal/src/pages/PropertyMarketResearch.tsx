@@ -6,7 +6,6 @@ import { useProperty, useMarketResearch, useGlobalAssumptions } from "@/lib/api"
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { ExportToolbar } from "@/components/ui/export-toolbar";
-import { Tabs, TabsContent, CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconRefreshCw, IconMapPin, IconBookOpen,
@@ -23,10 +22,10 @@ import { ResearchLoadingOverlay } from "@/components/research/ResearchLoadingOve
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
-import { motion } from "framer-motion";
 import { MarketTab, RevenueTab, FinancialTab, OperatingTab, SourcesTab } from "@/components/research/MarketResearchTabs";
 import { PipelineStrTab } from "@/components/research/PipelineStrTab";
 import { card } from "@/components/research/research-chart-shared";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 export default function PropertyMarketResearch() {
   const [, params] = useRoute("/property/:id/research");
@@ -34,14 +33,10 @@ export default function PropertyMarketResearch() {
   const { data: property, isLoading: propertyLoading } = useProperty(propertyId);
   const { data: global } = useGlobalAssumptions();
   const { data: research, isLoading: researchLoading } = useMarketResearch("property", propertyId);
-  const [activeTab, setActiveTab] = useState("market");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
 
   const { requestSave, SaveDialog } = useExportSave();
-  // when the server's catalog hard-required gate rejects a
-  // property research run, surface the deep-link prompt instead of a
-  // generic toast.
   const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
     open: boolean;
     specialistId: string;
@@ -192,67 +187,132 @@ export default function PropertyMarketResearch() {
 
           {hasResearch && !isGenerating && (
             <>
-            <MethodologyTransparencyPanel
-              entityType="property"
-              entityName={property.name}
-              research={{
-                updatedAt: research?.updatedAt,
-                modelId: content?.modelId,
-                sources: content?.sources,
-                comparableCount: content?.comparableProperties?.length ?? content?.compSetSize,
-                starRating: content?.starRating,
-                relaxationTrail: content?.relaxationTrail,
-                tierUsed: content?.tierUsed,
-              }}
-            />
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <CurrentThemeTab
-                tabs={[
-                  { value: "market", label: "Market", icon: IconMapPin },
-                  { value: "revenue", label: "Revenue", icon: IconTrendingUp },
-                  { value: "financial", label: "Financial", icon: IconDollarSign },
-                  { value: "operating", label: "Operating", icon: IconBarChart3 },
-                  { value: "rates", label: "Rates", icon: IconDollarSign },
-                  { value: "sources", label: "Sources", icon: IconBookOpen },
-                  { value: "pipeline-str", label: "Pipeline & STR", icon: IconBuilding },
-                  { value: "criteria", label: "Criteria", icon: IconPieChart },
-                ] satisfies CurrentThemeTabItem[]}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
+              <MethodologyTransparencyPanel
+                entityType="property"
+                entityName={property.name}
+                research={{
+                  updatedAt: research?.updatedAt,
+                  modelId: content?.modelId,
+                  sources: content?.sources,
+                  comparableCount: content?.comparableProperties?.length ?? content?.compSetSize,
+                  starRating: content?.starRating,
+                  relaxationTrail: content?.relaxationTrail,
+                  tierUsed: content?.tierUsed,
+                }}
               />
-
-              <TabsContent value="market"><MarketTab content={content as Parameters<typeof MarketTab>[0]['content']} propertyLocation={property.location} /></TabsContent>
-              <TabsContent value="revenue"><RevenueTab content={content as Parameters<typeof RevenueTab>[0]['content']} /></TabsContent>
-              <TabsContent value="financial"><FinancialTab content={content as Parameters<typeof FinancialTab>[0]['content']} /></TabsContent>
-              <TabsContent value="operating"><OperatingTab content={content as Parameters<typeof OperatingTab>[0]['content']} /></TabsContent>
-              <TabsContent value="rates">
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                  <div className={`${card} p-6 space-y-6`}>
-                    <MarketRateBenchmark
-                      applicableRates={["sofr", "treasury10y", "primeRate"]}
-                    />
-                  </div>
-                </motion.div>
-              </TabsContent>
-              <TabsContent value="sources">
-                <SourcesTab content={content as Parameters<typeof SourcesTab>[0]['content']} />
-              </TabsContent>
-              <TabsContent value="pipeline-str">
-                <PipelineStrTab
-                  propertyId={propertyId}
-                  baselineRevpar={
-                    typeof property.startAdr === "number" && typeof property.startOccupancy === "number"
-                      ? property.startAdr * property.startOccupancy
-                      : undefined
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="criteria">
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                  <ResearchCriteriaTab type="property" />
-                </motion.div>
-              </TabsContent>
-            </Tabs>
+              <CollapsibleSection
+                defaultOpenId="market"
+                items={[
+                  {
+                    id: "market",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconMapPin className="w-4 h-4 shrink-0" />
+                        Market
+                      </span>
+                    ),
+                    expandedContent: (
+                      <MarketTab
+                        content={content as Parameters<typeof MarketTab>[0]["content"]}
+                        propertyLocation={property.location}
+                      />
+                    ),
+                  },
+                  {
+                    id: "revenue",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconTrendingUp className="w-4 h-4 shrink-0" />
+                        Revenue
+                      </span>
+                    ),
+                    expandedContent: (
+                      <RevenueTab content={content as Parameters<typeof RevenueTab>[0]["content"]} />
+                    ),
+                  },
+                  {
+                    id: "financial",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconDollarSign className="w-4 h-4 shrink-0" />
+                        Financial
+                      </span>
+                    ),
+                    expandedContent: (
+                      <FinancialTab content={content as Parameters<typeof FinancialTab>[0]["content"]} />
+                    ),
+                  },
+                  {
+                    id: "operating",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconBarChart3 className="w-4 h-4 shrink-0" />
+                        Operating
+                      </span>
+                    ),
+                    expandedContent: (
+                      <OperatingTab content={content as Parameters<typeof OperatingTab>[0]["content"]} />
+                    ),
+                  },
+                  {
+                    id: "rates",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconDollarSign className="w-4 h-4 shrink-0" />
+                        Rates
+                      </span>
+                    ),
+                    expandedContent: (
+                      <div className={`${card} p-6 space-y-6`}>
+                        <MarketRateBenchmark
+                          applicableRates={["sofr", "treasury10y", "primeRate"]}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "sources",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconBookOpen className="w-4 h-4 shrink-0" />
+                        Sources
+                      </span>
+                    ),
+                    expandedContent: (
+                      <SourcesTab content={content as Parameters<typeof SourcesTab>[0]["content"]} />
+                    ),
+                  },
+                  {
+                    id: "pipeline-str",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconBuilding className="w-4 h-4 shrink-0" />
+                        Pipeline &amp; STR
+                      </span>
+                    ),
+                    expandedContent: (
+                      <PipelineStrTab
+                        propertyId={propertyId}
+                        baselineRevpar={
+                          typeof property.startAdr === "number" && typeof property.startOccupancy === "number"
+                            ? property.startAdr * property.startOccupancy
+                            : undefined
+                        }
+                      />
+                    ),
+                  },
+                  {
+                    id: "criteria",
+                    summary: (
+                      <span className="flex items-center gap-2">
+                        <IconPieChart className="w-4 h-4 shrink-0" />
+                        Criteria
+                      </span>
+                    ),
+                    expandedContent: <ResearchCriteriaTab type="property" />,
+                  },
+                ]}
+              />
             </>
           )}
         </div>
