@@ -7,7 +7,12 @@ import { SaveButton } from "@/components/ui/save-button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconBrain, IconLibrary, IconRefreshCw, IconResearch } from "@/components/icons";
@@ -39,6 +44,11 @@ export default function ResearchTab() {
 
   const [draft, setDraft] = useState<ResearchConfig>({});
   const [isDirty, setIsDirty] = useState(false);
+  const [openTypes, setOpenTypes] = useState<Record<string, boolean>>({
+    property: true,
+    company: false,
+    global: false,
+  });
 
   useEffect(() => {
     if (savedConfig) {
@@ -192,61 +202,78 @@ export default function ResearchTab() {
         </CardContent>
       </Card>
 
-      <Card className="bg-white/80 backdrop-blur-xl border-primary/20">
-        <CardContent className="pt-5">
-          <Accordion type="multiple" className="space-y-2">
-            {types.map((type) => {
-              const meta = EVENT_META[type];
-              const Icon = meta.icon;
-              const config = mergeConfig(draft[type]);
+      <div className="space-y-2">
+        {types.map((type) => {
+          const meta = EVENT_META[type];
+          const Icon = meta.icon;
+          const config = mergeConfig(draft[type]);
+          const open = openTypes[type] ?? false;
 
-              return (
-                <AccordionItem
-                  key={type}
-                  value={type}
-                  className="border border-border/60 rounded-xl px-4 data-[state=open]:border-primary/30"
-                  data-testid={`accordion-${type}`}
-                >
-                  <AccordionTrigger className="py-3 hover:no-underline" data-testid={`trigger-${type}`}>
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <div className="text-left">
+          return (
+            <Card
+              key={type}
+              className="overflow-hidden"
+              data-testid={`accordion-${type}`}
+            >
+              <Collapsible
+                open={open}
+                onOpenChange={(v) =>
+                  setOpenTypes((prev) => ({ ...prev, [type]: v }))
+                }
+              >
+                <CollapsibleTrigger asChild>
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                    data-testid={`trigger-${type}`}
+                    aria-expanded={open}
+                  >
+                    {open ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    )}
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                         <span className="text-sm font-medium">{meta.label}</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Badge
-                            variant={config.enabled ? "default" : "secondary"}
-                            className="text-[10px] h-4 px-1.5"
-                            data-testid={`badge-status-${type}`}
-                          >
-                            {config.enabled ? "enabled" : "disabled"}
-                          </Badge>
-                          {(config.focusAreas ?? []).length > 0 && (
-                            <span className="text-[10px] text-muted-foreground" data-testid={`text-focus-count-${type}`}>
-                              {config.focusAreas!.length} focus area{config.focusAreas!.length > 1 ? "s" : ""}
-                            </span>
-                          )}
-                          {(config.enabledTools ?? []).length > 0 && (
-                            <span className="text-[10px] text-muted-foreground" data-testid={`text-tools-count-${type}`}>
-                              {config.enabledTools!.length}/{DETERMINISTIC_TOOLS.length} tools
-                            </span>
-                          )}
-                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={config.enabled ? "default" : "secondary"}
+                          className="text-[10px] h-4 px-1.5"
+                          data-testid={`badge-status-${type}`}
+                        >
+                          {config.enabled ? "enabled" : "disabled"}
+                        </Badge>
+                        {(config.focusAreas ?? []).length > 0 && (
+                          <span className="text-[10px] text-muted-foreground" data-testid={`text-focus-count-${type}`}>
+                            {config.focusAreas!.length} focus area{config.focusAreas!.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {(config.enabledTools ?? []).length > 0 && (
+                          <span className="text-[10px] text-muted-foreground" data-testid={`text-tools-count-${type}`}>
+                            {config.enabledTools!.length}/{DETERMINISTIC_TOOLS.length} tools
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 pt-1">
+                  </button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 pt-3 border-t">
                     <EventConfigSection
                       type={type}
                       config={config}
                       onChange={(updated) => updateEvent(type, updated)}
                     />
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        </CardContent>
-      </Card>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          );
+        })}
+      </div>
 
       <Card className="bg-white/80 backdrop-blur-xl border-primary/20">
         <CardHeader>

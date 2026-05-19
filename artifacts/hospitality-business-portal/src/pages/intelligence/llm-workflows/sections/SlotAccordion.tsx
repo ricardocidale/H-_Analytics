@@ -8,20 +8,15 @@
  * Extracted from LlmWorkflowsPage.tsx during the task-1358 section split.
  */
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import type { ResourcePublicView } from "@shared/schema";
 import type { LlmRegistryState } from "@/lib/api/admin";
 import { SLOT_GROUPS, SLOT_GROUP_CATEGORY_MAP, type LlmCategory } from "../constants";
@@ -55,12 +50,14 @@ export function SlotAccordion({
     ? SLOT_GROUPS.filter((g) => SLOT_GROUP_CATEGORY_MAP[g.id] === category)
     : SLOT_GROUPS;
 
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    visibleGroups.slice(0, 2).forEach((g) => { init[g.id] = true; });
+    return init;
+  });
+
   return (
-    <Accordion
-      type="multiple"
-      defaultValue={visibleGroups.slice(0, 2).map((g) => g.id)}
-      className="space-y-3"
-    >
+    <div className="space-y-3">
       {visibleGroups.map((group) => {
         const groupSlots = slotResources.filter((s) =>
           group.slots.includes(s.slug),
@@ -68,45 +65,56 @@ export function SlotAccordion({
         const dirtyInGroup = groupSlots.filter(
           (s) => selections[s.id]?.modelSlug !== originalSlugs[s.id],
         ).length;
+        const open = openGroups[group.id] ?? false;
 
         return (
-          <AccordionItem
+          <Card
             key={group.id}
-            value={group.id}
-            className="border-0"
+            className="overflow-hidden"
             data-testid={`accordion-group-${group.id}`}
           >
-            <Card className="overflow-hidden">
-              <CardHeader className="p-0">
-                <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/40 transition-colors w-full text-left [&[data-state=open]]:bg-muted/30">
-                  <div className="flex items-center gap-2.5 min-w-0 mr-3">
-                    <CardTitle className="text-sm font-semibold shrink-0">
-                      {group.label}
-                    </CardTitle>
+            <Collapsible
+              open={open}
+              onOpenChange={(v) =>
+                setOpenGroups((prev) => ({ ...prev, [group.id]: v }))
+              }
+            >
+              <CollapsibleTrigger asChild>
+                <button
+                  className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
+                  aria-expanded={open}
+                >
+                  {open ? (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="font-semibold text-sm shrink-0">
+                    {group.label}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 h-4 shrink-0"
+                  >
+                    {groupSlots.length} slot
+                    {groupSlots.length !== 1 ? "s" : ""}
+                  </Badge>
+                  {dirtyInGroup > 0 && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 h-4 shrink-0"
+                      className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-700 border-amber-300 shrink-0"
                     >
-                      {groupSlots.length} slot
-                      {groupSlots.length !== 1 ? "s" : ""}
+                      {dirtyInGroup} unsaved
                     </Badge>
-                    {dirtyInGroup > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-700 border-amber-300 shrink-0"
-                      >
-                        {dirtyInGroup} unsaved
-                      </Badge>
-                    )}
-                    <CardDescription className="text-[11px] truncate hidden sm:block">
-                      {group.description}
-                    </CardDescription>
-                  </div>
-                </AccordionTrigger>
-              </CardHeader>
+                  )}
+                  <span className="text-[11px] text-muted-foreground truncate hidden sm:block ml-auto">
+                    {group.description}
+                  </span>
+                </button>
+              </CollapsibleTrigger>
 
-              <AccordionContent>
-                <CardContent className="px-5 pb-5 pt-0">
+              <CollapsibleContent>
+                <CardContent className="px-5 pb-5 pt-4 border-t">
                   {groupSlots.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-3">
                       No slots found — run the admin-resources migration to
@@ -148,11 +156,11 @@ export function SlotAccordion({
                     </div>
                   )}
                 </CardContent>
-              </AccordionContent>
-            </Card>
-          </AccordionItem>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
         );
       })}
-    </Accordion>
+    </div>
   );
 }
