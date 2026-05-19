@@ -29,6 +29,8 @@ import { db } from "../../db";
 import { modelDefaults } from "@workspace/db";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
+import { runValentinaResearch, VALENTINA_ENABLED_PARAM, type ValentinaInputRow } from "../../ai/valentina-model-defaults";
+import { storage } from "../../storage";
 
 const patchBodySchema = z.object({
   value: z.unknown(),
@@ -140,6 +142,74 @@ export function registerModelDefaultsRoutes(app: Express) {
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to accept model default proposal", error, "AMDF-003");
+    }
+  });
+
+  // ── Valentina: trigger model defaults research ──────────────────────
+  app.post("/api/admin/model-defaults/research", requireAdmin, async (req, res) => {
+    try {
+      // Feature flag gate — ships dark (value: 0).
+      const flagRow = await storage.getAdminResourceBySlug?.("parameter", VALENTINA_ENABLED_PARAM);
+      const flagValue = (flagRow?.config as { value?: number } | undefined)?.value ?? 0;
+      if (flagValue !== 1) {
+        return res.status(503).json({ error: "Valentina is not yet enabled", code: "MD-001" });
+      }
+
+      // Fetch seed rows from property and management_company categories.
+      const rows = await db
+        .select()
+        .from(modelDefaults)
+        .then((all) =>
+          all.filter(
+            (r) => r.lastSetSource === "seed" && ["property", "management_company"].includes(r.category),
+          ),
+        );
+
+      if (rows.length === 0) {
+        return res.json({ proposed: 0, skipped: 0, runId: null });
+      }
+
+      const inputRows: ValentinaInputRow[] = rows.map((r) => ({
+        id: r.id,
+        defaultKey: r.defaultKey,
+        label: r.label,
+        unit: r.unit ?? null,
+        value: r.value,
+        category: r.category,
+        subTab: r.subTab,
+      }));
+
+      const proposals = await runValentinaResearch(inputRows);
+
+      let proposed = 0;
+      let skipped = 0;
+
+      for (const proposal of proposals) {
+        if (proposal.skipped) {
+          skipped++;
+          continue;
+        }
+
+        await db
+          .update(modelDefaults)
+          .set({
+            proposedValue: proposal.proposedValue as never,
+            proposedRangeLow: proposal.proposedRangeLow as never,
+            proposedRangeHigh: proposal.proposedRangeHigh as never,
+            proposedAuthority: proposal.proposedAuthority ?? null,
+            proposedReferenceUrl: proposal.proposedReferenceUrl ?? null,
+            proposedConviction: proposal.proposedConviction ?? null,
+            proposedAt: new Date(),
+          })
+          .where(eq(modelDefaults.id, proposal.id));
+
+        proposed++;
+      }
+
+      logActivity(req, "trigger-valentina-research", "model-defaults", null, `Proposed ${proposed}, skipped ${skipped}`, { proposed, skipped });
+      res.json({ proposed, skipped, runId: null });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to run Valentina research", error, "AMDF-012");
     }
   });
 

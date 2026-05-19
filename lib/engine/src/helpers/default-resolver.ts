@@ -35,6 +35,13 @@ export interface ModelDefaultsInput {
 // ── Quality tier occupancy brackets — sourced from constants-benchmarks.ts ──
 const QUALITY_TIER_OCCUPANCY = QUALITY_TIER_OCCUPANCY_BRACKETS;
 
+export class ModelDefaultsMissingTierError extends Error {
+  constructor(public readonly qualityTier: string) {
+    super(`model_defaults.adrByTier has no entry for quality tier "${qualityTier}"`);
+    this.name = "ModelDefaultsMissingTierError";
+  }
+}
+
 export interface PropertyDefaults {
   // Revenue
   startAdr: number;
@@ -171,10 +178,9 @@ export function computePropertyDefaults(
 
   // ── 3. Quality tier ADR & occupancy ──────────────────────────────────────
   const tierAdr = modelDefaultsInput.adrByTier[qualityTier];
-  const startAdr = tierAdr ? tierAdr.default : modelDefaultsInput.adrByTier["upscale"]?.default ?? 220;
-  sources.startAdr = tierAdr
-    ? `model_defaults:adrByTier:${qualityTier}:range_${tierAdr.min}-${tierAdr.max}`
-    : "model_defaults:adrByTier:upscale:fallback";
+  if (!tierAdr) throw new ModelDefaultsMissingTierError(qualityTier);
+  const startAdr = tierAdr.default;
+  sources.startAdr = `model_defaults:adrByTier:${qualityTier}:range_${tierAdr.min}-${tierAdr.max}`;
 
   const tierOcc = QUALITY_TIER_OCCUPANCY[qualityTier];
   const startOccupancy = tierOcc ? tierOcc.default : DEFAULT_FALLBACK_OCCUPANCY;

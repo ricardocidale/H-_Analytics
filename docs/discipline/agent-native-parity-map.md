@@ -293,3 +293,12 @@ Audit record of call sites rerouted through Matteo feature flags. Flag off → p
 |---|---|---|---|---|
 | `routes/documents.ts` → `runAnalysisPipeline` (PDF only) | `matteo-enable-pdf-ocr-extraction` | `document-ai` (Google) | `pdf-ocr-extraction` (Mistral OCR 3) | 2026-05-18 |
 | `ai/executive-summary/llm-sections.ts` → `callLlmForText` | `matteo-enable-bulk-text-synthesis` | `executive-summary-property` / `executive-summary-portfolio` | `bulk-text-synthesis` (DeepSeek) | 2026-05-18 |
+
+
+## Model Defaults Research Actions (Phase 2 / U5)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Trigger Valentina model defaults research | Admin → Model Defaults → Research button | `trigger_model_defaults_research` | ✅ |
+| Accept analyst proposal | Admin → Model Defaults → Pending Proposals → Accept | — | 🚫 N/A (high-stakes admin decision; requires deliberate UI action) |
+| Reject analyst proposal | Admin → Model Defaults → Pending Proposals → Reject | — | 🚫 N/A (admin-only disposition action) |

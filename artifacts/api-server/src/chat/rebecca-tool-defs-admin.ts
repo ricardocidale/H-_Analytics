@@ -418,5 +418,18 @@ export function getAdminTools(): ToolParam[] {
         required: [],
       },
     },
+    {
+      name: "trigger_model_defaults_research",
+      description:
+        "Trigger Valentina to research current industry benchmarks for all model_defaults rows where lastSetSource='seed'. " +
+        "Valentina proposes updated values (with conviction level and source citations) for admin review via the pending-proposals queue. " +
+        "Returns { proposed: N, skipped: M } — proposed rows have pending proposals; skipped rows were ineligible (e.g. JSON-blob tier maps, funding preferences). " +
+        "Requires the valentina-enabled feature flag to be set to 1 by an admin. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
   ];
 }

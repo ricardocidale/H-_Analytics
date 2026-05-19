@@ -421,6 +421,13 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_014");
   }
 
+  // admin-resources-015 — Valentina LLM slot + feature flag (ships dark).
+  if (!(await isMigrationApplied("admin_resources_015"))) {
+    const { runAdminResources015 } = await import("../migrations/admin-resources-015");
+    await runAdminResources015();
+    await markMigrationApplied("admin_resources_015");
+  }
+
   // T2-1 — Investor perspective role column on scenarios.
   // Adds perspective_role text NOT NULL DEFAULT 'operator' to scenarios.
   if (!(await isMigrationApplied("scenario_perspective_role_001"))) {

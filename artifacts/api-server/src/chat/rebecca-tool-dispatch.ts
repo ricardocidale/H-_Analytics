@@ -115,6 +115,7 @@ import {
   toolGetBracketMix,
   toolUpdateBracketMix,
   toolDownloadLlmCostSummary,
+  toolTriggerModelDefaultsResearch,
 } from "./rebecca-tool-impls-admin";
 import {
   toolListPortfolios,
@@ -328,6 +329,8 @@ export async function dispatchRebeccaTool(
         return await toolUpdateBracketMix(args, ctx);
       case "download_llm_cost_summary":
         return await toolDownloadLlmCostSummary(args, ctx);
+      case "trigger_model_defaults_research":
+        return await toolTriggerModelDefaultsResearch(args, ctx);
       case "generate_financial_report_export_link":
         return toolGenerateFinancialReportExportLink(args);
       case "generate_executive_summary":

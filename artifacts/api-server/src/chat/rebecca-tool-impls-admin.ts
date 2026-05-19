@@ -878,3 +878,87 @@ export async function toolDownloadLlmCostSummary(
   const windowDays = Math.floor(rawDays);
   return { result: await computeLlmCostSummary(windowDays) };
 }
+
+// ---------------------------------------------------------------------------
+// trigger_model_defaults_research — Valentina (U5)
+// ---------------------------------------------------------------------------
+
+export async function toolTriggerModelDefaultsResearch(
+  _args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { runValentinaResearch, VALENTINA_ENABLED_PARAM } = await import("../ai/valentina-model-defaults");
+  const flagRow = await storage.getAdminResourceBySlug?.("parameter", VALENTINA_ENABLED_PARAM);
+  const flagValue = (flagRow?.config as { value?: number } | undefined)?.value ?? 0;
+  if (flagValue !== 1) {
+    return {
+      result: {
+        error: "Valentina is not yet enabled. Ask the admin to enable the valentina-enabled feature flag (set config.value to 1 via update_admin_resource).",
+        code: "MD-001",
+      },
+    };
+  }
+
+  const { db } = await import("../db");
+  const { modelDefaults } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .then((all) =>
+      all.filter(
+        (r) => r.lastSetSource === "seed" && ["property", "management_company"].includes(r.category),
+      ),
+    );
+
+  if (rows.length === 0) {
+    return { result: { message: "No seed rows found to research.", proposed: 0, skipped: 0 } };
+  }
+
+  const inputRows = rows.map((r) => ({
+    id: r.id,
+    defaultKey: r.defaultKey,
+    label: r.label,
+    unit: r.unit ?? null,
+    value: r.value,
+    category: r.category,
+    subTab: r.subTab,
+  }));
+
+  const proposals = await runValentinaResearch(inputRows);
+
+  let proposed = 0;
+  let skipped = 0;
+
+  for (const proposal of proposals) {
+    if (proposal.skipped) {
+      skipped++;
+      continue;
+    }
+    await db
+      .update(modelDefaults)
+      .set({
+        proposedValue: proposal.proposedValue as never,
+        proposedRangeLow: proposal.proposedRangeLow as never,
+        proposedRangeHigh: proposal.proposedRangeHigh as never,
+        proposedAuthority: proposal.proposedAuthority ?? null,
+        proposedReferenceUrl: proposal.proposedReferenceUrl ?? null,
+        proposedConviction: proposal.proposedConviction ?? null,
+        proposedAt: new Date(),
+      })
+      .where(eq(modelDefaults.id, proposal.id));
+    proposed++;
+  }
+
+  return {
+    result: {
+      message: `Valentina proposed updates for ${proposed} model defaults (${skipped} skipped as ineligible). Proposals are now pending in the Model Defaults admin queue for review.`,
+      proposed,
+      skipped,
+    },
+  };
+}

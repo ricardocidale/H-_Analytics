@@ -1,7 +1,7 @@
 ---
 title: "feat: Phase 2 — wire computePropertyDefaults to model_defaults + Valentina research specialist"
 type: feat
-status: active
+status: completed
 date: 2026-05-18
 origin: docs/brainstorms/numeric-architecture-requirements.md
 ---
