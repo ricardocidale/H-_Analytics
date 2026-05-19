@@ -22,11 +22,10 @@ import {
   IconSettingsGear,
   IconGauge,
   IconTimer,
-  IconShield,
+  IconArrowLeft,
   IconPeople,
   IconCpu,
   IconActivity,
-  IconWand2,
   IconList,
   IconSparkles,
 } from "@/components/icons";
@@ -169,23 +168,22 @@ function buildNavGroups(): NavGroup[] {
           icon: IconActivity,
           tooltip: "Deterministic helper minions used across pipelines. No LLM probe applies; shown for visibility.",
         },
+        {
+          value: "animations",
+          label: "Animations",
+          icon: IconSparkles,
+          tooltip: "Agent persona animations and motion assets for Rebecca and The Analyst.",
+        },
       ],
     },
     {
-      id: "agents",
-      label: "Conversational",
+      id: "rebecca",
+      label: "Rebecca",
       icon: IconBot,
       sections: [
         { value: "ai-agents",      label: "Rebecca",        secondary: AGENTS.rebecca.role, icon: IconBot          },
         { value: "knowledge-base", label: "Knowledge Base",  icon: IconBookOpen     },
         { value: "conversations",  label: "Conversations",   icon: IconMessageSquare },
-        {
-          value: "iris",
-          label: AGENTS.iris.humanName,
-          secondary: AGENTS.iris.role,
-          icon: IconWand2,
-          tooltip: "Iris — Resource Maintainer. Keeps resource registries and reference data current.",
-        },
       ],
     },
     {
@@ -322,8 +320,8 @@ function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): s
   // "runs" is the legacy alias for "logs" — map it to the logs group for
   // sidebar highlighting while Intelligence.tsx redirects the section value.
   if (section === "runs") return "logs";
-  // Rebecca sub-sections that aren't in the nav map to the conversational group
-  return "agents";
+  // Rebecca sub-sections that aren't in the nav map to the Rebecca group
+  return "rebecca";
 }
 
 interface IntelligenceSidebarProps {
@@ -355,7 +353,7 @@ export function IntelligenceSidebarNav({ activeSection, onSectionChange }: Intel
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Admin">
                   <Link href="/admin" data-testid="intelligence-nav-admin">
-                    <IconShield className="size-4 shrink-0" />
+                    <IconArrowLeft className="size-4 shrink-0" />
                     <span className="truncate">Admin</span>
                   </Link>
                 </SidebarMenuButton>

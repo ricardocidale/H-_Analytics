@@ -51,7 +51,7 @@ const INTEL_SECTION_LABEL: Record<string, string> = {
   // Logs
   "logs":                 "All Logs",
   "runs":                 "All Logs",        // legacy alias
-  // Knowledge & Resources
+  // Knowledge & Data / Resources
   "knowledge-registry":              "Knowledge Registry",
   "knowledge-registry-country-data": "Country Economic Data",
   "resources":                        "Resources Catalog",
@@ -85,27 +85,27 @@ const ADMIN_SECTION_LABEL: Record<string, string> = {
   "analyst-tables":              "Analyst Tables",
   "reference-ranges":            "Reference Ranges",
   // Portfolio
-  "required-fields":     "Required Fields",
   "property-heroes":     "Property Heroes",
   "archived-properties": "Archived Properties",
   "scenarios":           "All Scenarios",
   "default-assignments": "Default Assignments",
   // Users
   "users": "All Users",
-  // Testing & Verification
-  "verification": "Verification",
-  "qa-sandbox":   "QA Sandbox",
-  "compliance":   "Compliance",
-  // Configuration
+  // Quality & Audit
+  "required-fields": "Required Fields",
+  "verification":    "Verification",
+  "qa-sandbox":      "QA Sandbox",
+  "compliance":      "Compliance",
+  // Preferences
   "notifications":      "Notifications",
   "sidebar-visibility": "Sidebar Visibility",
   "brand-themes":       "Themes",
   "brand-assets-page":  "Brand Assets",
   // System
-  "database":      "Database",
-  "observability": "Observability",
-  "activity":      "Activity",
-  "login-settings": "Login",
+  "database":       "Database",
+  "observability":  "Monitoring",
+  "activity":       "Audit Log",
+  "login-settings": "Authentication",
 };
 
 function useBreadcrumbs(): BreadcrumbEntry[] {

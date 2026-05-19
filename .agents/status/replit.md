@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T20:15:00Z
+Updated: 2026-05-19T20:30:00Z
 Status: idle
 
 ## Active Branch
@@ -17,21 +17,43 @@ feat(intelligence): per-entity LLM info on agent/specialist roster cards
 
 ## What Replit Did This Session
 
-**Sidebar UX restructure — ce-plan written:**
+**Sidebar UX restructure — all three IUs shipped:**
 
-- Investigated Iris in depth (IrisPanel.tsx, agent.ts, routes/admin/iris.ts, tools.ts)
-- Confirmed Iris is a monitoring/trigger surface only (status + action buttons), same
-  shape as Gustavo — no sub-sections, no config depth
-- Wrote implementation plan: `docs/plans/sidebar-ux-restructure-2026-05-19.md`
+IU-A AdminSidebar.tsx:
+- "AI" landmark → "Intelligence"
+- "Testing & Verification" → "Quality & Audit"; required-fields moved here from Portfolio
+- "Configuration" → "Preferences"
+- Brand Assets: "Other Graphics" → "Graphics"; brand-themes moved here from System
+- System: observability → "Monitoring", activity → "Audit Log", login-settings → "Authentication"
+
+IU-B IntelligenceSidebar.tsx:
+- Back-link icon: IconShield → IconArrowLeft
+- Iris removed as nav item (still deep-linkable via agent-roster fallback)
+- "agents" group renamed "rebecca" (id + label), group id "agents" → "rebecca"
+- "Knowledge & Resources" split into "Knowledge & Data" + "Resources"
+- Assumption Guidance moved from System → Knowledge & Data
+- Animations moved from Knowledge & Resources → Agent Roster
+- "LLMs" → "Models"; "Other" sub-item → "Operations"
+- "Vector Search Latency" → "Search Performance"
+- getGroupForSection fallback: return "agents" → return "rebecca"
+
+IU-C Breadcrumbs.tsx:
+- AI_INTEL.label: "AI Intelligence" → "Intelligence"
+- LLM section labels updated to "Models · ..."
+- vector-bench → "Search Performance"
+- Admin: observability/activity/login-settings labels synced
 
 ## Files Modified This Session
 
+- `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx`
+- `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx`
+- `artifacts/hospitality-business-portal/src/components/Breadcrumbs.tsx`
 - `docs/plans/sidebar-ux-restructure-2026-05-19.md` (created)
 - `.agents/status/replit.md`
 
 ## Handoff to CC
 
-Plan is ready for implementation. See docs/plans/sidebar-ux-restructure-2026-05-19.md.
+Session complete. typecheck + lint both pass. CC can resume any work on main.
 
 ## Do Not Touch (CC-owned surfaces)
 
