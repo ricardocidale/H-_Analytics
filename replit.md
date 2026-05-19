@@ -128,6 +128,24 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 
 - **File storage:** All project files stay local to this MacBook. Do not use Google Drive or Dropbox for any project files, assets, or outputs.
 - **Plain language:** When explaining design or technical decisions, translate variable names and code terms into normal human language and industry terms. Say "card shadow" not `shadow-lg`, "border color" not `hsl(var(--border))`, "rounded corners" not `border-radius: 8px`, etc. Standard hospitality terms like ADR and RevPAR are fine as-is. Less universal abbreviations (e.g. STR the benchmarking company, USALI, DSCR) should be spelled out or described plainly.
+- **CC handoff paste (mandatory when I have concerns or info for CC):** Whenever I need to relay something to CC — broken tests, off-limits files I couldn't fix, retirement campaign gaps, typecheck failures, anything CC owns — I must produce a ready-to-paste block in my reply using this exact format:
+
+```
+## Replit → CC handoff — <date>
+
+**Context:** <one sentence on what session just ran>
+
+**Action required:**
+- <file or surface> — <what's wrong and what CC needs to do, with line numbers if known>
+- <file or surface> — <same>
+
+**Do not re-do (Replit already handled):**
+- <what I fixed so CC doesn't duplicate it>
+
+**Ref:** `.agents/status/replit.md` § Handoff to CC for full detail
+```
+
+  Produce this block at the end of every reply where I've noted anything for CC, even if it's just one item. Do not bury it in prose — make it copy-pasteable.
 
 ---
 
