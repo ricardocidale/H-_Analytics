@@ -145,7 +145,7 @@ tests `SPECIALIST_SECTION_TO_ID` bijectivity only — not touched by these chang
 
 **Group split detail — replace `knowledge-resources` with:**
 
-```
+```typescript
 // New group 1
 {
   id: "knowledge-data",
@@ -259,7 +259,7 @@ Suggested order: IU-B (most structural change) → IU-A → IU-C.
 
 Run after completing all three units:
 
-```
+```bash
 pnpm --filter @workspace/hospitality-business-portal run typecheck
 pnpm run check:lint
 pnpm run check:ui-canonical

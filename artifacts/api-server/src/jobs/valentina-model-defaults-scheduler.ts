@@ -145,7 +145,7 @@ export async function runValentinaModelDefaultsCycle(): Promise<{
       key: VALENTINA_SCHEDULER_KEY,
       considered: proposed + skipped,
       succeeded: proposed,
-      failed: skipped,
+      failed: cycleThrew ? 1 : 0,
       status: cycleThrew ? "error" : proposed > 0 ? "ok" : "warn",
       notes: cycleThrew
         ? truncateNotes(errorMessage)
