@@ -2,8 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { useState } from "react";
-import { CurrentThemeTab } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -72,7 +71,6 @@ export function CompanyTab(props: CompanyTabProps) {
   // focuses the matching `data-testid="field-<id>"` input on mount.
   useFocusFieldFromUrl();
   const analystEnabled = typeof onAnalystRefresh === "function";
-  const [activeTab, setActiveTab] = useState("company");
 
   return (
     <div className="space-y-4">
@@ -118,21 +116,14 @@ export function CompanyTab(props: CompanyTabProps) {
         </div>
       </div>
 
-      {/* Inner tabs: Company / Fees & Financials / Overhead / Compensation */}
-      <div className="space-y-4">
-        <CurrentThemeTab
-          tabs={[
-            { value: "company",         label: "Company" },
-            { value: "fees-financials", label: "Fees & Financials" },
-            { value: "overhead",        label: "Overhead" },
-            { value: "compensation",    label: "Compensation" },
-          ]}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-
-        {/* Identity + Contact & Location sections */}
-        {activeTab === "company" && (
+      {/* Collapsible sections: Company / Fees & Financials / Overhead / Compensation */}
+      <CollapsibleSection
+        defaultOpenId="company"
+        items={[
+          {
+            id: "company",
+            summary: "Company",
+            expandedContent: (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
             <Section title="Identity" description="The management company name and projection horizon used throughout the platform.">
               <div className="space-y-4">
@@ -312,10 +303,12 @@ export function CompanyTab(props: CompanyTabProps) {
               </div>
             </Section>
           </div>
-        )}
-
-        {/* Fee Structure + Financial Defaults sections */}
-        {activeTab === "fees-financials" && (
+            ),
+          },
+          {
+            id: "fees-financials",
+            summary: "Fees & Financials",
+            expandedContent: (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
             <Section title="Fee Structure" description="Default management fee rates applied when creating new properties. Each property can override these individually.">
               <PctField
@@ -371,10 +364,12 @@ export function CompanyTab(props: CompanyTabProps) {
               />
             </Section>
           </div>
-        )}
-
-        {/* Overhead Defaults section */}
-        {activeTab === "overhead" && (
+            ),
+          },
+          {
+            id: "overhead",
+            summary: "Overhead",
+            expandedContent: (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
             <Section title="Overhead Defaults" description="Starting annual costs for the management company's fixed and variable overhead. New companies inherit these as seed values; each can override them individually.">
               <DollarField
@@ -487,10 +482,12 @@ export function CompanyTab(props: CompanyTabProps) {
               />
             </Section>
           </div>
-        )}
-
-        {/* Compensation Defaults section */}
-        {activeTab === "compensation" && (
+            ),
+          },
+          {
+            id: "compensation",
+            summary: "Compensation",
+            expandedContent: (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
             <Section title="Compensation Defaults" description="Staff salary and portfolio-based staffing tiers. These seed new companies and can be overridden on a per-company basis.">
               <DollarField
@@ -581,8 +578,10 @@ export function CompanyTab(props: CompanyTabProps) {
               </div>
             </Section>
           </div>
-        )}
-      </div>
+            ),
+          },
+        ]}
+      />
 
       {/* Back to top — fixed, centered at viewport bottom */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
