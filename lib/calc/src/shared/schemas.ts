@@ -333,7 +333,7 @@ export const holdVsSellSchema = z.object({
   annual_capex: z.number().min(0).optional(),
   annual_debt_service: z.number().min(0).optional(),
   original_cost_basis: z.number().min(0).optional(),
-  land_value_pct: z.number().min(0).max(1).optional(),
+  land_value_pct: z.number().min(0).max(1),
   capital_gains_rate: z.number().min(0).max(1).optional(),
   depreciation_recapture_rate: z.number().min(0).max(1).optional(),
   accumulated_depreciation: z.number().min(0).optional(),

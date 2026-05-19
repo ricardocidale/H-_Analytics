@@ -25,7 +25,6 @@ import { MarketRateBenchmark } from "@/components/property-research/MarketRateBe
 import { useEffect, useState, useCallback } from "react";
 import {
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   // DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
 } from "@/lib/constants";
@@ -135,12 +134,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 badgeProps={{ entry: researchValues.incomeTax }}
                 onApplyValue={() => researchValues.incomeTax && onChange("taxRate", researchValues.incomeTax.mid / 100)}
                 guidanceContext={gc("incomeTax", "Income Tax Rate")}
-                currentValue={draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE}
+                currentValue={draft.taxRate}
                 isPercent
                 className="min-w-0"
               />
               <EditableValue
-                value={(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100}
+                value={(draft.taxRate) * 100}
                 onChange={(val) => onChange("taxRate", val / 100)}
                 format="percent"
                 min={0}
@@ -150,7 +149,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               />
             </div>
             <Slider 
-              value={[(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100]}
+              value={[(draft.taxRate) * 100]}
               onValueChange={(vals: number[]) => onChange("taxRate", vals[0] / 100)}
               min={0}
               max={50}
