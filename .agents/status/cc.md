@@ -4,16 +4,34 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T08:30:00Z
+Updated: 2026-05-19T12:00:00Z
 Status: idle
 
 ## Active Branch
 
-`main` (feat/model-defaults-phase2 merged as PR #167).
+`main`
 
 ## Last Commit on Branch
 
-`fix(model-defaults-phase2): wire SEED_ADR_GROWTH_RATE + fix seedPropertyFees error handling` (`013f75f19`, merged to main as PR #167).
+`feat(schema): complete DEFAULT_TRAVEL/IT_PER_CLIENT retirement — §2 T1-4` (`131c686b0`)
+
+## What CC Did This Session (2026-05-19 session 23 — TRAVEL/IT constant retirement)
+
+**Retired `DEFAULT_TRAVEL_COST_PER_CLIENT` (5000→12000) + `DEFAULT_IT_LICENSE_PER_CLIENT` (3600→3000) via git archaeology + §2 T1-4 retirement pattern.**
+
+- Git archaeology confirmed stale values in `lib/db/src/constants.ts` (5000/3600) vs correct AHLA/HFTP 2024 benchmarks in `constants-staffing`/syncHelpers (12000/3000). Conflict originated at workspace port (`372774b7c`, April 2026) — syncHelpers always had correct values; constants.ts was never updated.
+- `lib/shared/src/constants.ts`: added `SEED_TRAVEL_PER_CLIENT = 12_000` + `SEED_IT_LICENSE_PER_CLIENT = 3_000` (Category 5, AHLA/HFTP 2024 provenance)
+- `lib/db/src/constants.ts` + both `constants-staffing.ts` files: retired DEFAULT_TRAVEL/IT constants (replaced with retirement tombstone comment)
+- `lib/db/src/schema/config.ts`: inlined `.default(12_000)` / `.default(3_000)` with SEED provenance comments, removed stale imports
+- `lib/shared/src/model-constants-registry.ts`: replaced `constants-staffing` import with module-private `FACTORY_TRAVEL_PER_CLIENT`/`FACTORY_IT_LICENSE_PER_CLIENT` constants
+- `artifacts/api-server/src/syncHelpers.ts`: switched from `DEFAULT_TRAVEL_PER_CLIENT`/`DEFAULT_IT_LICENSE_PER_CLIENT` to `SEED_TRAVEL_PER_CLIENT`/`SEED_IT_LICENSE_PER_CLIENT`
+- `artifacts/api-server/script/seed-model-defaults.ts` + `seed-model-constants.ts`: inline 12000/3000 with SEED provenance comments, removed constants-staffing imports
+- `artifacts/hospitality-business-portal/src/lib/constants.ts` + `store.ts`: re-export and use `SEED_TRAVEL_PER_CLIENT`/`SEED_IT_LICENSE_PER_CLIENT`
+- Migrations: `0069_travel_it_defaults.sql` (lib/db) + `0076_travel_it_defaults.sql` (api-server) — SET DEFAULT 12000/3000
+- `migration-guards.json`: 0076 declared as `self-idempotent`; both journals updated
+- All gates: typecheck PASS, check-magic-numbers PASS (+2 improvement), check-ui-canonical PASS, check-migration-guards PASS (72 entries)
+- Note: Replit Agent auto-committed partial overlap (`90ab4bfc4`) covering lib/db constants, schema/config, syncHelpers, and lib/shared constants. My commit (`131c686b0`) completed the remaining files + migrations.
+- `docs/plans/open-todos-cc.md` + `CLAUDE.md` TODOs + `replit.md` Recent Changes all updated.
 
 ## What CC Did This Session (2026-05-19 session 22 — model-defaults phase 2 + CLAUDE.md trim)
 
