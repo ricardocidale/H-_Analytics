@@ -9,7 +9,7 @@ H+ Analytics is a hospitality-sector financial analytics platform built by **Nor
 ## Run & Operate
 
 - **Run:** `restart_workflow <artifact_name>` (e.g., `restart_workflow hospitality-business-portal`). Never run `pnpm dev` at the workspace root.
-- **Key secrets** (must exist in both Replit secrets AND Railway): `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Full list: `CLAUDE.md` § "Environment Variables (api-server)".
+- **Key secrets** (must exist in both Replit secrets AND Railway): `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Full list: `docs/reference/deployment-and-env.md` § "Environment Variables (api-server)".
 - **Health check:** `GET /api/health/live`
 
 ---
@@ -94,8 +94,11 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 | Architecture, auth rules, number taxonomy | `CLAUDE.md` (canonical deep source) |
 | Numeric rule — readable explainer (start here) | `docs/concepts/numeric-values-explained.md` |
 | Numeric architecture brainstorm + Phase 2 decisions | `docs/brainstorms/numeric-architecture-requirements.md` |
-| Stack, monorepo structure, key commands | `CLAUDE.md` §§ "Stack", "Monorepo Structure", "Key Commands" |
-| Production deployment + env vars | `CLAUDE.md` §§ "Production Deployment", "Environment Variables (api-server)" |
+| Stack, monorepo structure, key commands | `docs/reference/project-overview.md` |
+| Production deployment + env vars | `docs/reference/deployment-and-env.md` |
+| Architecture notes (import discipline, Zod, Rebecca-only, migration system, shared proxy, etc.) | `docs/architecture/architecture-notes.md` |
+| CC changelog (full log; CLAUDE.md keeps ≤ 3 most recent inline) | `docs/changelog/cc-recent-changes.md` |
+| CC open TODOs (full list) | `docs/plans/open-todos-cc.md` |
 | LB Slides implementation detail | `docs/slide-system/lb-slides-implementation-reference.md` |
 | Known issues | `docs/issues/known-issues.md` |
 | Agent & skill system | `CLAUDE.md` § "Agent & Skill System", `.agents/skills/README.md` |
