@@ -16,17 +16,11 @@
  * human-readable names ("Override · GPT-4o (slug: gpt-4o)") instead of
  * raw integers. If it fails to load, the fields fall back to "#<id>".
  */
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ResourcePublicView } from "@shared/schema";
 import type {
@@ -145,15 +139,6 @@ export function LlmConfigTab({
     );
   };
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    primary: true,
-    multimodel: false,
-    fallback: false,
-    workflow: false,
-  });
-  const toggleSection = (id: string) =>
-    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
-
   const multiModelEffective =
     config.multiModelEnabled === null
       ? config.globalLlmDefaults.multiModelEnabled
@@ -199,181 +184,153 @@ export function LlmConfigTab({
       </div>
 
       {/* ── Section 1 · Primary model + prompt ─────────────────── */}
-      <Card className="overflow-hidden" data-testid="card-llm-primary">
-        <Collapsible open={openSections.primary} onOpenChange={() => toggleSection("primary")}>
-          <CollapsibleTrigger asChild>
-            <button
-              className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-              aria-expanded={openSections.primary}
+      <Card data-testid="card-llm-primary">
+        <CardHeader>
+          <CardTitle>Primary model &amp; prompt</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            The single-model path used when multi-model synthesis is disabled.
+            Models are listed in{" "}
+            <a
+              className="underline"
+              data-testid="link-resources-models"
+              onClick={(e) => {
+                e.preventDefault();
+                navigateToResources(setLocation, "resources");
+              }}
+              href="#"
             >
-              {openSections.primary ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-              <span className="font-semibold text-sm shrink-0">Primary model &amp; prompt</span>
-              {config.modelResourceId != null && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 shrink-0">Override active</Badge>
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="px-5 pb-5 pt-4 border-t space-y-4">
-              <p className="text-xs text-muted-foreground">
-                The single-model path used when multi-model synthesis is disabled.
-                Models are listed in{" "}
-                <a
-                  className="underline"
-                  data-testid="link-resources-models"
-                  onClick={(e) => { e.preventDefault(); navigateToResources(setLocation, "resources"); }}
-                  href="#"
-                >
-                  Resources · Models →
-                </a>
-              </p>
-              <div className="space-y-2" data-testid="field-modelResourceId">
-                <div className="text-sm font-medium">Primary model</div>
-                {renderModelValue("modelResourceId", config.modelResourceId, config.globalLlmDefaults.synthesisModelLabel)}
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Prompt template</div>
-                <pre
-                  className="text-xs font-mono bg-muted/40 border rounded-md p-3 overflow-auto max-h-96 whitespace-pre-wrap"
-                  data-testid="text-prompt-template"
-                >
-                  {config.promptTemplate}
-                </pre>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+              Resources · Models →
+            </a>
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2" data-testid="field-modelResourceId">
+            <div className="text-sm font-medium">Primary model</div>
+            {renderModelValue(
+              "modelResourceId",
+              config.modelResourceId,
+              config.globalLlmDefaults.synthesisModelLabel,
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Prompt template</div>
+            <pre
+              className="text-xs font-mono bg-muted/40 border rounded-md p-3 overflow-auto max-h-96 whitespace-pre-wrap"
+              data-testid="text-prompt-template"
+            >
+              {config.promptTemplate}
+            </pre>
+          </div>
+        </CardContent>
       </Card>
 
       {/* ── Section 2 · N+1 Multi-model synthesis ──────────────── */}
-      <Card className="overflow-hidden" data-testid="card-llm-multimodel">
-        <Collapsible open={openSections.multimodel} onOpenChange={() => toggleSection("multimodel")}>
-          <CollapsibleTrigger asChild>
-            <button
-              className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-              aria-expanded={openSections.multimodel}
-            >
-              {openSections.multimodel ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-              <span className="font-semibold text-sm shrink-0">N+1 multi-model synthesis</span>
-              <Badge
-                variant={multiModelEffective ? "default" : "outline"}
-                className="text-[10px] px-1.5 py-0 h-4 shrink-0"
-                data-testid="badge-multiModelEnabled"
-              >
-                {multiModelEffective ? "enabled" : "disabled"}
-              </Badge>
-              {!multiModelInherits && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 shrink-0">Override active</Badge>
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="px-5 pb-5 pt-4 border-t space-y-4">
+      <Card data-testid="card-llm-multimodel">
+        <CardHeader>
+          <CardTitle>N+1 multi-model synthesis</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Two analyst panels run in parallel and are reconciled by a
+            synthesis model. Disabled means the primary model runs single-shot.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">Multi-model synthesis</div>
               <p className="text-xs text-muted-foreground">
-                Two analyst panels run in parallel and are reconciled by a synthesis model. Disabled means the primary model runs single-shot.
+                {multiModelInherits
+                  ? `Inheriting global default (${config.globalLlmDefaults.multiModelEnabled ? "enabled" : "disabled"})`
+                  : `Override active`}
               </p>
-              <div className="space-y-2" data-testid="field-analystAModelResourceId">
-                <div className="text-sm font-medium">Analyst A model (quantitative)</div>
-                {renderModelValue("analystAModelResourceId", config.analystAModelResourceId, config.globalLlmDefaults.analystAModelLabel)}
-              </div>
-              <div className="space-y-2" data-testid="field-analystBModelResourceId">
-                <div className="text-sm font-medium">Analyst B model (market strategy)</div>
-                {renderModelValue("analystBModelResourceId", config.analystBModelResourceId, config.globalLlmDefaults.analystBModelLabel)}
-              </div>
-              <div className="space-y-2" data-testid="field-synthesisModelResourceId">
-                <div className="text-sm font-medium">Synthesis model (+1 reconciler)</div>
-                {renderModelValue("synthesisModelResourceId", config.synthesisModelResourceId, config.globalLlmDefaults.synthesisModelLabel)}
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+            </div>
+            <Badge
+              variant={multiModelEffective ? "default" : "outline"}
+              data-testid="badge-multiModelEnabled"
+            >
+              {multiModelEffective ? "Synthesis: enabled" : "Synthesis: disabled"}
+            </Badge>
+          </div>
+          <div className="space-y-2" data-testid="field-analystAModelResourceId">
+            <div className="text-sm font-medium">Analyst A model (quantitative)</div>
+            {renderModelValue(
+              "analystAModelResourceId",
+              config.analystAModelResourceId,
+              config.globalLlmDefaults.analystAModelLabel,
+            )}
+          </div>
+          <div className="space-y-2" data-testid="field-analystBModelResourceId">
+            <div className="text-sm font-medium">Analyst B model (market strategy)</div>
+            {renderModelValue(
+              "analystBModelResourceId",
+              config.analystBModelResourceId,
+              config.globalLlmDefaults.analystBModelLabel,
+            )}
+          </div>
+          <div className="space-y-2" data-testid="field-synthesisModelResourceId">
+            <div className="text-sm font-medium">Synthesis model (+1 reconciler)</div>
+            {renderModelValue(
+              "synthesisModelResourceId",
+              config.synthesisModelResourceId,
+              config.globalLlmDefaults.synthesisModelLabel,
+            )}
+          </div>
+        </CardContent>
       </Card>
 
       {/* ── Section 3 · N+2 Fallback ───────────────────────────── */}
-      <Card className="overflow-hidden" data-testid="card-llm-fallback">
-        <Collapsible open={openSections.fallback} onOpenChange={() => toggleSection("fallback")}>
-          <CollapsibleTrigger asChild>
-            <button
-              className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-              aria-expanded={openSections.fallback}
-            >
-              {openSections.fallback ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+      <Card data-testid="card-llm-fallback">
+        <CardHeader>
+          <CardTitle>N+2 fallback</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Used when both analyst panels fail. Relaxation max level caps
+            how aggressively the comparable resolver loosens its criteria.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2" data-testid="field-fallbackModelResourceId">
+            <div className="text-sm font-medium">Fallback model</div>
+            {renderModelValue(
+              "fallbackModelResourceId",
+              config.fallbackModelResourceId,
+              config.globalLlmDefaults.fallbackModelLabel,
+            )}
+          </div>
+          {renderWorkflowValue(WORKFLOW_FIELDS.find((f) => f.key === "minEvidenceScore")!)}
+          <div className="space-y-1" data-testid="value-workflow-relaxationMaxLevel">
+            <div className="text-sm font-medium">Relaxation max level</div>
+            <div className="flex items-center gap-2">
+              {relaxIsOverridden ? (
+                <Badge variant="secondary" className="text-xs" data-testid="badge-override-workflow-relaxationMaxLevel">
+                  Override active
+                </Badge>
               ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Badge variant="outline" className="text-xs" data-testid="badge-inherit-workflow-relaxationMaxLevel">
+                  Inheriting global default
+                </Badge>
               )}
-              <span className="font-semibold text-sm shrink-0">N+2 fallback</span>
-              {config.fallbackModelResourceId != null && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 shrink-0">Override active</Badge>
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="px-5 pb-5 pt-4 border-t space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Used when both analyst panels fail. Relaxation max level caps how aggressively the comparable resolver loosens its criteria.
-              </p>
-              <div className="space-y-2" data-testid="field-fallbackModelResourceId">
-                <div className="text-sm font-medium">Fallback model</div>
-                {renderModelValue("fallbackModelResourceId", config.fallbackModelResourceId, config.globalLlmDefaults.fallbackModelLabel)}
-              </div>
-              {renderWorkflowValue(WORKFLOW_FIELDS.find((f) => f.key === "minEvidenceScore")!)}
-              <div className="space-y-1" data-testid="value-workflow-relaxationMaxLevel">
-                <div className="text-sm font-medium">Relaxation max level</div>
-                <div className="flex items-center gap-2">
-                  {relaxIsOverridden ? (
-                    <Badge variant="secondary" className="text-xs" data-testid="badge-override-workflow-relaxationMaxLevel">Override active</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs" data-testid="badge-inherit-workflow-relaxationMaxLevel">Inheriting global default</Badge>
-                  )}
-                  <span className="text-sm tabular-nums" data-testid="text-relaxation-value">
-                    L{relaxEffective ?? "—"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+              <span className="text-sm tabular-nums" data-testid="text-relaxation-value">
+                L{relaxEffective ?? "—"}
+              </span>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* ── Section 4 · Workflow policy ────────────────────────── */}
-      <Card className="overflow-hidden" data-testid="card-llm-workflow">
-        <Collapsible open={openSections.workflow} onOpenChange={() => toggleSection("workflow")}>
-          <CollapsibleTrigger asChild>
-            <button
-              className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-              aria-expanded={openSections.workflow}
-            >
-              {openSections.workflow ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-              <span className="font-semibold text-sm shrink-0">Workflow policy</span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="px-5 pb-5 pt-4 border-t">
-              <p className="text-xs text-muted-foreground mb-4">
-                Per-Specialist effective values for the global pipeline policy.
-                "Inheriting global default" means the Specialist uses whatever the global policy says today.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                {WORKFLOW_FIELDS.filter((f) => f.key !== "minEvidenceScore").map((spec) => (
-                  <div key={spec.key}>{renderWorkflowValue(spec)}</div>
-                ))}
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+      <Card data-testid="card-llm-workflow">
+        <CardHeader>
+          <CardTitle>Workflow policy</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Per-Specialist effective values for the global pipeline policy.
+            "Inheriting global default" means the Specialist uses whatever
+            the global policy says today.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          {WORKFLOW_FIELDS.filter((f) => f.key !== "minEvidenceScore").map((spec) => (
+            <div key={spec.key}>{renderWorkflowValue(spec)}</div>
+          ))}
+        </CardContent>
       </Card>
     </div>
   );
