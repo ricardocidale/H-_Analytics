@@ -11,8 +11,8 @@ import {
   DEFAULT_OFFICE_LEASE,
   DEFAULT_PROFESSIONAL_SERVICES,
   DEFAULT_TECH_INFRA,
-  DEFAULT_TRAVEL_PER_CLIENT,
-  DEFAULT_IT_LICENSE_PER_CLIENT,
+  SEED_TRAVEL_PER_CLIENT,
+  SEED_IT_LICENSE_PER_CLIENT,
 } from './constants';
 
 // --- LOCAL STORE TYPES (legacy — canonical types live in shared/schema.ts) ---
@@ -117,8 +117,8 @@ const INITIAL_GLOBAL: StoreGlobalAssumptions = {
   inflationRate: 0.03,
   partnerSalary: 150000,
   staffSalary: DEFAULT_STAFF_SALARY,
-  travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
-  itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
+  travelCostPerClient: SEED_TRAVEL_PER_CLIENT,
+  itLicensePerClient: SEED_IT_LICENSE_PER_CLIENT,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
   officeLeaseStart: DEFAULT_OFFICE_LEASE,
