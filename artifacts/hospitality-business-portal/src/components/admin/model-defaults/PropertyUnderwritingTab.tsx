@@ -726,7 +726,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Property Income Tax Rate"
           tooltip="Income tax rate applied to gain on property sale and operating income. This is NOT the real estate/ad valorem property tax — that is modeled as a USALI operating expense (costRateTaxes)."
           value={draft.defaultPropertyTaxRate}
-          fallback={0.25}
+          fallback={undefined}
           onChange={(_, v) => onChange("defaultPropertyTaxRate", v)}
           min={0} max={0.50} step={0.01}
           testId="field-defaultPropertyTaxRate"
@@ -736,7 +736,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="Land Value (%)"
           tooltip="Portion of total property value attributed to land (non-depreciable). IRS guidelines suggest 15-30% for commercial real estate."
           value={draft.defaultLandValuePercent}
-          fallback={0.25}
+          fallback={undefined}
           onChange={(_, v) => onChange("defaultLandValuePercent", v)}
           min={0.05} max={0.5} step={0.01}
           testId="field-defaultLandValuePercent"

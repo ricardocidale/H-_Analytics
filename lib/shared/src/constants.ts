@@ -124,6 +124,22 @@ export const SEED_ADR_GROWTH_RATE = 0.03;
  */
 export const SEED_MEDELLIN_DUPLEX_START_ADR = 1500;
 
+/**
+ * SEED_TRAVEL_PER_CLIENT — bootstrap for globalAssumptions.travelCostPerClient.
+ * Source: AHLA 2024 travel-cost benchmark for boutique hospitality management companies.
+ * Used as pre-fetch placeholder in the portal Zustand store (store.ts:INITIAL_GLOBAL).
+ * Bootstrap-only; never imported by runtime engine/calc/route code.
+ */
+export const SEED_TRAVEL_PER_CLIENT = 12_000;
+
+/**
+ * SEED_IT_LICENSE_PER_CLIENT — bootstrap for globalAssumptions.itLicensePerClient.
+ * Source: HFTP 2024 technology-cost benchmark (PMS + POS + channel mgr per property).
+ * Used as pre-fetch placeholder in the portal Zustand store (store.ts:INITIAL_GLOBAL).
+ * Bootstrap-only; never imported by runtime engine/calc/route code.
+ */
+export const SEED_IT_LICENSE_PER_CLIENT = 3_000;
+
 // ──────────────────────────────────────────────────────────
 // DEPRECIATION & LAND VALUE
 // ──────────────────────────────────────────────────────────
