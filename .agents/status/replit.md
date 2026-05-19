@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T11:00:00Z
+Updated: 2026-05-19T14:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,38 +13,21 @@ main
 
 ## Last Commit on Branch
 
-CC PR #168 (CLAUDE.md trim) + PR #167 (model-defaults phase 2) + commit 5721682f6 (ADR growth retirement)
+Planning session: t2-2/t2-6/t2-7 plan files + ce-compound lucide-react doc
 
 ## What Replit Did This Session
 
-**ce-compound — lucide-react import crash documentation**
-- `docs/solutions/build-errors/lucide-react-not-in-portal-deps-2026-05-18.md` — new compound doc.
-  Full mode with session history. Three parallel Phase 1 subagents (Context Analyzer, Solution
-  Extractor, Related Docs Finder). Overlap: Low — no existing doc covered this.
-  Frontmatter: `build_error` / `tooling` / `wrong_api` / `code_fix` / `high`. Validator: OK.
+**ce-plan + architect review — T2-2, T2-6, T2-7 (and discovered T2-3/T2-4/T2-7 already done)**
 
-**Task #1692 — Freshness dots on Intelligence-section Analyst buttons (rev 2 — code review fixes)**
-- `BenchmarkBandsTab.tsx` — added `lastEditedAt: string | null` to `BandGroup` interface
-  (backend already returns it from `model_constants.last_edited_at` for the Low band key).
-  Replaced binary `missing|null` logic with full traffic-light age classification:
-  `missing` (any group unseeded) → `stale` (newest lastEditedAt 7–30d) → `very_stale` (>30d)
-  → null when fresh (<7d). Uses `computeVerdictFreshness` from `analyst-fields.ts`.
-- `CountryEconomicDataPage.tsx` — kept `computeVerdictFreshness` (correct single-timestamp
-  utility from the same `analyst-fields.ts` file; identical 7d/30d thresholds as
-  `computeTabFreshness`; semantically appropriate for single max-timestamp freshness).
+Confirmed already shipped (no plan needed):
+- T2-3 "Improve with AI": `ImprovedDescriptionField.tsx` — full rewrite dialog wired into `BasicInfoSection.tsx`
+- T2-4 "Verify deck": `DownloadTab.tsx` — full verify button + findings collapsible already implemented
+- T2-7 Horizontal tabs → collapsible: all 12 in-scope pages already converted; zero `TabsList`/`TabsTrigger` remain
 
-### Gates
-- `check:typecheck` ✅
-- `check:lint` ✅
-
-**Task #1690 — Freshness dot wired to all four model-defaults Analyst buttons**
-- `useAnalystRefresh.ts` — added `updatedAt?: string` to `AnalystGuidanceRecord`
-- `analyst-fields.ts` — added `computeTabFreshness()` (7-day/30-day thresholds; returns null/stale/very_stale/missing)
-- `ModelDefaultsTab.tsx` — computes `analystFreshnessStatus` + `fundingFreshnessStatus` and passes to all four tabs
-- `MarketMacroTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
-- `CompanyTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
-- `PropertyUnderwritingTab.tsx` — added `analystFreshnessStatus` prop, wired to main Analyst button
-- `CapitalStackDisciplineTab.tsx` — added `fundingFreshnessStatus` prop, wired to AnalystButton
+Written plans (implementation-ready, architect-reviewed):
+- `docs/plans/t2-2-portfolio-filter.md` — portfolio filter on Portfolio.tsx; discriminated union filter state; rename `selectedPortfolioId` → `assignmentTargetPortfolioId`; filteredProperties memo; conditional Unassigned section visibility
+- `docs/plans/t2-6-brand-form-dialog.md` — BrandFormDialog.tsx (single mode-driven component); override-lock slug auto-generation; useMutation-wrapped fetch; centralized parseApiError; BrandsTab.tsx wiring
+- `docs/plans/t2-7-collapsible-conversion.md` — updated to COMPLETE status with full evidence table
 
 ## Files Replit Owns Right Now
 
@@ -52,7 +35,7 @@ None — session complete.
 
 ## Handoff to CC
 
-None pending.
+None pending. T2-2 and T2-6 plans are Replit-safe (frontend-only); either agent can implement.
 
 ## Do Not Touch (CC-owned surfaces)
 

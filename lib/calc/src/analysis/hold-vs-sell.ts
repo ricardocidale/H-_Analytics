@@ -50,9 +50,13 @@ import {
   DEFAULT_COMMISSION_RATE,
   DEFAULT_CAPITAL_GAINS_RATE,
   DEFAULT_DEP_RECAPTURE_RATE,
-  DEFAULT_LAND_VALUE_PERCENT,
   HOLD_VS_SELL_INDIFFERENCE_PCT,
 } from "@shared/constants";
+// US-typical non-depreciable land fraction (IRS Pub 946 / USDA appraisal norms).
+// Matches three-layer resolver default in lib/db/src/schema/properties.ts (.notNull().default(0.25)).
+// land_value_pct is optional in HoldVsSellInput — this constant preserves the pre-#965 behaviour
+// for callers that have not yet been updated to pass the value explicitly.
+const LAND_VALUE_FALLBACK_PCT = 0.25;
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { dPow, dDiv, dSum } from "../shared/decimal.js";
 
@@ -134,7 +138,7 @@ export function computeHoldVsSell(input: HoldVsSellInput): HoldVsSellOutput {
   // default the engine uses everywhere else (resolve-assumptions, loanCalculations,
   // property-engine, verification suite). Failing loud here would silently break
   // the dispatch contract for callers that have not yet been updated.
-  const landPct = input.land_value_pct ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = input.land_value_pct ?? LAND_VALUE_FALLBACK_PCT;
   const buildingBasis = r(costBasis * (1 - landPct));
 
   const projected_noi: number[] = [];
