@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T18:30:00Z
+Updated: 2026-05-19T19:45:00Z
 Status: idle
 
 ## Active Branch
@@ -13,28 +13,30 @@ main
 
 ## Last Commit on Branch
 
-feat(frontend): CC session-26 handoff — T2-2, T2-6 implemented; T2-3, T2-4, T2-7 confirmed complete
+feat(intelligence): per-entity LLM info on agent/specialist roster cards
 
 ## What Replit Did This Session
 
-**CC session 26 handoff — 5 frontend-only tasks:**
+**LLM configuration UX improvement — per-entity model info on roster cards:**
 
-- T2-2 ✅ Portfolio filter dropdown (Portfolio.tsx) — filteredProperties memo, PortfolioFilter type, filter Select in header, empty state, assignmentTargetPortfolioId rename
-- T2-3 ✅ "Improve with AI" — already implemented in AsPurchasedDescriptionField.tsx
-- T2-4 ✅ "Verify deck quality" — already implemented in DownloadTab.tsx
-- T2-6 ✅ BrandFormDialog create/edit — new BrandFormDialog.tsx + BrandsTab.tsx wired
-- T2-7 ✅ Collapsible tabs — all 12 in-scope pages already using CollapsibleSection
+- Added `RosterLlmInfo` type + optional `llmInfo` field to `RosterEntry` in `lib/agent-roster.ts`
+- Updated `AgentRosterAccordion.tsx` with `VendorChip` + `RosterLlmDisplay` inline components; renders vendor/model badge in expanded card content
+- Rewrote `SpecialistsRosterPage.tsx`: fetches `/api/admin/specialists` (hasLlmOverrides) + LLM registry recommendations; merges into cards
+- Rewrote `AgentsRosterPage.tsx`: fetches `globalAssumptions` (rebeccaConfig.llm.provider/model) + LLM registry `chat` recommendation; wires llmInfo onto Rebecca's entry
+- Removed `SpecialistsSection` import + render from `LlmWorkflowsPage.tsx` (info moved to roster cards); cleaned up docstring and visibility flags
 
 ## Files Modified This Session
 
-- `artifacts/hospitality-business-portal/src/pages/Portfolio.tsx`
-- `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandsTab.tsx`
-- `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandFormDialog.tsx` (new)
+- `artifacts/hospitality-business-portal/src/lib/agent-roster.ts`
+- `artifacts/hospitality-business-portal/src/components/intelligence/agent-roster/AgentRosterAccordion.tsx`
+- `artifacts/hospitality-business-portal/src/pages/intelligence/SpecialistsRosterPage.tsx`
+- `artifacts/hospitality-business-portal/src/pages/intelligence/AgentsRosterPage.tsx`
+- `artifacts/hospitality-business-portal/src/pages/intelligence/LlmWorkflowsPage.tsx`
 - `.agents/status/replit.md`
 
 ## Handoff to CC
 
-All 5 tasks from CC session 26 handoff are done. CC can resume any work on main.
+Session complete. All checks pass (typecheck, lint, ui-canonical). CC can resume any work on main.
 
 ## Do Not Touch (CC-owned surfaces)
 

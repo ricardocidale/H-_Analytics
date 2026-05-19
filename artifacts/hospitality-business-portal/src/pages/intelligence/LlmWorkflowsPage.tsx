@@ -14,7 +14,9 @@
  *      (filtered to the active category's tabs)
  *   5. N+1 Orchestrator Defaults — global multi-model pipeline (Research only)
  *   6. Slot Accordion — per-slot overrides (filtered to active category)
- *   7. Specialists — per-specialist override status (Agents only)
+ *
+ * Note: the former Specialists section (§7) has been removed. Per-specialist
+ * LLM info now appears inline on each card in the Specialists Roster page.
  *
  * The `category` prop (injected by Intelligence.tsx) scopes the page to a
  * single LLM sub-domain. When undefined, all groups are shown (legacy behavior
@@ -34,7 +36,6 @@ import { HeaderBar } from "./llm-workflows/sections/HeaderBar";
 import { FunctionAreaDefaults } from "./llm-workflows/sections/FunctionAreaDefaults";
 import { OrchestratorDefaults } from "./llm-workflows/sections/OrchestratorDefaults";
 import { SlotAccordion } from "./llm-workflows/sections/SlotAccordion";
-import { SpecialistsSection } from "./llm-workflows/sections/SpecialistsSection";
 import { useSlotAssignments } from "./llm-workflows/useSlotAssignments";
 import { useUnsavedChangesGuard } from "./llm-workflows/useUnsavedChangesGuard";
 import {
@@ -84,10 +85,7 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
   const guard = useUnsavedChangesGuard(isDirty);
 
   // Derived visibility flags per category.
-  // OrchestratorDefaults is Research-only (it configures the N+1 pipeline).
-  // SpecialistsSection is Agents-only (agent-LLM override config).
   const showOrchestratorDefaults = !category || category === "research";
-  const showSpecialists = !category || category === "agents";
   // FunctionAreaDefaults renders its own tab filtering; hide the whole section
   // when the active category has no tabs assigned (Graphics has none).
   const showFunctionAreaDefaults = category !== "graphics";
@@ -143,8 +141,6 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
           category={category}
         />
       )}
-
-      {showSpecialists && <SpecialistsSection />}
 
       <Dialog
         open={guard.promptOpen}

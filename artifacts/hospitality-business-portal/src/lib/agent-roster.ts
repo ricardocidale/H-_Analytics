@@ -27,6 +27,28 @@ export type RosterClass = "agent" | "specialist" | "minion";
 /** Initial liveness state shown before any tracked signal is read. */
 export type RosterHealth = "unknown" | "healthy" | "degraded" | "error" | "not-applicable";
 
+/**
+ * Optional LLM configuration snapshot shown inline on the roster card.
+ * All fields are informational / read-only on the card — editing happens
+ * in the dedicated LLMs section or the Rebecca admin panel.
+ */
+export interface RosterLlmInfo {
+  /** Vendor slug (e.g. "openai", "anthropic", "google"). */
+  vendor: string;
+  /** Model slug / id (e.g. "gpt-4o", "claude-sonnet-4-5"). */
+  model: string;
+  /**
+   * App-recommended vendor + model for this entity's function area.
+   * Shown as a "recommended" badge alongside the configured model.
+   */
+  recommended?: { vendor: string; model: string } | null;
+  /**
+   * True when the entity has per-instance model overrides stored in the DB
+   * (specialist_configs row differs from global defaults).
+   */
+  hasOverrides?: boolean;
+}
+
 export interface RosterEntry {
   /** Stable id used as the probe target — also the accordion key. */
   id: string;
@@ -44,6 +66,11 @@ export interface RosterEntry {
   whereUsed: string[];
   /** Default health state — `not-applicable` for minions (no LLM probe). */
   initialHealth: RosterHealth;
+  /**
+   * Optional LLM configuration snapshot. When present, the accordion renders
+   * a compact model display row in the expanded card content.
+   */
+  llmInfo?: RosterLlmInfo | null;
 }
 
 // ── Per-agent metadata table ────────────────────────────────────────────────

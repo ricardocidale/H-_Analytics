@@ -30,12 +30,14 @@ import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
+import { cn } from "@/lib/utils";
 import type {
   MinionSelfTestHistoryItem,
   RosterClass,
   RosterEntry,
   RosterHealth,
   RosterHealthResponse,
+  RosterLlmInfo,
 } from "@/lib/agent-roster";
 
 interface ProbeOutcome {
@@ -54,6 +56,77 @@ interface RowState {
 }
 
 const HISTORY_STRIP_MAX = 10;
+
+// ── Inline LLM display ───────────────────────────────────────────────────────
+
+const VENDOR_COLORS: Record<string, string> = {
+  openai:    "bg-emerald-500/10 text-emerald-700",
+  anthropic: "bg-orange-500/10 text-orange-700",
+  google:    "bg-blue-500/10 text-blue-700",
+  xai:       "bg-purple-500/10 text-purple-700",
+  deepseek:  "bg-cyan-500/10 text-cyan-700",
+};
+
+function VendorChip({ vendor }: { vendor: string }) {
+  return (
+    <span
+      className={cn(
+        "px-1.5 py-0.5 rounded text-[10px] font-medium capitalize shrink-0",
+        VENDOR_COLORS[vendor] ?? "bg-muted text-muted-foreground",
+      )}
+    >
+      {vendor}
+    </span>
+  );
+}
+
+function RosterLlmDisplay({ info }: { info: RosterLlmInfo }) {
+  const isRecommended =
+    info.recommended &&
+    info.recommended.vendor === info.vendor &&
+    info.recommended.model === info.model;
+
+  return (
+    <div className="space-y-1.5" data-testid="roster-llm-display">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-foreground/60">
+        Model
+      </p>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <VendorChip vendor={info.vendor} />
+        <span className="text-[11px] font-mono text-muted-foreground truncate max-w-48">
+          {info.model}
+        </span>
+        {isRecommended && (
+          <Badge
+            variant="outline"
+            className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200"
+            data-testid="badge-llm-recommended"
+          >
+            recommended
+          </Badge>
+        )}
+        {info.hasOverrides && (
+          <Badge
+            variant="outline"
+            className="text-[8px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-700 border-amber-200"
+            data-testid="badge-llm-overrides"
+          >
+            custom
+          </Badge>
+        )}
+      </div>
+      {info.recommended && !isRecommended && (
+        <div className="flex items-center gap-1.5 flex-wrap pl-0.5">
+          <span className="text-[10px] text-muted-foreground/60">Recommended:</span>
+          <VendorChip vendor={info.recommended.vendor} />
+          <span className="text-[10px] font-mono text-muted-foreground/70">
+            {info.recommended.model}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const CLASS_LABEL: Record<RosterClass, string> = {
   agent: "Agent",
@@ -306,6 +379,10 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
                 ))}
               </div>
             </div>
+          )}
+
+          {entry.llmInfo && (
+            <RosterLlmDisplay info={entry.llmInfo} />
           )}
 
           {entry.class === "minion" && state.history.length > 0 && (
