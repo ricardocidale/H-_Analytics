@@ -36,8 +36,11 @@ import {
 import {
   DEFAULT_STAFF_SALARY, DEFAULT_OFFICE_LEASE, DEFAULT_PROFESSIONAL_SERVICES,
   DEFAULT_TECH_INFRA, DEFAULT_BUSINESS_INSURANCE_COMPANY,
-  DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT,
 } from "@shared/constants-staffing";
+// SEED: AHLA per-property travel benchmarks 2024 — $12k/yr boutique mid-point.
+const SEED_TRAVEL_PER_CLIENT_BENCHMARK = 12_000;
+// SEED: HFTP per-property tech-stack survey 2024 — $3k/yr PMS+channel+BI boutique.
+const SEED_IT_LICENSE_PER_CLIENT_BENCHMARK = 3_000;
 import { storage } from "../src/storage";
 import { db } from "../src/db";
 
@@ -281,8 +284,8 @@ export async function seedModelConstants(opts: { silent?: boolean } = {}): Promi
     { key: "benchmarkStaffDefaultProfServices",        value: DEFAULT_PROFESSIONAL_SERVICES,     unit: "usd", authority: "AICPA practice benchmarks for early-stage hospitality companies" },
     { key: "benchmarkStaffDefaultTechInfra",           value: DEFAULT_TECH_INFRA,                unit: "usd", authority: "HFTP Technology Survey for corporate-level IT spend" },
     { key: "benchmarkStaffDefaultBizInsurance",        value: DEFAULT_BUSINESS_INSURANCE_COMPANY, unit: "usd", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks" },
-    { key: "benchmarkStaffDefaultTravelPerClient",     value: DEFAULT_TRAVEL_PER_CLIENT,         unit: "usd", authority: "AHLA per-property travel benchmarks" },
-    { key: "benchmarkStaffDefaultItLicensePerClient",  value: DEFAULT_IT_LICENSE_PER_CLIENT,     unit: "usd", authority: "HFTP per-property tech-stack survey" },
+    { key: "benchmarkStaffDefaultTravelPerClient",     value: SEED_TRAVEL_PER_CLIENT_BENCHMARK,         unit: "usd", authority: "AHLA per-property travel benchmarks" },
+    { key: "benchmarkStaffDefaultItLicensePerClient",  value: SEED_IT_LICENSE_PER_CLIENT_BENCHMARK,     unit: "usd", authority: "HFTP per-property tech-stack survey" },
   ];
 
   for (const b of BENCHMARK_ROWS) {

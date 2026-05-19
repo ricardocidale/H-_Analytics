@@ -498,6 +498,13 @@
       "when": 1779178013326,
       "tag": "0075_adr_growth_rate_default",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1779264000000,
+      "tag": "0076_travel_it_defaults",
+      "breakpoints": true
     }
   ]
 }

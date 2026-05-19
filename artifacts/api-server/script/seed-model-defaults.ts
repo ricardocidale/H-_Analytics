@@ -168,8 +168,10 @@ export const SPECS: SeedSpec[] = [
   { key: "officeLeaseStart",            card: "overhead", value: 36000,                                      unit: "$/yr",  label: "Office lease (year 1, annual)" },
   { key: "professionalServicesStart",   card: "overhead", value: 24000,                                      unit: "$/yr",  label: "Professional services (year 1)" },
   { key: "techInfraStart",              card: "overhead", value: 18000,                                      unit: "$/yr",  label: "Technology infrastructure (year 1)" },
-  { key: "travelCostPerClient",         card: "overhead", value: DEFAULT_TRAVEL_COST_PER_CLIENT,             unit: "$/yr",  label: "Travel cost per managed client" },
-  { key: "itLicensePerClient",          card: "overhead", value: DEFAULT_IT_LICENSE_PER_CLIENT,              unit: "$/yr",  label: "IT license cost per managed client" },
+  // SEED: AHLA per-property travel benchmarks 2024 — $12k/yr boutique mid-point.
+  { key: "travelCostPerClient",         card: "overhead", value: 12_000,                                     unit: "$/yr",  label: "Travel cost per managed client" },
+  // SEED: HFTP per-property tech-stack survey 2024 — $3k/yr PMS+channel+BI boutique.
+  { key: "itLicensePerClient",          card: "overhead", value: 3_000,                                      unit: "$/yr",  label: "IT license cost per managed client" },
   { key: "marketingRate",               card: "overhead", value: 0.05,                                        unit: "%",     label: "Company-level marketing rate" },
   { key: "miscOpsRate",                 card: "overhead", value: 0.03,                                        unit: "%",     label: "Company-level miscellaneous ops rate" },
   { key: "businessInsuranceStart",      card: "overhead", value: 12000,                                      unit: "$/yr",  label: "Company business insurance (year 1)" },
