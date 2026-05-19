@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T23:30:00Z
-Status: active
+Updated: 2026-05-20T00:30:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,7 +13,30 @@ Status: active
 
 ## Last Commit on Branch
 
-`chore(portal): delete unreferenced SpecialistsSection.tsx` (`f4b192fae`)
+`ccf1ac08e` — `Create handoff document for collaborative coding session`
+
+## What CC Did This Session (2026-05-19 session 28 — coderabbit loop against committed changes)
+
+**Ran `/coderabbit-loop-review` in `--type committed` mode against base `93efb8319` (pre-session-28 state). 4 iterations, 5 CC commits, all pushed.**
+
+Key fixes:
+- `valentina-model-defaults-scheduler.ts`: removed `?.` from `storage.getAdminResourceBySlug?.()` (3 call sites — scheduler + rebecca tool + admin route); added `temperature: VALENTINA_TEMPERATURE` to Anthropic branch; fixed `failed: skipped` → `failed: cycleThrew ? 1 : 0` in `recordSchedulerCycle` call; added module-level `isValentinaResearchRunning` concurrency guard with 409 response + `finally` release on the admin POST route.
+- `boot.ts`: Phase 3n → 3m comment label fix.
+- `figma-patterns.md`: canonicalized DS Drift annotation color `'red'` → `'orange'` to match SKILL.md.
+- `vitest-mock-factory-tdz-hoisting-2026-05-19.md`: added `text` language specifiers to two bare fenced blocks.
+- `prototype-to-figma/SKILL.md`: added `text` fence to page-structure block.
+- `replit-to-cc-2026-05-19-llm-roster-cards.md`: added design-review gate documentation (§11).
+- `sidebar-ux-restructure-2026-05-19.md`: added `typescript`/`bash` fence tags to two bare code blocks.
+
+3 residual findings not addressed: `AgentsRosterPage.tsx` type-widening (frontend → Replit); two stale DS Drift color flags (already fixed in iter 2, CodeRabbit sees cumulative diff from base).
+
+Session incidents:
+- Two Replit auto-checkpoint commits captured iter-1 changes (`02be5afa2`, `a204f0299`). Recovered via `git reset --soft` + recommit.
+- Stray `--help` file in repo root from `coderabbit review | tee` redirect — removed via `git rm`.
+- `git stash` lost iter-3 edits when Replit committed concurrently during stash. Re-applied manually. **Never use `git stash` with Replit active.**
+- `git index.lock` on iter-4 commit — removed lock file, re-ran commit.
+
+Commits: `2c67b52b6`, `1b8377937`, `0f2121b2d`, `914e14fd8`, `45057422b`.
 
 ## What CC Did This Session (2026-05-19 session 28 — Valentina scheduler tests + ce-compound + Replit handoff cleanup)
 
