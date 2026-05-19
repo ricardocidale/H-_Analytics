@@ -21,7 +21,7 @@ import {
   IconCheckCircle,
 } from "@/components/icons";
 import { card, stagger, fadeUp, EmptySection } from "./research-chart-shared";
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -151,13 +151,12 @@ function SupplyPipelinePanel({
             <p className="text-xs text-muted-foreground">Specialist-supplied — Risk Intelligence</p>
           </div>
         </div>
-        <AnalystActionButton
+        <AnalystButton
           onClick={onRefresh}
-          running={loading}
-          variant="header"
+          isRunning={loading}
           size="sm"
-          testIdSuffix={`supply-pipeline-${propertyId}`}
-          tooltipText="Refresh pipeline research"
+          dataTestId={`button-analyst-supply-pipeline-${propertyId}`}
+          tooltip="Refresh pipeline research"
         />
       </div>
 
@@ -166,14 +165,14 @@ function SupplyPipelinePanel({
           className={`rounded-xl border px-4 py-3 flex items-center justify-between ${PRESSURE_BAND_STYLE[pressure.band]}`}
           data-testid={`gauge-pipeline-pressure-${propertyId}`}
         >
-          <div>
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-wider opacity-80">Pipeline Pressure</p>
             <p className="text-2xl font-bold">{(pressure.pressureRatio * 100).toFixed(1)}%</p>
             <p className="text-xs opacity-80">
               {pressure.weightedNewKeys.toFixed(0)} weighted new keys ÷ {pressure.existingInventory.toLocaleString()} existing
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="text-xs uppercase tracking-wider opacity-80">Band</p>
             <p className="text-2xl font-bold capitalize">{pressure.band}</p>
             <p className="text-xs opacity-80">Score {pressure.score}/100</p>
@@ -236,8 +235,8 @@ function SupplyProjectRow({ project }: { project: SubmarketSupplyProject }) {
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <ConvictionChip conviction={conviction} />
-        <LastUpdatedChip ts={project.lastRefreshedAt} source={project.source} sourceUrl={project.sourceUrl} />
+        <div className="min-w-0"><ConvictionChip conviction={conviction} /></div>
+        <div className="shrink-0"><LastUpdatedChip ts={project.lastRefreshedAt} source={project.source} sourceUrl={project.sourceUrl} /></div>
       </div>
     </div>
   );
@@ -284,13 +283,12 @@ function StrTrendsPanel({
             <p className="text-xs text-muted-foreground">Specialist-supplied — Risk Intelligence</p>
           </div>
         </div>
-        <AnalystActionButton
+        <AnalystButton
           onClick={onRefresh}
-          running={loading}
-          variant="header"
+          isRunning={loading}
           size="sm"
-          testIdSuffix={`str-trends-${propertyId}`}
-          tooltipText="Refresh STR ordinance research"
+          dataTestId={`button-analyst-str-trends-${propertyId}`}
+          tooltip="Refresh STR ordinance research"
         />
       </div>
 
@@ -363,8 +361,8 @@ function StrEventRow({ event }: { event: StrOrdinanceEvent }) {
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-3">{event.summary}</p>
       )}
       <div className="mt-2 flex items-center justify-between gap-2">
-        <ConvictionChip conviction={conviction} />
-        <LastUpdatedChip ts={event.lastRefreshedAt} source={event.source} sourceUrl={event.sourceUrl} />
+        <div className="min-w-0"><ConvictionChip conviction={conviction} /></div>
+        <div className="shrink-0"><LastUpdatedChip ts={event.lastRefreshedAt} source={event.source} sourceUrl={event.sourceUrl} /></div>
       </div>
     </div>
   );

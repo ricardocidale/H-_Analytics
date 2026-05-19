@@ -1,7 +1,7 @@
 /**
  * check-ui-canonical.ts
  *
- * Zero-tolerance gate for two UI consistency rules in the H+ portal frontend:
+ * Zero-tolerance gate for three UI consistency rules in the H+ portal frontend:
  *
  * RULE A — Canonical "Analyst" CTA copy
  * --------------------------------------
@@ -10,21 +10,16 @@
  * "Studying…"). Variants like "Ask Analyst", "Ask The Analyst", or any
  * identifier shaped like onAskAnalyst / askTheAnalyst / askAnalyst are
  * forbidden — they recreate the surface area the canonical AnalystButton
- * and AnalystActionButton components exist to eliminate.
+ * component exists to eliminate.
  *
  * Banned patterns:
  *   - Text:        /\bask\s+(the\s+)?analyst\b/i  inside any string/JSX text
  *   - Identifiers: onAskAnalyst, askAnalyst, askTheAnalyst, ASK_ANALYST_*
  *                  (case-sensitive; catches the "masking-literal" anti-pattern
  *                  from docs/solutions/tooling/magic-numbers-ratchet-improvements.md)
- *   - JSX prop:    <AnalystActionButton label="X"> where X != "Analyst"
- *                  Multi-line JSX buffering applied so multi-line callsites
- *                  are reached. (Most real callsites span >1 line — a strict
- *                  per-line regex would fire on zero of them.)
  *
- * Canonical replacements:
+ * Canonical replacement:
  *   import { AnalystButton } from "@/components/intelligence/AnalystButton"
- *   import { AnalystActionButton } from "@/components/analyst/AnalystActionButton"
  *
  * RULE B — Canonical horizontal tab strip
  * ----------------------------------------
@@ -123,14 +118,6 @@ const RULE_A_TEXT = /\bask\s+(the\s+)?analyst\b/i;
  *   - button-ask-analyst  data-testid value
  */
 const RULE_A_IDENT = /\b(onAskAnalyst|askAnalyst|askTheAnalyst|ASK_ANALYST_[A-Z_]+|button-ask-analyst[A-Za-z0-9_-]*)\b/;
-
-/**
- * Rule A — banned <AnalystActionButton label="X"> JSX prop value where X is
- * not "Analyst". Multi-line buffer applied. The `label?` prop defaults to
- * "Analyst" so no-prop usage is fine.
- */
-const ANALYST_ACTION_OPEN = /<AnalystActionButton\b/;
-const LABEL_PROP_VALUE = /\blabel\s*=\s*"([^"]*)"/;
 
 /**
  * Rule B — banned import of TabsList or TabsTrigger from @/components/ui/tabs.
@@ -243,84 +230,6 @@ function isTabsPrimitiveSelf(absolutePath: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// JSX label scanner (multi-line buffer)
-// ---------------------------------------------------------------------------
-
-/**
- * Walks `lines` and returns the (1-based) line numbers where
- * <AnalystActionButton ... label="X" ...> is found and X != "Analyst". The
- * JSX open is allowed to span multiple lines; the scanner buffers until the
- * matching `>` or `/>` closer. Comments must be stripped before calling.
- */
-function scanAnalystActionLabels(
-  lines: string[],
-): { lineNum: number; label: string }[] {
-  const hits: { lineNum: number; label: string }[] = [];
-  let buffering: { startLine: number; buf: string } | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-
-    if (!buffering) {
-      const m = ANALYST_ACTION_OPEN.exec(line);
-      if (!m) continue;
-      buffering = { startLine: i + 1, buf: line.slice(m.index) };
-      line = "";
-    } else {
-      buffering.buf += "\n" + line;
-    }
-
-    // Find the closing > or />, respecting that quoted strings may contain >
-    const closeIdx = findJsxClose(buffering.buf);
-    if (closeIdx === -1) continue;
-
-    const fragment = buffering.buf.slice(0, closeIdx + 1);
-    const labelMatch = LABEL_PROP_VALUE.exec(fragment);
-    if (labelMatch && labelMatch[1] !== "Analyst") {
-      hits.push({ lineNum: buffering.startLine, label: labelMatch[1] });
-    }
-    buffering = null;
-  }
-  return hits;
-}
-
-/**
- * Finds the index of the first `>` or `/>` in `buf` that closes the JSX open
- * tag, ignoring (a) `>` chars inside double-quoted strings and (b) `>` chars
- * inside JSX expression containers `{ ... }` (which catches arrow-function
- * `=>` tokens and `x > 5` comparisons inside prop expressions). Returns the
- * index of the closing `>` itself, or -1 if not found.
- */
-function findJsxClose(buf: string): number {
-  let inStr = false;
-  let braceDepth = 0;
-  // Skip the initial `<TagName` so `<` doesn't get treated as the bracket-open
-  // of something else; depth tracking only applies to `{` / `}` JSX containers.
-  for (let i = 0; i < buf.length; i++) {
-    const c = buf[i];
-    if (c === "\\") {
-      i++;
-      continue;
-    }
-    if (c === '"') {
-      inStr = !inStr;
-      continue;
-    }
-    if (inStr) continue;
-    if (c === "{") {
-      braceDepth++;
-      continue;
-    }
-    if (c === "}") {
-      braceDepth--;
-      continue;
-    }
-    if (braceDepth === 0 && c === ">") return i;
-  }
-  return -1;
-}
-
-// ---------------------------------------------------------------------------
 // Per-file scanner
 // ---------------------------------------------------------------------------
 
@@ -351,7 +260,7 @@ function scanFile(absolutePath: string): Violation[] {
         lineNum: i + 1,
         rule: "A",
         message:
-          'Rule A: banned "Ask (the) Analyst" text. Use <AnalystButton> from @/components/intelligence/AnalystButton or <AnalystActionButton> from @/components/analyst/AnalystActionButton.',
+          'Rule A: banned "Ask (the) Analyst" text. Use <AnalystButton> from @/components/intelligence/AnalystButton.',
         shown: original,
       });
     }
@@ -395,17 +304,6 @@ function scanFile(absolutePath: string): Violation[] {
         }
       }
     }
-  }
-
-  // Multi-line JSX label scan (Rule A — JSX prop).
-  for (const hit of scanAnalystActionLabels(lines)) {
-    violations.push({
-      rel,
-      lineNum: hit.lineNum,
-      rule: "A",
-      message: `Rule A: <AnalystActionButton label="${hit.label}"> must be "Analyst". Omit the prop to use the default, or canonicalize the label.`,
-      shown: (originalLines[hit.lineNum - 1] ?? "").trim(),
-    });
   }
 
   return violations;
@@ -467,8 +365,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error("");
     console.error("Two UI consistency rules (CLAUDE.md §13):");
     console.error("  Rule A — canonical \"Analyst\" CTA text + identifiers.");
-    console.error("           Use <AnalystButton> (@/components/intelligence/AnalystButton)");
-    console.error("           or <AnalystActionButton> (@/components/analyst/AnalystActionButton).");
+    console.error("           Use <AnalystButton> (@/components/intelligence/AnalystButton).");
     console.error("  Rule B — canonical horizontal tabs.");
     console.error("           Use <CurrentThemeTab> from @/components/ui/tabs.");
     console.error("");

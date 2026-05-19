@@ -13,7 +13,6 @@ import { useAuth } from "@/lib/auth";
 import { Section } from "@/components/ui/field-section";
 import EditableValue from "@/components/company-assumptions/EditableValue";
 import { PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { AnalystRangeIndicator } from "@/components/analyst/AnalystRangeIndicator";
@@ -21,7 +20,6 @@ import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import {
-  DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_OTHER,
@@ -39,6 +37,7 @@ import {
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
   PLATFORM_FEE_RATES,
+  SEED_ADR_GROWTH_RATE,
 } from "@shared/constants";
 import { BUSINESS_MODEL_DEFAULTS } from "@shared/constants-business-models";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -86,6 +85,8 @@ interface PropertyUnderwritingTabProps {
   onAnalystRefresh?: (fields?: string[]) => void;
   analystRunning?: boolean;
   analystCooldownMs?: number;
+  /** Traffic-light freshness dot for the main Analyst button. null = no dot (fresh). */
+  analystFreshnessStatus?: "stale" | "very_stale" | "missing" | null;
   // G2-v1: Revenue Specialist verdict path
   onRevenueAnalystRefresh?: () => void;
   revenueAnalystRunning?: boolean;
@@ -100,6 +101,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
     onAnalystRefresh,
     analystRunning,
     analystCooldownMs,
+    analystFreshnessStatus,
     onRevenueAnalystRefresh,
     revenueAnalystRunning,
     revenueAnalystCooldownMs: _revenueAnalystCooldownMs,
@@ -302,14 +304,14 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         </TabBanner>
         {analystEnabled && (
           <div className="shrink-0">
-            <AnalystActionButton
-              variant="header"
-              running={analystRunning}
+            <AnalystButton
+              isRunning={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
+              freshnessStatus={analystFreshnessStatus ?? null}
               onClick={() =>
                 onAnalystRefresh?.(toGuidanceKeys(PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS))
               }
-              testIdSuffix="property-underwriting"
+              dataTestId="button-analyst-property-underwriting"
             />
           </div>
         )}
@@ -349,7 +351,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           label="ADR Annual Growth"
           tooltip="Annual rate at which ADR increases year-over-year, typically tracking inflation plus market premiums."
           value={draft.defaultAdrGrowthRate}
-          fallback={DEFAULT_ADR_GROWTH_RATE}
+          fallback={SEED_ADR_GROWTH_RATE}
           onChange={(_, v) => onChange("defaultAdrGrowthRate", v)}
           min={0} max={0.15} step={0.005}
           testId="field-defaultAdrGrowthRate"

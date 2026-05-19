@@ -17,7 +17,6 @@ import {
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
-  DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
@@ -64,7 +63,7 @@ export interface FieldDefinition {
   type: FieldType;
   scope: FieldScope;
   category: FieldCategory;
-  fallback: number;
+  fallback?: number;
   gaSource: GaSource;
   engineImpact: boolean;
   validationMin?: number;
@@ -149,7 +148,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "revenue",
-    fallback: DEFAULT_ADR_GROWTH_RATE,
+    // fallback intentionally omitted — adrGrowthRate is hydrated via FINANCIAL_DEFAULT_KEYS (Layer-1)
     gaSource: { kind: "direct", gaField: "defaultAdrGrowthRate" },
     engineImpact: true,
   },

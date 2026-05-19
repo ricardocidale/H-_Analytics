@@ -35,9 +35,6 @@ import {
   getOutstandingDebtAtYear,
 } from "@engine/debt/loanCalculations";
 import { US_STATE_DEFAULTS } from "@shared/countryDefaults";
-import {
-  DEFAULT_ADR_GROWTH_RATE,
-} from "@shared/constants";
 import { dPow } from "../shared/decimal";
 
 /** A scenario name + the NOI growth rate used to roll NOI past year-1. */
@@ -139,7 +136,7 @@ export interface ExitScenariosInput {
     preOpeningCosts?: number | null;
     willRefinance?: string | null;
     /** Drives the default-scenario triplet when `scenarios` is not provided. */
-    adrGrowthRate?: number | null;
+    adrGrowthRate: number;
   };
   /** Global assumptions used by `calculateLoanParams`. */
   global: GlobalLoanParams;
@@ -159,7 +156,7 @@ export interface ExitScenariosInput {
   horizons?: number[];
   /**
    * Three NOI-growth assumptions. Default: derived from
-   * `property.adrGrowthRate ?? 0.03` with ±2pp shocks for pess/opt.
+   * `property.adrGrowthRate` with ±2pp shocks for pess/opt.
    */
   scenarios?: [ExitScenarioAssumption, ExitScenarioAssumption, ExitScenarioAssumption];
   /** Maximum year used when searching for breakeven and charting. Default 30. */
@@ -654,7 +651,7 @@ export function computeExitScenarios(input: ExitScenariosInput): ExitScenariosOu
   const horizons = (input.horizons ?? DEFAULT_EXIT_HORIZONS).slice();
   const ceilingYears = input.ceilingYears ?? 30;
 
-  const baseGrowth = property.adrGrowthRate ?? DEFAULT_ADR_GROWTH_RATE;
+  const baseGrowth = property.adrGrowthRate;
   const scenarios = input.scenarios ?? defaultScenarios(baseGrowth);
 
   // Loan setup is shared across scenarios (the loan doesn't change with NOI).

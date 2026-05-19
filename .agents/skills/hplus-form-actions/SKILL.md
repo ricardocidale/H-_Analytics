@@ -71,10 +71,11 @@ form state. Navigation away from a page with unsaved changes uses the
 ## Analyst — always named "Analyst"
 
 The Analyst button always:
-- Uses the `AnalystActionButton` component from `@/components/analyst`
+- Uses the `AnalystButton` component from `@/components/intelligence/AnalystButton`
 - Carries the label "Analyst" (idle) / "Studying…" (running)
-- Uses the amber/gold visual treatment (built into the component)
+- Uses the amber/gold visual treatment (built into the component via `text-accent-pop` sparkle)
 - Shows a tooltip describing what the Analyst will do for this specific section
+- Is **never visually grayed out** on cooldown or while running — use `cooldownRemainingMs` to pass the remaining cooldown; clicks are swallowed internally by a click-guard
 
 Never rename it. Never use a different icon. The consistent name is load-bearing
 for user mental models: "Analyst = AI proposes values, Save = I confirm values."
@@ -101,16 +102,14 @@ When all three buttons are present, left-to-right order is:
 
 Three buttons in a row can crowd narrow layouts. Preferred solutions in order:
 
-### 1. Icon-only Analyst button on tight rows
+### 1. Small-size Analyst button on tight rows
 
-The `AnalystActionButton` supports being rendered icon-only by callers when
-space is constrained. Show only the Sparkles icon with a tooltip; drop the
-"Analyst" label. The tooltip must describe the action. Use this on inline
-field rows (e.g., a single number input with Save alongside it).
+Use `size="sm"` for compact rows (inline field rows, narrow headers). The
+button stays full width of its content; just the height and icon shrink.
 
 ```tsx
-// Compact: icon-only Analyst + text Save/Cancel
-<AnalystActionButton onClick={...} size="sm" label="" />
+// Compact: sm Analyst + text Save/Cancel
+<AnalystButton onClick={...} size="sm" tooltip="Have the Analyst review this section." />
 <Button variant="ghost" size="sm">Cancel</Button>
 <Button size="sm">Save</Button>
 ```
@@ -130,7 +129,7 @@ bottom of the page:
 
 ```tsx
 <div className="sticky bottom-0 border-t bg-background px-6 py-3 flex items-center justify-between">
-  <AnalystActionButton ... />
+  <AnalystButton onClick={...} cooldownRemainingMs={cooldownMs} isRunning={running} tooltip="Have the Analyst review this section." />
   <div className="flex gap-2">
     <Button variant="ghost">Cancel</Button>
     <Button>Save</Button>
@@ -197,8 +196,8 @@ layout implies the Analyst will run — confusing when the user just clicked Bac
 
 **Inline field row (compact):**
 ```
-[✦]  [Cancel]  [Save]
-  ↑ icon-only Analyst
+[Analyst sm]  [Cancel]  [Save]
+  ↑ size="sm" AnalystButton
 ```
 
 **Section card (standard):**

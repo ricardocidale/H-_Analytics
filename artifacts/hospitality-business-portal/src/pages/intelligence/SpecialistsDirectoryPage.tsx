@@ -4,7 +4,7 @@
  * Doctrine (binding):
  *   hplus-admin-nav-ia Rule 9  — replaces all per-domain group menu items.
  *   hplus-admin-nav-ia Rule 10 — LLMs, Sources, and APIs are display-only labels.
- *   analyst-research-buttons   — Run Analyst button uses AnalystActionButton.
+ *   analyst-research-buttons   — Run Analyst button uses AnalystButton.
  *   specialist-persona-naming  — SpecialistName component, persona-first display.
  *
  * Each collapsed row:  persona monogram + humanName + role + description
@@ -25,7 +25,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { SpecialistName } from "@/components/specialists/SpecialistName";
 import { AgentThinkingState } from "@/components/agent-animations";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
@@ -215,11 +215,11 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
             <p className="text-xs text-muted-foreground">
               Health check verifies this Specialist is deployed and responding.
             </p>
-            <AnalystActionButton
+            <AnalystButton
               onClick={() => probeMutation.mutate()}
-              running={probeMutation.isPending}
-              testIdSuffix={id.replace(/\./g, "-")}
-              tooltipText="Verify this Specialist is deployed and responding"
+              isRunning={probeMutation.isPending}
+              dataTestId={`button-analyst-${id.replace(/\./g, "-")}`}
+              tooltip="Verify this Specialist is deployed and responding"
             />
           </div>
         </div>

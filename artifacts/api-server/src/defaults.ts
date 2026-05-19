@@ -26,6 +26,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "./db";
 import { modelDefaults, icpBrackets, managementCompanyFees, brandFees, businessBrands, type ModelDefault, type BracketMixData } from "@workspace/db";
+import type { ModelDefaultsInput } from "@engine/helpers/default-resolver";
 
 export interface DefaultScope {
   country?: string | null;
@@ -135,6 +136,7 @@ export interface HydratedFinancials {
   refinanceInterestRate: number;
   refinanceTermYears: number;
   refinanceClosingCostRate: number;
+  adrGrowthRate: number;
 }
 
 type PartialFinancials = {
@@ -146,6 +148,7 @@ type PartialFinancials = {
   refinanceInterestRate?: number | null;
   refinanceTermYears?: number | null;
   refinanceClosingCostRate?: number | null;
+  adrGrowthRate?: number | null;
 };
 
 const FINANCIAL_DEFAULT_KEYS = [
@@ -157,6 +160,7 @@ const FINANCIAL_DEFAULT_KEYS = [
   { field: "refinanceInterestRate",   defaultKey: "mc.funding.refiInterestRate" },
   { field: "refinanceTermYears",      defaultKey: "mc.funding.refiTermYears" },
   { field: "refinanceClosingCostRate",defaultKey: "mc.funding.refiClosingCostRate" },
+  { field: "adrGrowthRate",           defaultKey: "mc.property_defaults.adrGrowthRate" },
 ] as const;
 
 /**
@@ -208,6 +212,7 @@ export async function hydratePropertyFinancials(
     refinanceInterestRate:   hydrate("refinanceInterestRate",   "mc.funding.refiInterestRate"),
     refinanceTermYears:      hydrate("refinanceTermYears",      "mc.funding.refiTermYears"),
     refinanceClosingCostRate:hydrate("refinanceClosingCostRate","mc.funding.refiClosingCostRate"),
+    adrGrowthRate:           hydrate("adrGrowthRate",           "mc.property_defaults.adrGrowthRate"),
   };
 }
 
@@ -381,4 +386,49 @@ export async function hydrateFeeColumns(
       data[col] = row.rate;
     }
   }
+}
+
+/**
+ * Fetch the three model_defaults keys that computePropertyDefaults requires.
+ * Must be called in the route layer (ADR-007: engine cannot access DB).
+ * Throws if any required key is missing from the DB.
+ */
+export async function buildModelDefaultsInput(
+  scope: DefaultScope = {},
+): Promise<ModelDefaultsInput> {
+  const keys = [
+    "mc.property_defaults.adrGrowthRate",
+    "mc.property_defaults.maxOccupancy",
+    "mc.property_defaults.adrByTier",
+  ] as const;
+
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, keys as unknown as string[]));
+
+  const resolve = (key: string) => {
+    const candidates = rows.filter(r => r.defaultKey === key);
+    return pickBest(candidates, scope)?.value;
+  };
+
+  const adrGrowthRate = resolve("mc.property_defaults.adrGrowthRate");
+  const maxOccupancy = resolve("mc.property_defaults.maxOccupancy");
+  const adrByTier = resolve("mc.property_defaults.adrByTier");
+
+  if (typeof adrGrowthRate !== "number") {
+    throw new Error("buildModelDefaultsInput: mc.property_defaults.adrGrowthRate missing from model_defaults. Run seedModelDefaults.");
+  }
+  if (typeof maxOccupancy !== "number") {
+    throw new Error("buildModelDefaultsInput: mc.property_defaults.maxOccupancy missing from model_defaults. Run seedModelDefaults.");
+  }
+  if (typeof adrByTier !== "object" || adrByTier === null) {
+    throw new Error("buildModelDefaultsInput: mc.property_defaults.adrByTier missing from model_defaults. Run seedModelDefaults.");
+  }
+
+  return {
+    adrGrowthRate,
+    maxOccupancy,
+    adrByTier: adrByTier as ModelDefaultsInput["adrByTier"],
+  };
 }

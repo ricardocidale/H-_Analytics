@@ -86,6 +86,75 @@ export function toGuidanceKeys(specs: readonly AnalystFieldSpec[]): string[] {
 }
 
 /**
+ * Traffic-light freshness thresholds for Analyst button corner dots.
+ * Matches the server-side stale check in routes/guidance.ts.
+ */
+const FRESHNESS_STALE_MS     = 7  * 24 * 60 * 60 * 1000; // 7 days
+const FRESHNESS_VERY_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+/**
+ * Derive the `FreshnessStatus` for a tab's Analyst button from the loaded
+ * guidance records.
+ *
+ * Rules (per task #1690 spec):
+ *   - "missing"    → no guidance records exist for any of the tab's fields
+ *   - null (no dot) → most-recent record is < 7 days old (fresh)
+ *   - "stale"      → most-recent record is 7–30 days old
+ *   - "very_stale" → most-recent record is > 30 days old
+ *
+ * Returns `null` rather than `"current"` so the Analyst button shows no dot
+ * for fresh data (matching the task spec "fresh session shows no dot").
+ */
+export function computeTabFreshness(
+  guidance: Array<{ assumptionKey: string; updatedAt?: string }>,
+  specs: readonly AnalystFieldSpec[],
+): "stale" | "very_stale" | "missing" | null {
+  const tabKeys = new Set(specs.map((s) => s.guidanceKey));
+  const relevant = guidance.filter((g) => tabKeys.has(g.assumptionKey));
+
+  if (relevant.length === 0) return "missing";
+
+  const now = Date.now();
+  let newestMs = 0;
+  for (const r of relevant) {
+    if (!r.updatedAt) continue;
+    const t = new Date(r.updatedAt).getTime();
+    if (t > newestMs) newestMs = t;
+  }
+
+  if (newestMs === 0) return "missing";
+
+  const age = now - newestMs;
+  if (age < FRESHNESS_STALE_MS)      return null;
+  if (age < FRESHNESS_VERY_STALE_MS) return "stale";
+  return "very_stale";
+}
+
+/**
+ * Derive the `FreshnessStatus` for a specialist-verdict-backed Analyst button
+ * (e.g. Capital Stack Discipline) from the verdict's `generatedAt` timestamp.
+ *
+ * Unlike `computeTabFreshness`, which aggregates over multiple guidance records,
+ * this function evaluates a single verdict object whose freshness is represented
+ * by one timestamp field.
+ *
+ * Rules (same thresholds as `computeTabFreshness`):
+ *   - "missing"    → no verdict (null / undefined)
+ *   - null (no dot) → verdict is < 7 days old (fresh)
+ *   - "stale"      → verdict is 7–30 days old
+ *   - "very_stale" → verdict is > 30 days old
+ */
+export function computeVerdictFreshness(
+  verdict: { generatedAt: string } | null | undefined,
+): "stale" | "very_stale" | "missing" | null {
+  if (!verdict?.generatedAt) return "missing";
+  const age = Date.now() - new Date(verdict.generatedAt).getTime();
+  if (age < FRESHNESS_STALE_MS)      return null;
+  if (age < FRESHNESS_VERY_STALE_MS) return "stale";
+  return "very_stale";
+}
+
+/**
  * Merge several spec lists into one, deduplicating by `draftKey` (the
  * UI-facing identity). The first occurrence wins, so the caller can
  * control ordering.

@@ -14,7 +14,7 @@ import {
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { Section } from "@/components/ui/field-section";
 import { PctField, NumberField, DollarField, type Draft } from "./FieldHelpers";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { SaveButton } from "@/components/ui/save-button";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
@@ -40,6 +40,8 @@ interface CompanyTabProps {
   onAnalystRefresh?: (fields?: string[]) => void;
   analystRunning?: boolean;
   analystCooldownMs?: number;
+  /** Traffic-light freshness dot for the Analyst button. null = no dot (fresh). */
+  analystFreshnessStatus?: "stale" | "very_stale" | "missing" | null;
   /** Whether there are unsaved changes. Controls Cancel button visibility. */
   isDirty?: boolean;
   /** Whether a save mutation is in flight. */
@@ -57,6 +59,7 @@ export function CompanyTab(props: CompanyTabProps) {
     onAnalystRefresh,
     analystRunning,
     analystCooldownMs,
+    analystFreshnessStatus,
     isDirty = false,
     isPending = false,
     onSave,
@@ -92,14 +95,14 @@ export function CompanyTab(props: CompanyTabProps) {
             </Button>
           )}
           {analystEnabled && (
-            <AnalystActionButton
-              variant="header"
-              running={analystRunning}
+            <AnalystButton
+              isRunning={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
+              freshnessStatus={analystFreshnessStatus ?? null}
               onClick={() =>
                 onAnalystRefresh?.(toGuidanceKeys(COMPANY_TAB_ANALYST_FIELDS))
               }
-              testIdSuffix="company"
+              dataTestId="button-analyst-company"
             />
           )}
           {onSave && (

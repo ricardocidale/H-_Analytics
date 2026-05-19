@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/field-section";
 import { NumberField, PctField, type Draft } from "./FieldHelpers";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { SaveButton } from "@/components/ui/save-button";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
@@ -20,6 +20,11 @@ interface CapitalStackDisciplineTabProps {
   fundingAnalystRunning?: boolean;
   fundingAnalystCooldownMs?: number;
   fundingVerdict?: import("@engine/analyst/contracts/verdict").AnalystVerdict | null;
+  /**
+   * Traffic-light freshness dot for the Funding Analyst button.
+   * null = no dot (ran this session). "missing" = never run.
+   */
+  fundingFreshnessStatus?: "stale" | "very_stale" | "missing" | null;
   /** Whether there are unsaved changes. Controls Cancel button visibility. */
   isDirty?: boolean;
   /** Whether a save mutation is in flight. */
@@ -38,6 +43,7 @@ export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps)
     fundingAnalystRunning,
     fundingAnalystCooldownMs,
     fundingVerdict,
+    fundingFreshnessStatus,
     isDirty = false,
     isPending = false,
     onSave,
@@ -95,12 +101,12 @@ export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps)
             </Button>
           )}
           {onFundingAnalystRefresh && (
-            <AnalystActionButton
-              variant="header"
-              running={fundingAnalystRunning}
+            <AnalystButton
+              isRunning={fundingAnalystRunning}
               cooldownRemainingMs={fundingAnalystCooldownMs}
+              freshnessStatus={fundingFreshnessStatus ?? null}
               onClick={onFundingAnalystRefresh}
-              testIdSuffix="capital-stack-discipline"
+              dataTestId="button-analyst-capital-stack-discipline"
             />
           )}
           {onSave && (

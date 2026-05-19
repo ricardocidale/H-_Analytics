@@ -55,8 +55,9 @@ import {
   DEFAULT_COMMISSION_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
   SEED_EXIT_CAP_RATE_LUXURY,
-  DEFAULT_ADR_GROWTH_RATE,
 } from "@shared/constants";
+// SEED value — calibrated from HVS 2024 mid-market survey; see docs/runbooks/seed-calibration-2026-05-13.md
+const SEED_ADR_GROWTH_RATE = 0.03;
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
   DEFAULT_SIZING_OVERSHOOT_PCT,
@@ -68,6 +69,23 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
+
+/**
+ * SEED_ADR_BY_TIER — Calibrated per-tier ADR brackets for the starter portfolio seed.
+ * Source: STR Global Supply & Demand Report Q4 2024 + HVS Hotel Development Cost Survey 2024.
+ * Keys match DB canonical format (QUALITY_TIERS in lib/db/src/schema/properties.ts).
+ * These are programmer-estimated starting points; Valentina will propose research-backed
+ * replacements once the model_defaults Analyst pipeline is live.
+ * Runbook: docs/runbooks/schema-migrations.md
+ */
+const SEED_ADR_BY_TIER = {
+  luxury:         { min: 350, max: 500, default: 400 },
+  upper_upscale:  { min: 250, max: 400, default: 300 },
+  upscale:        { min: 180, max: 300, default: 220 },
+  upper_midscale: { min: 130, max: 200, default: 160 },
+  midscale:       { min: 90,  max: 150, default: 120 },
+  economy:        { min: 60,  max: 100, default: 80  },
+};
 
 export interface SeedSpec {
   key: string;           // short key, prefix added below
@@ -167,9 +185,10 @@ export const SPECS: SeedSpec[] = [
   // ── Property Defaults (MC-managed template for new properties) ───────
   { key: "roomCount",                   card: "property_defaults", value: BUSINESS_MODEL_DEFAULTS.hotel.roomCount, unit: "rooms",  label: "Default room count for new property" },
   { key: "startAdr",                    card: "property_defaults", value: 250,                               unit: "$",      label: "Starting ADR for new property" },
+  { key: "adrByTier",                   card: "property_defaults", value: SEED_ADR_BY_TIER,                  unit: "json",   label: "ADR brackets by quality tier (min/max/default per tier)" },
   { key: "maxOccupancy",                card: "property_defaults", value: 0.85,                              unit: "%",      label: "Stabilized maximum occupancy" },
   { key: "startOccupancy",              card: "property_defaults", value: 0.55,                              unit: "%",      label: "Starting occupancy (month 1)" },
-  { key: "adrGrowthRate",               card: "property_defaults", value: DEFAULT_ADR_GROWTH_RATE,           unit: "%",      label: "Annual ADR growth rate" },
+  { key: "adrGrowthRate",               card: "property_defaults", value: SEED_ADR_GROWTH_RATE,             unit: "%",      label: "Annual ADR growth rate" },
   { key: "stabilizationMonths",         card: "property_defaults", value: 36,                               unit: "months", label: "Months to stabilize" },
   { key: "occupancyRampMonths",         card: "property_defaults", value: 6,                                unit: "months", label: "Occupancy ramp duration" },
   { key: "occupancyGrowthStep",         card: "property_defaults", value: 0.05,                              unit: "%",      label: "Occupancy growth step per period" },

@@ -27,6 +27,8 @@ import {
   COMPANY_TAB_ANALYST_FIELDS,
   MARKET_MACRO_TAB_ANALYST_FIELDS,
   PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
+  computeTabFreshness,
+  computeVerdictFreshness,
 } from "./model-defaults/analyst-fields";
 
 interface ModelDefaultsTabProps {
@@ -279,6 +281,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onAnalystRefresh={analyst.triggerRefresh}
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
+              analystFreshnessStatus={computeTabFreshness(guidance, COMPANY_TAB_ANALYST_FIELDS)}
               isDirty={isDirty}
               isPending={saveMutation.isPending}
               onSave={() => saveRef.current?.()}
@@ -303,6 +306,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               fundingAnalystRunning={fundingRefresh.running}
               fundingAnalystCooldownMs={fundingRefresh.cooldownRemainingMs}
               fundingVerdict={fundingRefresh.lastVerdict}
+              fundingFreshnessStatus={computeVerdictFreshness(fundingRefresh.lastVerdict)}
               isDirty={
                 saved
                   ? CAPITAL_STACK_DISCIPLINE_FIELDS.some(
@@ -326,6 +330,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onAnalystRefresh={analyst.triggerRefresh}
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
+              analystFreshnessStatus={computeTabFreshness(guidance, MARKET_MACRO_TAB_ANALYST_FIELDS)}
             />
         )}
 
@@ -345,6 +350,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onAnalystRefresh={analyst.triggerRefresh}
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
+              analystFreshnessStatus={computeTabFreshness(guidance, PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS)}
               onRevenueAnalystRefresh={revenueRefresh.triggerRefresh}
               revenueAnalystRunning={revenueRefresh.running}
               revenueAnalystCooldownMs={revenueRefresh.cooldownRemainingMs}

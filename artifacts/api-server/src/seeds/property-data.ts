@@ -26,7 +26,6 @@ import {
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE,
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE,
   DEFAULT_REFI_CLOSING_COST_RATE,
-  DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_ACQ_CLOSING_COST_RATE,
   SEED_MEDELLIN_DUPLEX_START_ADR,
 } from "@shared/constants";
@@ -424,7 +423,7 @@ export const SEED_INITIAL_PROPERTIES = [
     operatingReserve: 400000,
     roomCount: 20,
     startAdr: 350,
-    adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
+    adrGrowthRate: 0.03, // SEED value: HVS 2024 mid-market survey; see docs/runbooks/seed-calibration-2026-05-13.md
     startOccupancy: 0.45,
     maxOccupancy: 0.65,
     occupancyRampMonths: 6,
@@ -478,7 +477,7 @@ export const SEED_INITIAL_PROPERTIES = [
     businessModel: "lodge",
     hospitalityType: "lodge",
     startAdr: 450,
-    adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
+    adrGrowthRate: 0.03, // SEED value: HVS 2024 mid-market survey; see docs/runbooks/seed-calibration-2026-05-13.md
     startOccupancy: 0.50,
     maxOccupancy: 0.70,
     occupancyRampMonths: 3,

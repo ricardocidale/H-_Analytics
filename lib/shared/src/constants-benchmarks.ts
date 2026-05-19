@@ -26,16 +26,17 @@
 // Source: STR Chain Scale Benchmarks — annual survey, US lodging industry.
 // Each tier defines the typical occupancy range for stabilized properties.
 
+// Keys match DB canonical format (QUALITY_TIERS in lib/db/src/schema/properties.ts)
 export const QUALITY_TIER_OCCUPANCY_BRACKETS: Record<
   string,
   { min: number; max: number; default: number }
 > = {
-  Luxury:         { min: 0.65, max: 0.75, default: 0.70 },
-  "Upper Upscale": { min: 0.65, max: 0.75, default: 0.70 },
-  Upscale:        { min: 0.70, max: 0.80, default: 0.75 },
-  "Upper Midscale": { min: 0.70, max: 0.80, default: 0.75 },
-  Midscale:       { min: 0.60, max: 0.70, default: 0.65 },
-  Economy:        { min: 0.60, max: 0.70, default: 0.65 },
+  luxury:          { min: 0.65, max: 0.75, default: 0.70 },
+  upper_upscale:   { min: 0.65, max: 0.75, default: 0.70 },
+  upscale:         { min: 0.70, max: 0.80, default: 0.75 },
+  upper_midscale:  { min: 0.70, max: 0.80, default: 0.75 },
+  midscale:        { min: 0.60, max: 0.70, default: 0.65 },
+  economy:         { min: 0.60, max: 0.70, default: 0.65 },
 };
 
 // Fallback occupancy when quality tier is unknown (Upscale default)

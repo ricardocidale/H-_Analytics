@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import AnalystRefreshTheater from "./AnalystRefreshTheater";
 import RefreshDiffDialog from "./RefreshDiffDialog";
 import SuspiciousActivityBanner from "./SuspiciousActivityBanner";
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { useFirstVisitBenchmarkSeed } from "@/hooks/useFirstVisitBenchmarkSeed";
 import ReferenceBrandsGrid, { type BrandSummary } from "./ReferenceBrandsGrid";
 import { shouldOpenDiffDialog, buildAutoCommitToastDescription } from "@/lib/analyst-refresh-helpers";
@@ -308,11 +308,10 @@ export default function AnalystTables() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <AnalystActionButton
+                <AnalystButton
                   onClick={() => handleRefresh(t)}
-                  running={refreshMutation.isPending && theaterTable?.id === t.id}
-                  testIdSuffix={t.id}
-                  variant="header"
+                  isRunning={refreshMutation.isPending && theaterTable?.id === t.id}
+                  dataTestId={`button-analyst-${t.id}`}
                 />
                 {/*
                   Capital-Raise Watchdog admin trigger. Only the
@@ -325,12 +324,11 @@ export default function AnalystTables() {
                   from the manual refresh by tooltip text and testid only.
                 */}
                 {t.id === "capital_raise_benchmarks" && (
-                  <AnalystActionButton
+                  <AnalystButton
                     onClick={() => watchdogMutation.mutate(t)}
-                    running={watchdogMutation.isPending && watchdogRunningId === t.id}
-                    testIdSuffix={`watchdog-${t.id}`}
-                    variant="header"
-                    tooltipText="Have the Analyst run the Capital-Raise Watchdog now (forces a real scheduled cycle, bypassing the weekly cadence)."
+                    isRunning={watchdogMutation.isPending && watchdogRunningId === t.id}
+                    dataTestId={`button-analyst-watchdog-${t.id}`}
+                    tooltip="Have the Analyst run the Capital-Raise Watchdog now (forces a real scheduled cycle, bypassing the weekly cadence)."
                   />
                 )}
               </div>

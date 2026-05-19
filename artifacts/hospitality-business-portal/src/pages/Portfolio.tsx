@@ -34,8 +34,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { InsertProperty } from "@shared/schema";
 import {
-  DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_CATERING_BOOST_PCT,
+  SEED_ADR_GROWTH_RATE,
 } from "@/lib/constants";
 import { PageTransition } from "@/components/ui/animated";
 import { AnimatedPage, AnimatedGrid } from "@/components/graphics";
@@ -72,7 +72,7 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
   operatingReserve: 0,
   roomCount: BUSINESS_MODEL_DEFAULTS.hotel.roomCount, // hotel baseline; user picks model later
   startAdr: 250, // starting ADR bootstrap; canonical source is model_defaults.mc.property_defaults.startAdr
-  adrGrowthRate: DEFAULT_ADR_GROWTH_RATE,
+  adrGrowthRate: SEED_ADR_GROWTH_RATE, // bootstrap; canonical source is model_defaults.mc.property_defaults.adrGrowthRate
   startOccupancy: 0.55, // starting occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.startOccupancy
   maxOccupancy: 0.85, // stabilized-occupancy bootstrap; canonical source is model_defaults.mc.property_defaults.maxOccupancy
   occupancyRampMonths: 6, // ramp-up months bootstrap; canonical source is model_defaults.mc.property_defaults.occupancyRampMonths

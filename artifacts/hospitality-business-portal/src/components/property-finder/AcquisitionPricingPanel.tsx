@@ -24,7 +24,7 @@ import {
   IconTrash,
 } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import {
   Tooltip,
   TooltipContent,
@@ -147,9 +147,8 @@ export function AcquisitionPricingPanel({ prospectiveId, address }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <AnalystActionButton
-            variant="header"
-            running={analystRunning || isFetching}
+          <AnalystButton
+            isRunning={analystRunning || isFetching}
             onClick={async () => {
               // No price-history Specialist exists yet (follow-up #835 will
               // wire one). Until then the canonical Analyst affordance
@@ -162,8 +161,8 @@ export function AcquisitionPricingPanel({ prospectiveId, address }: Props) {
                 setAnalystRunning(false);
               }
             }}
-            testIdSuffix="acquisition-pricing"
-            tooltipText="Have the Analyst re-pull the listing timeline and recompute the motivation tier."
+            dataTestId="button-analyst-acquisition-pricing"
+            tooltip="Have the Analyst re-pull the listing timeline and recompute the motivation tier."
           />
           <Button
             size="sm"
@@ -309,10 +308,10 @@ function TimelineRow({
       <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${KIND_DOT_CLASS[event.kind]}`} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-sm font-medium text-foreground min-w-0">
             {PRICE_EVENT_KIND_LABEL[event.kind]}
           </p>
-          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+          <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
             {formatDate(event.date)}
           </span>
         </div>

@@ -55,7 +55,7 @@ import { db } from "@workspace/db";
 import { todosTable } from "@workspace/db";
 ```
 
-Frontend code MUST import schema from `@workspace/db/schema` (the subpath export), never from `@workspace/db` directly, to avoid pulling Node-only `pg` into the browser bundle. See `docs/architecture/architecture-notes.md` § "Import discipline".
+Frontend code MUST import schema from `@workspace/db/schema` (the subpath export), never from `@workspace/db` directly, to avoid pulling Node-only `pg` into the browser bundle. See CLAUDE.md § "Import discipline".
 
 ---
 

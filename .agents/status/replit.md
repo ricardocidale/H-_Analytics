@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-18T19:00:00Z
+Updated: 2026-05-19T10:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,40 +13,42 @@ main
 
 ## Last Commit on Branch
 
-(pending commit — AgentProcessingCard U1–U7 implementation)
+ce-compound: document lucide-react-not-in-portal-deps build error
 
 ## What Replit Did This Session
 
-**AgentProcessingCard U1–U7 — production portal implementation**
+**ce-compound — lucide-react import crash documentation**
+- `docs/solutions/build-errors/lucide-react-not-in-portal-deps-2026-05-18.md` — new compound doc.
+  Full mode with session history. Three parallel Phase 1 subagents (Context Analyzer, Solution
+  Extractor, Related Docs Finder). Overlap: Low — no existing doc covered this.
+  Frontmatter: `build_error` / `tooling` / `wrong_api` / `code_fix` / `high`. Validator: OK.
 
-Implemented the `AgentProcessingCard` floating wait-state UI component into the
-production portal, using the approved canvas mockup as the design reference.
-
-### Files created
-
-- `artifacts/hospitality-business-portal/src/lib/processing-card.ts` — Zustand store (spawn/update/dismiss)
-- `artifacts/hospitality-business-portal/src/components/ui/agent-processing-card.tsx` — component (portal/createPortal, dark stage, asymptotic progress, reduced-motion fallback)
-- `artifacts/hospitality-business-portal/src/hooks/useProcessingCard.ts` — thin hook + ANALYST_CAPTIONS export
-
-### Files edited
-
-- `artifacts/hospitality-business-portal/src/components/Layout.tsx` — import + `<AgentProcessingCard />` mount
-- `artifacts/hospitality-business-portal/src/components/property-research/useResearchStream.ts` — spawn on job start, update on phase, dismiss in finally
-- `artifacts/hospitality-business-portal/src/components/company-research/useCompanyResearchStream.ts` — same
+**Task #1692 — Freshness dots on Intelligence-section Analyst buttons (rev 2 — code review fixes)**
+- `BenchmarkBandsTab.tsx` — added `lastEditedAt: string | null` to `BandGroup` interface
+  (backend already returns it from `model_constants.last_edited_at` for the Low band key).
+  Replaced binary `missing|null` logic with full traffic-light age classification:
+  `missing` (any group unseeded) → `stale` (newest lastEditedAt 7–30d) → `very_stale` (>30d)
+  → null when fresh (<7d). Uses `computeVerdictFreshness` from `analyst-fields.ts`.
+- `CountryEconomicDataPage.tsx` — kept `computeVerdictFreshness` (correct single-timestamp
+  utility from the same `analyst-fields.ts` file; identical 7d/30d thresholds as
+  `computeTabFreshness`; semantically appropriate for single max-timestamp freshness).
 
 ### Gates
-
 - `check:typecheck` ✅
 - `check:lint` ✅
-- Dev server running clean ✅
 
-**Pre-existing failures (CC-owned, not introduced):**
-- `check:taxonomy-mirror` (pre-existing)
-- `test:api-server` — builder-substitution-map, dispatch, slide-6-embed-flow (pre-existing)
+**Task #1690 — Freshness dot wired to all four model-defaults Analyst buttons**
+- `useAnalystRefresh.ts` — added `updatedAt?: string` to `AnalystGuidanceRecord`
+- `analyst-fields.ts` — added `computeTabFreshness()` (7-day/30-day thresholds; returns null/stale/very_stale/missing)
+- `ModelDefaultsTab.tsx` — computes `analystFreshnessStatus` + `fundingFreshnessStatus` and passes to all four tabs
+- `MarketMacroTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
+- `CompanyTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
+- `PropertyUnderwritingTab.tsx` — added `analystFreshnessStatus` prop, wired to main Analyst button
+- `CapitalStackDisciplineTab.tsx` — added `fundingFreshnessStatus` prop, wired to AnalystButton
 
 ## Files Replit Owns Right Now
 
-None — session complete, all committed to main.
+None — session complete.
 
 ## Handoff to CC
 

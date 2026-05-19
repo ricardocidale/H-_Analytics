@@ -103,6 +103,16 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
 export const SEED_EXIT_CAP_RATE_LUXURY = 0.085;
 
 /**
+ * SEED_ADR_GROWTH_RATE — platform-wide bootstrap value for the adrGrowthRate model_defaults row.
+ *
+ * Calibration: HVS 2024 mid-market survey; aligns with US CPI trend (PCE 2.9% → rounded to 3%).
+ * Used as the model-defaults admin UI fallback when draft.defaultAdrGrowthRate is momentarily
+ * null during render. The real authority is the model_defaults DB row (Layer-1 resolver).
+ * Seeded by: artifacts/api-server/script/seed-model-defaults.ts (SEED_ADR_GROWTH_RATE = 0.03).
+ */
+export const SEED_ADR_GROWTH_RATE = 0.03;
+
+/**
  * SEED_MEDELLIN_DUPLEX_START_ADR — single-key El Poblado luxury STR starting ADR.
  *
  * Calibrated to AirDNA Q1-2026 El Poblado top-decile whole-home listings
@@ -193,12 +203,6 @@ export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
     referenceUrl: "https://www.ahla.com/resources",
   },
 };
-
-// ──────────────────────────────────────────────────────────
-// PROPERTY-LEVEL DEFAULTS
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_ADR_GROWTH_RATE = 0.03;
 
 // ──────────────────────────────────────────────────────────
 // INFLATION & COST ESCALATION

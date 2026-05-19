@@ -113,6 +113,8 @@ const REQUIRED_MODEL_DEFAULT_KEYS = [
   "mc.funding.refiClosingCostRate",
   "mc.tax_exit.exitCapRate",
   "mc.property_defaults.maxOccupancy",
+  "mc.property_defaults.adrByTier",
+  "mc.property_defaults.adrGrowthRate",
 ] as const;
 
 async function assertRequiredModelDefaults(): Promise<void> {
