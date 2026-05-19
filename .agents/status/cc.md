@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T16:00:00Z
+Updated: 2026-05-19T17:00:00Z
 Status: idle
 
 ## Active Branch
@@ -297,17 +297,17 @@ None — work is on main, working tree clean.
 
 ## What's Pending
 
-### T1-4 campaign status (as of session 25)
+### T1-4 campaign status (as of session 26)
 
-All tracked `DEFAULT_*` retirements from the original campaign are **COMPLETE**. Remaining §2 violations flagged for future work:
+All tracked `DEFAULT_*` retirements **COMPLETE**. All three residual `??` violations from prior sessions also **COMPLETE**:
 
-- `lib/engine/src/property/resolve-assumptions.ts:219-220` — `arDays ?? 30`, `apDays ?? 45` (structurally unreachable; type-tightening needed on `PropertyInput.arDays/apDays`)
-- `artifacts/api-server/src/slides/build-payload.ts:93` — `inflationRate ?? 0.03` (likely dead `??` — `GlobalInput.inflationRate` is already required)
-- Route-layer `?? 0.05`/`?? 0.03` in `scenario-helpers.ts` + `analyst-admin-utils.ts` (mirror schema DEFAULTs; low priority)
+- ~~`build-payload.ts:93` — `inflationRate ?? 0.03`~~ removed in session 26 (commit `33f2c7484`)
+- ~~Route-layer `?? 0.05`/`?? 0.03` in `scenario-helpers.ts` + `analyst-admin-utils.ts`~~ removed in session 26 (commit `a3505e198`)
+- ~~`resolve-assumptions.ts:219-220` — `arDays ?? 30`/`apDays ?? 45`~~ already clean — engine reads `PropertyInput.arDays: number` directly, no `??` in current code
 
 ### Next CC session pickup
 
-T1-4 tightening above when bandwidth allows. Otherwise no urgent CC work outstanding.
+No urgent CC work outstanding. Replit UI tasks (T2-2, T2-3, T2-4, T2-6) remain on the backlog.
 
 ### Completed CC work this session (status reference)
 
