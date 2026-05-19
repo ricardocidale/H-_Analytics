@@ -87,8 +87,7 @@ export const DEFAULT_SERVICE_TEMPLATES = [
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_EXIT_CAP_RATE = 0.085;
-/** @deprecated Use getFactoryNumber('taxRate', country) for country-aware rates. */
-export const DEFAULT_PROPERTY_INCOME_TAX_RATE = 0.25;
+// DEFAULT_PROPERTY_INCOME_TAX_RATE retired (T1-4 §2). Engine reads property.taxRate (NOT NULL DB column). Research surface uses RESEARCH_TAX_RATE_25_PCT.
 export const DEFAULT_COMMISSION_RATE = 0.05;
 
 /**
@@ -129,7 +128,7 @@ export const SEED_MEDELLIN_DUPLEX_START_ADR = 1500;
 // DEPRECIATION & LAND VALUE
 // ──────────────────────────────────────────────────────────
 
-export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
+// DEFAULT_LAND_VALUE_PERCENT retired (T1-4 §2). Engine reads property.landValuePercent (NOT NULL DB column). hold-vs-sell requires land_value_pct.
 
 /**
  * @deprecated Audit #319 R4. The model-constants registry is now the canonical
