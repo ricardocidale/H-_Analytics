@@ -97,3 +97,4 @@ The marker turns the test from a silent regression magnet into a known-debt item
 ## Related
 
 - The U6 plan ship contract (`docs/plans/2026-05-11-001-feat-factory-v2-pptx-substitution-plan.md` §U6) explicitly told the subagent to "document, don't paper over" the U4 image-swap fragility. The Option-C catch pattern was the implementation of that instruction. The FIXME marker is the discipline that prevents the pattern from rotting into a regression magnet.
+- `docs/solutions/best-practices/vitest-mock-factory-tdz-hoisting-2026-05-19.md` — sibling Vitest anti-pattern: `vi.mock()` factory TDZ errors when mock factories reference module-level `const` declarations.
