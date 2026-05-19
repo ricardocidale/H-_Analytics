@@ -1,6 +1,6 @@
 # LB Slides — Implementation Reference
 
-> Extracted from CLAUDE.md on 2026-05-07. See CLAUDE.md § "LB Slides" for the summary pointer.
+> Extracted from CLAUDE.md on 2026-05-07. See `docs/architecture/architecture-notes.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)" for the summary pointer.
 
 ## Overview
 
