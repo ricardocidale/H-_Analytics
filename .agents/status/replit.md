@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T14:00:00Z
+Updated: 2026-05-19T15:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,21 +13,17 @@ main
 
 ## Last Commit on Branch
 
-Planning session: t2-2/t2-6/t2-7 plan files + ce-compound lucide-react doc
+feat(skills): add figma-prototyping skill from GitHub (task-1697)
 
 ## What Replit Did This Session
 
-**ce-plan + architect review — T2-2, T2-6, T2-7 (and discovered T2-3/T2-4/T2-7 already done)**
+**Task #1697 — Added Figma Prototyping skill from GitHub**
 
-Confirmed already shipped (no plan needed):
-- T2-3 "Improve with AI": `ImprovedDescriptionField.tsx` — full rewrite dialog wired into `BasicInfoSection.tsx`
-- T2-4 "Verify deck": `DownloadTab.tsx` — full verify button + findings collapsible already implemented
-- T2-7 Horizontal tabs → collapsible: all 12 in-scope pages already converted; zero `TabsList`/`TabsTrigger` remain
-
-Written plans (implementation-ready, architect-reviewed):
-- `docs/plans/t2-2-portfolio-filter.md` — portfolio filter on Portfolio.tsx; discriminated union filter state; rename `selectedPortfolioId` → `assignmentTargetPortfolioId`; filteredProperties memo; conditional Unassigned section visibility
-- `docs/plans/t2-6-brand-form-dialog.md` — BrandFormDialog.tsx (single mode-driven component); override-lock slug auto-generation; useMutation-wrapped fetch; centralized parseApiError; BrandsTab.tsx wiring
-- `docs/plans/t2-7-collapsible-conversion.md` — updated to COMPLETE status with full evidence table
+- Cloned `https://github.com/alima-max/prototype-to-figma-skill.git`
+- Copied all three files to `.agents/skills/figma-prototyping/`: `SKILL.md`, `figma-patterns.md`, `README.md`
+- Validated frontmatter: `name: prototype-to-figma` (18 chars, lowercase+hyphens ✓), `description` (853 chars ✓)
+- Removed temp clone
+- No existing skills were modified
 
 ## Files Replit Owns Right Now
 
