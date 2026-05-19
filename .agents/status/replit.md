@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T10:00:00Z
+Updated: 2026-05-19T13:22:00Z
 Status: idle
 
 ## Active Branch
@@ -13,38 +13,37 @@ main
 
 ## Last Commit on Branch
 
-ce-compound: document lucide-react-not-in-portal-deps build error
+Figma skill demo + portal SEED_ constant fix
 
 ## What Replit Did This Session
 
-**ce-compound — lucide-react import crash documentation**
-- `docs/solutions/build-errors/lucide-react-not-in-portal-deps-2026-05-18.md` — new compound doc.
-  Full mode with session history. Three parallel Phase 1 subagents (Context Analyzer, Solution
-  Extractor, Related Docs Finder). Overlap: Low — no existing doc covered this.
-  Frontmatter: `build_error` / `tooling` / `wrong_api` / `code_fix` / `high`. Validator: OK.
+**Figma prototyping skill demonstration (figma-prototyping)**
+- Confirmed Replit Figma MCP is Write tier only — `use_figma` (Plugin API executor) unavailable
+- Created FigJam flow diagram for Portfolio page interaction flows at https://www.figma.com/board/NUOCu7g0vujsIqV1ElJzo5
+- Created blank Figma design file (key `2ZNLoX39bG4jOK41uSt32v`, Norfolk AI Team)
+- Produced Prototype Spec Document (skill § "Inspect-only output" fallback):
+  `docs/plans/portfolio-prototype-spec.md` — full component inventory, interaction tables,
+  flow states, DS gap analysis, and Figma build guide for Portfolio.tsx
 
-**Task #1692 — Freshness dots on Intelligence-section Analyst buttons (rev 2 — code review fixes)**
-- `BenchmarkBandsTab.tsx` — added `lastEditedAt: string | null` to `BandGroup` interface
-  (backend already returns it from `model_constants.last_edited_at` for the Low band key).
-  Replaced binary `missing|null` logic with full traffic-light age classification:
-  `missing` (any group unseeded) → `stale` (newest lastEditedAt 7–30d) → `very_stale` (>30d)
-  → null when fresh (<7d). Uses `computeVerdictFreshness` from `analyst-fields.ts`.
-- `CountryEconomicDataPage.tsx` — kept `computeVerdictFreshness` (correct single-timestamp
-  utility from the same `analyst-fields.ts` file; identical 7d/30d thresholds as
-  `computeTabFreshness`; semantically appropriate for single max-timestamp freshness).
+**Portal SEED_ constant fix (broken by prior CC retirement campaign)**
+- `artifacts/hospitality-business-portal/src/lib/constants.ts` — removed `SEED_TRAVEL_PER_CLIENT`
+  and `SEED_IT_LICENSE_PER_CLIENT` from shared re-export block (deleted from `lib/shared/src/constants.ts`
+  by CC session 24 retirement campaign); added as local SEED_ constants (values 12000 / 3000 from
+  store.ts type annotations) with source citation and §2 Category 5 SEED_ prefix + comment
+- `check:production-image` restored to PASS
 
 ### Gates
-- `check:typecheck` ✅
+- `check:production-image` ✅ (was failing — now passing)
+- `check:magic-numbers` ✅ (2 improvements since baseline)
 - `check:lint` ✅
+- Portal typecheck ✅
 
-**Task #1690 — Freshness dot wired to all four model-defaults Analyst buttons**
-- `useAnalystRefresh.ts` — added `updatedAt?: string` to `AnalystGuidanceRecord`
-- `analyst-fields.ts` — added `computeTabFreshness()` (7-day/30-day thresholds; returns null/stale/very_stale/missing)
-- `ModelDefaultsTab.tsx` — computes `analystFreshnessStatus` + `fundingFreshnessStatus` and passes to all four tabs
-- `MarketMacroTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
-- `CompanyTab.tsx` — added `analystFreshnessStatus` prop, wired to AnalystButton
-- `PropertyUnderwritingTab.tsx` — added `analystFreshnessStatus` prop, wired to main Analyst button
-- `CapitalStackDisciplineTab.tsx` — added `fundingFreshnessStatus` prop, wired to AnalystButton
+### Still failing (CC territory — not caused by this session)
+- `check:typecheck` — api-server `src/seeds/property-data.ts` still references
+  `DEFAULT_PROPERTY_INCOME_TAX_RATE` and `DEFAULT_LAND_VALUE_PERCENT` (deleted by CC session 24
+  but missed in seed file — §14 violation, CC needs to fix)
+- `check:taxonomy-mirror` — CLAUDE.md missing "### Canonical definitions" section (CC work)
+- `test:api-server` — pre-existing failures (dispatch, builder-substitution-map, marco, slide-6, pptx)
 
 ## Files Replit Owns Right Now
 
@@ -52,7 +51,13 @@ None — session complete.
 
 ## Handoff to CC
 
-None pending.
+**Action needed in CC-owned files:**
+1. `artifacts/api-server/src/seeds/property-data.ts` — still uses `DEFAULT_PROPERTY_INCOME_TAX_RATE`
+   (lines ~338, 399) and `DEFAULT_LAND_VALUE_PERCENT` (line ~677). These were deleted from
+   `lib/shared/src/constants.ts` in commit `8c133659c` but the seed file was missed.
+   Fix: replace with appropriate seeded values (see retirement runbook or constants-research.ts
+   for `RESEARCH_TAX_RATE_25_PCT = 0.25`).
+2. CLAUDE.md — `check:taxonomy-mirror` cannot find "### Canonical definitions" section header.
 
 ## Do Not Touch (CC-owned surfaces)
 

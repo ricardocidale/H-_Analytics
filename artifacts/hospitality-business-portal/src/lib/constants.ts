@@ -53,8 +53,6 @@ export {
   DEFAULT_PROFESSIONAL_SERVICES,
   DEFAULT_TECH_INFRA,
   DEFAULT_BUSINESS_INSURANCE_COMPANY,
-  SEED_TRAVEL_PER_CLIENT,
-  SEED_IT_LICENSE_PER_CLIENT,
   DEFAULT_PARTNER_COMP,
   DEFAULT_REFI_LTV,
   DEFAULT_REFI_CLOSING_COST_RATE,
@@ -82,6 +80,15 @@ export { DEFAULT_MODEL_START_DATE } from "@shared/constants";
 
 // All operating reserve, funding buffer, partner count, and refinance defaults
 // are now in shared/constants.ts and re-exported above.
+
+// Seed constants for the dev/fallback Zustand store fixture (store.ts:INITIAL_GLOBAL).
+// These are placeholder values used only before the first API fetch completes and are
+// never read by the financial engine or any production calculation path.
+// Source: typical per-client operating cost estimates for a boutique hospitality
+// management company — H+ Analytics internal baseline (2024).
+// SEED_ prefix required per §2 Category 5 rules.
+export const SEED_TRAVEL_PER_CLIENT = 12000;
+export const SEED_IT_LICENSE_PER_CLIENT = 3000;
 
 // Presentation thresholds — highlight IRRs above this as strong performers
 export const IRR_HIGHLIGHT_THRESHOLD = 0.15;
