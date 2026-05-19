@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T08:00:00Z
+Updated: 2026-05-19T08:30:00Z
 Status: idle
 
 ## Active Branch
@@ -34,6 +34,13 @@ Status: idle
 - `Portfolio.tsx`: replaced inline `0.03` with `SEED_ADR_GROWTH_RATE`
 - `properties.ts`: moved `buildModelDefaultsInput` inside non-blocking try/catch in `seedPropertyFees`
 - CodeRabbit loop: 5 findings iter 1 → 2 findings iter 2 → clean; all gates PASS
+
+**Session 22 continued — DEFAULT_ADR_GROWTH_RATE retirement final step (commit `5721682f6`):**
+- `lib/db/src/schema/properties.ts`: `adrGrowthRate` → `.notNull().default(0.03)` (schema self-sufficient)
+- `0068_adr_growth_rate_default.sql` (lib/db) + `0075_adr_growth_rate_default.sql` (api-server boot path)
+- `migration-guards.json`: 0075 declared as `self-idempotent`
+- All §14 pre-conditions satisfied; `open-todos-cc.md` updated
+- **Audited TRAVEL/IT constants**: value conflict found (syncHelpers uses 12000/3000 from constants-staffing; schema + model_defaults use 5000/3600 from constants.ts). NOT retired — see handoff below.
 
 ## Remaining §2 violations flagged (not in this commit)
 
