@@ -519,7 +519,7 @@ function layoutBranch(successFrame, errorFrame, afterX, baseY) {
 | Edge Case | `'pink'` | Non-obvious behaviors, race conditions, timing quirks |
 | Data / API | `'green'` | Data sources, endpoints, caching, loading behavior |
 | Accessibility | `'yellow'` | Keyboard nav, screen reader text, ARIA, focus order |
-| DS Drift | `'red'` | Gap between code behavior and Figma DS component/variable |
+| DS Drift | `'orange'` | Gap between code behavior and Figma DS component/variable |
 
 Reviewers can filter by any category in Dev Mode to focus on what's relevant to their role.
 
@@ -589,7 +589,7 @@ const errorCat       = await getOrCreateAnnotationCategory('Error Handling', 're
 const edgeCaseCat    = await getOrCreateAnnotationCategory('Edge Case',      'pink');
 const dataCat        = await getOrCreateAnnotationCategory('Data / API',     'green');
 const a11yCat        = await getOrCreateAnnotationCategory('Accessibility',  'yellow');
-const dsDriftCat     = await getOrCreateAnnotationCategory('DS Drift',       'red');
+const dsDriftCat     = await getOrCreateAnnotationCategory('DS Drift',       'orange');
 
 // Interaction annotation
 await annotateNode(saveButton, '**On click →** Submits form via POST /api/items', interactionCat?.id);

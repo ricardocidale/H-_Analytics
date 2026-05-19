@@ -261,7 +261,7 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     serverLog(`[valentina-model-defaults] Failed to import: ${err instanceof Error ? err.message : err}`, "startup", "error");
   });
 
-  // Phase 3n (minion-self-test scheduler) is started inside the migration
+  // Phase 3m (minion-self-test scheduler) is started inside the migration
   // `.then()` block above — it must wait for migrations 0051/0052 and the
   // `admin_resources` cadence row before its first tick.
 
