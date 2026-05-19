@@ -26,7 +26,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
@@ -350,11 +350,11 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
             </div>
 
             {probeApplies ? (
-              <AnalystActionButton
+              <AnalystButton
                 onClick={() => onProbe(entry)}
-                running={state.running}
-                testIdSuffix={`roster-${entry.id.replace(/\./g, "-")}`}
-                tooltipText={
+                isRunning={state.running}
+                dataTestId={`button-analyst-roster-${entry.id.replace(/\./g, "-")}`}
+                tooltip={
                   entry.class === "minion"
                     ? `Run the ${entry.humanName} self-test against a known fixture.`
                     : `Run a live responsiveness check against ${entry.humanName}.`

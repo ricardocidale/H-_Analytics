@@ -59,7 +59,11 @@ export interface GenerateTextResult {
  */
 export function dispatchService(vendor: string): string {
   const map: Record<string, string> = {
+    anthropic: "anthropic",
+    openai: "openai",
     google: "gemini",
+    deepseek: "deepseek",
+    mistral: "mistral",
   };
   return map[vendor] ?? vendor;
 }
@@ -197,9 +201,7 @@ export async function generateText(input: DispatchInput): Promise<GenerateTextRe
     return { text, inputTokens, outputTokens, service: "mistral" };
   }
 
-  throw new Error(
-    `unknown vendor: ${llm.vendor} — check admin_resources kind='model' row for modelSlug=${llm.model}`,
-  );
+  throw new Error(`Unsupported LLM vendor: ${llm.vendor}`);
 }
 
 /**
@@ -227,12 +229,18 @@ export async function* streamText(input: DispatchInput): AsyncIterable<string> {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           accumulated += event.delta.text;
           yield event.delta.text;
+        } else if (event.type === "message_start") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const usage = (event as any).message?.usage;
+          if (usage?.input_tokens) inputTokens = usage.input_tokens;
+        } else if (event.type === "message_delta") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const usage = (event as any).usage;
+          if (usage?.output_tokens) outputTokens = usage.output_tokens;
         }
       }
-      const finalMsg = await stream.finalMessage();
-      inputTokens = finalMsg.usage?.input_tokens ?? inputTokens;
-      outputTokens = finalMsg.usage?.output_tokens ?? approxTokens(accumulated);
     } finally {
+      if (outputTokens === 0) outputTokens = approxTokens(accumulated);
       writeCostLog("anthropic", llm.model, inputTokens, outputTokens, startMs, input);
     }
     return;
@@ -366,7 +374,5 @@ export async function* streamText(input: DispatchInput): AsyncIterable<string> {
     return;
   }
 
-  throw new Error(
-    `unknown vendor: ${llm.vendor} — check admin_resources kind='model' row for modelSlug=${llm.model}`,
-  );
+  throw new Error(`Unsupported LLM vendor: ${llm.vendor}`);
 }

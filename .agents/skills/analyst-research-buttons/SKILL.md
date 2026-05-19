@@ -28,18 +28,33 @@ This is the project's most-violated UI convention. The user has corrected it mor
 
 ### Preferred: use the canonical component
 
-`client/src/components/analyst/AnalystActionButton.tsx` already implements the rule end-to-end — Sparkles icon, "Analyst"/"Studying…" label, amber accent styling, tooltip wrapper, cooldown handling, `data-testid` shape. **Use it.**
+`artifacts/hospitality-business-portal/src/components/intelligence/AnalystButton.tsx`
+implements the rule end-to-end — Sparkles icon (`text-accent-pop` amber/gold),
+"Analyst"/"Studying…" label, OrbitalDots loading state, tooltip wrapper, cooldown
+click-guard (never grays the button), freshness dot, `data-testid` shape. **Use it.**
 
 ```tsx
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 
-<AnalystActionButton
+<AnalystButton
   onClick={runResearch}
-  running={mutation.isPending}
-  testIdSuffix={row.key}
-  variant="header"
+  isRunning={mutation.isPending}
+  cooldownRemainingMs={cooldownMs}   // optional — shows "Available again in Xs" tooltip
+  dataTestId={`button-analyst-${row.key}`}
+  tooltip="Have the Analyst refresh this rate from the cited authority."
 />;
 ```
+
+Key prop notes:
+- `isRunning` (not `running`) — swallows clicks internally; button stays full opacity.
+- `cooldownRemainingMs` — if > 0, clicks are swallowed and tooltip shows remaining time. Button never grayed.
+- `dataTestId` (not `testIdSuffix`) — pass the full `button-analyst-{suffix}` string.
+- `tooltip` (not `tooltipText`) — shown as tooltip on the button.
+- No `variant` prop — the canonical style is fixed.
+
+> **`AnalystActionButton` is retired.** Do not add new call sites. It is a §14
+> retirement-campaign target. Rule C in `scripts/src/check-ui-canonical.ts` gates
+> any new import. Migrate existing call sites by following the prop mapping above.
 
 ### When you cannot use the component
 

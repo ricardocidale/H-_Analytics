@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import AnalystRefreshTheater from "@/components/admin/intelligence/AnalystRefreshTheater";
 import { FreshnessBadge } from "@/components/admin/intelligence/knowledge-registry/FreshnessBadge";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { computeVerdictFreshness } from "@/components/admin/model-defaults/analyst-fields";
 
 interface CountryRow {
   id: number;
@@ -81,6 +82,25 @@ export default function CountryEconomicDataPage() {
     regenerateMutation.mutate();
   }
 
+  // Freshness dot: find the most recent sourcedAt (falling back to updatedAt)
+  // across all rows and classify the age using the same traffic-light thresholds
+  // as the Model Defaults tabs. After a successful regeneration the query is
+  // invalidated and re-fetched with a fresh timestamp, so the dot disappears
+  // automatically without any extra session-tracking state.
+  const dataFreshnessStatus = useMemo(() => {
+    if (!rows) return null;
+    if (rows.length === 0) return "missing" as const;
+    let newestMs = 0;
+    for (const row of rows) {
+      const ts = row.sourcedAt ?? row.updatedAt;
+      if (!ts) continue;
+      const t = new Date(ts).getTime();
+      if (t > newestMs) newestMs = t;
+    }
+    if (newestMs === 0) return "missing" as const;
+    return computeVerdictFreshness({ generatedAt: new Date(newestMs).toISOString() });
+  }, [rows]);
+
   return (
     <>
       {refreshing && (
@@ -101,11 +121,13 @@ export default function CountryEconomicDataPage() {
               Macro-economic indicators for the four primary H+ markets. Sourced from FRED, Frankfurter ECB, and World Bank.
             </p>
           </div>
-          <AnalystActionButton
+          <AnalystButton
             onClick={handleAnalystClick}
-            running={regenerateMutation.isPending}
-            testIdSuffix="country-data"
-            tooltipText="Refresh from FRED, Frankfurter, and World Bank"
+            isRunning={regenerateMutation.isPending}
+            freshnessStatus={dataFreshnessStatus}
+            pulse={dataFreshnessStatus !== null}
+            dataTestId="button-analyst-country-data"
+            tooltip="Refresh from FRED, Frankfurter, and World Bank"
           />
         </div>
 

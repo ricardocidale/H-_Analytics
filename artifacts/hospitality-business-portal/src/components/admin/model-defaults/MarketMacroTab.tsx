@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Section } from "@/components/ui/field-section";
 import { PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
-import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { MARKET_MACRO_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
@@ -15,10 +15,12 @@ interface MarketMacroTabProps {
   onAnalystRefresh?: (fields?: string[]) => void;
   analystRunning?: boolean;
   analystCooldownMs?: number;
+  /** Traffic-light freshness dot for the Analyst button. null = no dot (fresh). */
+  analystFreshnessStatus?: "stale" | "very_stale" | "missing" | null;
 }
 
 export function MarketMacroTab(props: MarketMacroTabProps) {
-  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
+  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs, analystFreshnessStatus } =
     props;
   // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
   // mount-point resolver (task #765). MarketMacroTab fields whose registry
@@ -35,14 +37,14 @@ export function MarketMacroTab(props: MarketMacroTabProps) {
         </TabBanner>
         {analystEnabled && (
           <div className="shrink-0">
-            <AnalystActionButton
-              variant="header"
-              running={analystRunning}
+            <AnalystButton
+              isRunning={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
+              freshnessStatus={analystFreshnessStatus ?? null}
               onClick={() =>
                 onAnalystRefresh?.(toGuidanceKeys(MARKET_MACRO_TAB_ANALYST_FIELDS))
               }
-              testIdSuffix="market-macro"
+              dataTestId="button-analyst-market-macro"
             />
           </div>
         )}

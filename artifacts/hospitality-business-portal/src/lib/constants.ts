@@ -68,10 +68,8 @@ export {
   DEFAULT_PARTNER_COUNT,
   BUSINESS_MODEL_DEFAULTS,
   PLATFORM_FEE_RATES,
+  SEED_ADR_GROWTH_RATE,
 } from "@shared/constants";
-
-// Property defaults — re-exported from shared/constants.ts (canonical source)
-export { DEFAULT_ADR_GROWTH_RATE } from "@shared/constants";
 
 // Company cost defaults — re-exported from shared/constants.ts (canonical source)
 import { DEFAULT_BUSINESS_INSURANCE_COMPANY as _BIC, MONTHS_PER_YEAR as _MPY, DEFAULT_PROJECTION_YEARS as _PY } from "@shared/constants";

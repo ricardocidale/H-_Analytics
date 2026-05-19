@@ -13,7 +13,6 @@
 import { getCountryDefaults, getUsStateDefaults } from '@norfolk/shared/countryDefaults';
 import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@norfolk/shared/constants-business-models';
 import {
-  DEFAULT_ADR_GROWTH_RATE,
   QUALITY_TIER_OCCUPANCY_BRACKETS,
   DEFAULT_FALLBACK_OCCUPANCY,
   SCALE_THRESHOLD_SMALL_ROOMS,
@@ -23,15 +22,15 @@ import {
 } from '@norfolk/shared/constants';
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 
-// ── Quality tier ADR brackets ──────────────────────────────────────────────
-const QUALITY_TIER_ADR: Record<string, { min: number; max: number; default: number }> = {
-  "Luxury":          { min: 350, max: 500, default: 400 },
-  "Upper Upscale":   { min: 250, max: 400, default: 300 },
-  "Upscale":         { min: 180, max: 300, default: 220 },
-  "Upper Midscale":  { min: 130, max: 200, default: 160 },
-  "Midscale":        { min: 90,  max: 150, default: 120 },
-  "Economy":         { min: 60,  max: 100, default: 80 },
-};
+/** Route layer fetches these from model_defaults and passes them in. ADR-007. */
+export interface ModelDefaultsInput {
+  /** mc.property_defaults.adrGrowthRate — annual ADR growth rate */
+  adrGrowthRate: number;
+  /** mc.property_defaults.maxOccupancy — stabilized maximum occupancy */
+  maxOccupancy: number;
+  /** mc.property_defaults.adrByTier — JSON map of quality tier → {min,max,default} */
+  adrByTier: Record<string, { min: number; max: number; default: number }>;
+}
 
 // ── Quality tier occupancy brackets — sourced from constants-benchmarks.ts ──
 const QUALITY_TIER_OCCUPANCY = QUALITY_TIER_OCCUPANCY_BRACKETS;
@@ -85,8 +84,8 @@ export function computePropertyDefaults(
   businessModel: string,
   country: string,
   roomCount: number,
+  modelDefaultsInput: ModelDefaultsInput,
   stateProvince?: string,
-  maxOccupancyFromProperty?: number | null,
 ): PropertyDefaults {
   const sources: Record<string, string> = {};
 
@@ -171,11 +170,11 @@ export function computePropertyDefaults(
   }
 
   // ── 3. Quality tier ADR & occupancy ──────────────────────────────────────
-  const tierAdr = QUALITY_TIER_ADR[qualityTier];
-  const startAdr = tierAdr ? tierAdr.default : 220; // fallback to Upscale
+  const tierAdr = modelDefaultsInput.adrByTier[qualityTier];
+  const startAdr = tierAdr ? tierAdr.default : modelDefaultsInput.adrByTier["upscale"]?.default ?? 220;
   sources.startAdr = tierAdr
-    ? `tier:${qualityTier}:range_${tierAdr.min}-${tierAdr.max}`
-    : "fallback:upscale";
+    ? `model_defaults:adrByTier:${qualityTier}:range_${tierAdr.min}-${tierAdr.max}`
+    : "model_defaults:adrByTier:upscale:fallback";
 
   const tierOcc = QUALITY_TIER_OCCUPANCY[qualityTier];
   const startOccupancy = tierOcc ? tierOcc.default : DEFAULT_FALLBACK_OCCUPANCY;
@@ -183,11 +182,11 @@ export function computePropertyDefaults(
     ? `tier:${qualityTier}:range_${tierOcc.min * 100}-${tierOcc.max * 100}pct`
     : "fallback:70pct";
 
-  const adrGrowthRate = DEFAULT_ADR_GROWTH_RATE;
-  sources.adrGrowthRate = "constant:DEFAULT_ADR_GROWTH_RATE";
+  const adrGrowthRate = modelDefaultsInput.adrGrowthRate;
+  sources.adrGrowthRate = "model_defaults:mc.property_defaults.adrGrowthRate";
 
-  const maxOccupancy = maxOccupancyFromProperty ?? 0.85;
-  sources.maxOccupancy = maxOccupancyFromProperty != null ? "property:maxOccupancy" : "constant:0.85";
+  const maxOccupancy = modelDefaultsInput.maxOccupancy;
+  sources.maxOccupancy = "model_defaults:mc.property_defaults.maxOccupancy";
 
   // ── 4. Scale adjustment (small property cost premium) ────────────────────
   let scaleAdjustment = 0;

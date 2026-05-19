@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import AnalystRefreshTheater from "../AnalystRefreshTheater";
 import ReferenceBrandsGrid, { type BrandSummary } from "../ReferenceBrandsGrid";
 import { FreshnessBadge } from "./FreshnessBadge";
@@ -982,10 +982,10 @@ export function AssetPanel({ entry }: Props) {
                 )}
                 {hasRefreshButton(entry) && (
                   <span onClick={(e) => e.stopPropagation()}>
-                    <AnalystActionButton
+                    <AnalystButton
                       onClick={handleAnalystClick}
-                      running={regenerateMutation.isPending}
-                      testIdSuffix={entry.id}
+                      isRunning={regenerateMutation.isPending}
+                      dataTestId={`button-analyst-${entry.id}`}
                     />
                   </span>
                 )}

@@ -15,7 +15,7 @@
  *
  * Sizes:
  *   • sm  — inline use (status bars, compact rows). h-7, w-3 sparkles.
- *   • md  — page headers and dialog footers (default). w-4 sparkles.
+ *   • md  — page headers and dialog footers (default). h-9, w-4 sparkles.
  *   • lg  — full-width primary CTA on research panels. h-12, w-5 sparkles.
  *
  * Optional features:
@@ -24,6 +24,9 @@
  *   • pulse               — adds the intelligence pulse animation to draw
  *                           attention when guidance is missing or stale.
  *   • disabled / disabledReason — disables and shows a tooltip explaining why.
+ *   • cooldownRemainingMs — if > 0, clicks are swallowed and the tooltip
+ *                           shows "Available again in Xs". The button is never
+ *                           visually grayed out — it always stays full opacity.
  *   • tooltip             — generic tooltip on the button when not disabled.
  *   • dataTestId          — overrides the default test id.
  */
@@ -50,11 +53,12 @@ export interface AnalystButtonProps {
   className?: string;
   dataTestId?: string;
   runningLabel?: string;
+  cooldownRemainingMs?: number;
 }
 
 const SIZE_CONFIG: Record<AnalystButtonSize, { btn: string; icon: string; loader: number }> = {
   sm: { btn: "h-7 text-xs gap-1.5", icon: "w-3 h-3", loader: 12 },
-  md: { btn: "", icon: "w-4 h-4", loader: 18 },
+  md: { btn: "h-9", icon: "w-4 h-4", loader: 18 },
   lg: { btn: "w-full h-12 text-base font-semibold shadow-lg shadow-primary/20", icon: "w-5 h-5", loader: 22 },
 };
 
@@ -67,6 +71,16 @@ const FRESHNESS_DOT: Partial<Record<Exclude<FreshnessStatus, null>, string>> = {
   very_stale: "bg-red-500",
   missing: "bg-red-500",
 };
+
+function formatCooldown(ms: number): string {
+  const s = Math.ceil(ms / 1000);
+  if (s >= 60) {
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem === 0 ? `${m}m` : `${m}m ${rem}s`;
+  }
+  return `${s}s`;
+}
 
 export function AnalystButton({
   onClick,
@@ -82,15 +96,30 @@ export function AnalystButton({
   className,
   dataTestId = "button-analyst",
   runningLabel = "Studying…",
+  cooldownRemainingMs = 0,
 }: AnalystButtonProps) {
   const cfg = SIZE_CONFIG[size];
+  const onCooldown = cooldownRemainingMs > 0;
   const label = isRunning ? runningLabel : suffix ? `Analyst — ${suffix}` : "Analyst";
+
+  // Clicks are swallowed while running or on cooldown — the button never
+  // receives a `disabled` attribute for these states so it stays full opacity.
+  const handleClick = () => {
+    if (onCooldown || isRunning) return;
+    onClick();
+  };
+
+  // Resolved tooltip: cooldown message > disabled reason > generic tooltip.
+  const resolvedTooltip: React.ReactNode =
+    disabled && disabledReason ? disabledReason :
+    onCooldown ? `Available again in ${formatCooldown(cooldownRemainingMs)}` :
+    tooltip;
 
   const button = (
     <Button
       variant={variant}
-      onClick={onClick}
-      disabled={disabled || isRunning}
+      onClick={handleClick}
+      disabled={disabled}
       className={cn(
         cfg.btn,
         pulse && !isRunning && "animate-intelligence-pulse",
@@ -119,25 +148,22 @@ export function AnalystButton({
     </Button>
   );
 
-  if (disabled && disabledReason) {
+  if (resolvedTooltip) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>{button}</span>
+          {disabled ? (
+            <span
+              tabIndex={0}
+              aria-disabled="true"
+              className={cn("inline-flex", size === "lg" && "w-full")}
+            >
+              {button}
+            </span>
+          ) : button}
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-[280px] text-center">
-          {disabledReason}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  if (tooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-[280px] text-center">
-          {tooltip}
+          {resolvedTooltip}
         </TooltipContent>
       </Tooltip>
     );

@@ -18,6 +18,8 @@ export interface AnalystGuidanceRecord {
   sourceName: string | null;
   sourceDate: string | null;
   reasoning: string | null;
+  /** ISO timestamp of when this record was last written by the Analyst. */
+  updatedAt?: string;
 }
 
 interface RefreshResponseLegacy {

@@ -1,6 +1,6 @@
 # Known Issues
 
-> Extracted from CLAUDE.md on 2026-05-07. See `docs/architecture/architecture-notes.md` § "Known issues to address" for the pointer.
+> Extracted from CLAUDE.md on 2026-05-07. See CLAUDE.md § Architecture Notes for the pointer.
 > Last reviewed: 2026-05-09 — all previously tracked issues resolved.
 
 - ~~**Email-existence leak** at `POST /api/scenarios/shares`~~ — Fixed (`657326f6`): returns `201`

@@ -28,10 +28,8 @@ import { IconAlertTriangle, IconBuilding } from "@/components/icons";
 import { useProperties } from "@/lib/api/properties";
 import { useGlobalAssumptions } from "@/lib/api/admin";
 import { useStructureComparison } from "@/lib/api/structure-comparison";
-import {
-  AnalystActionButton,
-  useAnalystRefresh,
-} from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { useAnalystRefresh } from "@/components/analyst";
 import {
   OPERATING_STRUCTURE_DEFAULTS,
   OPERATING_STRUCTURE_IDS,
@@ -152,12 +150,12 @@ export default function OperatingStructureComparison() {
                   ))}
                 </SelectContent>
               </Select>
-              <AnalystActionButton
+              <AnalystButton
                 onClick={() => analyst.triggerRefresh()}
-                running={analyst.running}
+                isRunning={analyst.running}
                 cooldownRemainingMs={analyst.cooldownRemainingMs}
-                testIdSuffix="structure-comparison"
-                tooltipText="Refresh structure-specific assumptions"
+                dataTestId="button-analyst-structure-comparison"
+                tooltip="Refresh structure-specific assumptions"
               />
             </div>
           }

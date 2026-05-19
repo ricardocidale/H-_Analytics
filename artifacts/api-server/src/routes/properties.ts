@@ -52,7 +52,7 @@ import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions, type StressThresholds } from "@engine/helpers/stress-scenarios";
 import { resolveStressThresholds } from "../finance/benchmark-resolver";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
-import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns } from "../defaults";
+import { hydratePropertyFinancials, applyBracketLayerDefaults, hydrateFeeColumns, buildModelDefaultsInput } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -182,17 +182,21 @@ export async function seedPropertyFees(
   }
 
   const row = property as unknown as Record<string, unknown>;
-  const qualityTier = (row.qualityTier as string) || "Upscale";
+  const qualityTier = (row.qualityTier as string) || "upscale";
   const businessModel = (row.businessModel as string) || "hotel";
   const country = (row.country as string) || "United States";
   const roomCount = (row.roomCount as number) || BUSINESS_MODEL_DEFAULTS[businessModel as BusinessModelType].roomCount;
   const stateProvince = (row.stateProvince as string) || undefined;
 
+  // Fetch model_defaults inside the non-blocking try/catch so a DB failure
+  // here does not abort the response after createPropertyRecord has already
+  // persisted the property. ADR-007: resolution happens in the route layer.
   const patch: Record<string, unknown> = {};
   let smartDefaultsApplied = false;
   try {
+    const modelDefaultsInput = await buildModelDefaultsInput({ country, businessType: businessModel });
     const smartDefaults = computePropertyDefaults(
-      qualityTier, businessModel, country, roomCount, stateProvince,
+      qualityTier, businessModel, country, roomCount, modelDefaultsInput, stateProvince,
     );
     const smartFields: Record<string, unknown> = {
       startAdr: smartDefaults.startAdr,
@@ -419,14 +423,15 @@ export function register(app: Express) {
    */
   app.get("/api/properties/defaults/preview", requireAuth, async (req, res) => {
     try {
-      const qualityTier = (req.query.qualityTier as string) || "Upscale";
+      const qualityTier = (req.query.qualityTier as string) || "upscale";
       const businessModel = (req.query.businessModel as string) || "hotel";
       const country = (req.query.country as string) || "United States";
       const roomCount = Number(req.query.roomCount) || BUSINESS_MODEL_DEFAULTS[businessModel as BusinessModelType].roomCount;
       const stateProvince = (req.query.stateProvince as string) || undefined;
 
+      const modelDefaultsInput = await buildModelDefaultsInput({ country, businessType: businessModel });
       const defaults = computePropertyDefaults(
-        qualityTier, businessModel, country, roomCount, stateProvince,
+        qualityTier, businessModel, country, roomCount, modelDefaultsInput, stateProvince,
       );
 
       res.json(defaults);

@@ -309,42 +309,185 @@ import { AnalystButton } from "@/components/intelligence/AnalystButton";
 
 ---
 
-## Project Reference
+# Project Source of Truth
 
-Full project description, monorepo structure, stack, and key commands: `docs/reference/project-overview.md`.
+H+ Analytics is a hospitality-sector financial analytics platform **built and maintained by Norfolk AI**, a software company that builds intelligent financial tools for the hospitality sector. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design). Users are organized by organization; access to scenarios and portfolios is governed by a share / permission model.
+
+**Norfolk AI** is the software company. H+ Analytics is the product. Never conflate the two.
 
 ---
 
-## Environment & Production Deployment
+## Monorepo Structure
 
-Env vars (api-server), Railway production wiring, single-container model, secrets parity rule: `docs/reference/deployment-and-env.md`.
+```text
+artifacts/
+  hospitality-business-portal/   React + Vite frontend  (previewPath: /)
+  api-server/                    Express 5 API          (previewPath: /api)
+  mockup-sandbox/                Design sandbox         (previewPath: /__mockup/)
+lib/
+  shared/       Constants, types, Zod schemas shared across all packages
+  db/           Drizzle ORM schema + migration runner
+  engine/       Projection engine (pure; no Node I/O)
+  calc/         Financial calculators
+  analytics/    Analytics helpers
+  domain/       Business-domain utilities
+  api-spec/     OpenAPI spec + Orval codegen (hooks, Zod)
+  api-client-react/  React Query wrappers generated from api-spec
+  api-zod/      Zod schemas generated from api-spec
+scripts/        Shared utility scripts (@workspace/scripts)
+references/     ADRs and per-feature design notes
+.local/tasks/   Task plans, audit documents, session notes
+docs/solutions/ Documented solutions, organized by category with YAML frontmatter (module, tags, problem_type)
+```
+
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Monorepo | pnpm workspaces |
+| Node | 24 |
+| TypeScript | 5.9 |
+| API | Express 5 |
+| Database | PostgreSQL (Neon) + Drizzle ORM + pgvector |
+| Validation | Zod (`zod/v4`), `drizzle-zod` |
+| API codegen | Orval (from OpenAPI spec in `lib/api-spec`) |
+| Frontend build | Vite |
+| Backend build | esbuild (ESM bundle, `dist/index.mjs`) |
+| File storage | Cloudflare R2 |
+| Auth | Google OAuth (primary, production) via `routes/google-auth.ts`, plus `AUTH_PROVIDER` adapter (`replit` OIDC default, `local` email+password) in `providers/auth/` |
+| AI providers | OpenAI, Anthropic, Gemini (all called via direct SDKs with first-party API keys — not via a Replit broker) |
+| Observability | Sentry |
+| Project tracking | Linear (integration: `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`) |
+| Hosting (production) | **Railway** via `Dockerfile` + `railway.toml` — see "Production Deployment" below |
+| Hosting (dev preview) | Replit Workspace (workflows + shared proxy on `localhost:80`) — **preview only**, not used to publish |
+
+---
+
+## Key Commands
+
+```bash
+pnpm run typecheck                              # full typecheck across all packages
+pnpm run build                                 # typecheck + build all packages
+pnpm --filter @workspace/api-spec run codegen  # regenerate API hooks + Zod schemas
+pnpm --filter @workspace/db run generate       # generate a new Drizzle migration from schema changes
+pnpm --filter @workspace/db run push           # push DB schema changes directly (dev only; skips migration files)
+```
+
+Health endpoint: `GET /api/health/live` (not `/api/healthz`).
+
+---
+
+## Environment Variables (api-server)
+
+| Variable | Notes |
+|---|---|
+| `POSTGRES_URL` / `DATABASE_URL` | Neon PostgreSQL connection string |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | Cloudflare R2 |
+| `STORAGE_PROVIDER` | Set to `r2` |
+| `AUTH_PROVIDER` | Set to `replit` |
+| `NODE_ENV` | Set to `production` in deployed env |
+| `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY` | Auth / session signing |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | AI providers (Claude used for LB Slides vision text) |
+| `FRED_API_KEY` | FRED economic data |
+| `GITHUB_PAT` | GitHub integration |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID — **must be present in both Railway AND Replit secrets**; absence silently disables the `/api/auth/google` route (404) in whichever environment is missing it |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret — same dual-env requirement as above |
+| `OPENAI_EMBEDDING_KEY` | Separate embedding key |
+| `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini AI provider |
+| `DEEPSEEK_API_KEY` | DeepSeek AI provider (T3-1 Matteo — bulk-text-synthesis slot) |
+| `DEEPSEEK_API_BASE_URL` | Optional override for DeepSeek API base URL (default resolved from admin_resources) |
+| `MISTRAL_API_KEY` | Mistral AI provider (T3-1 Matteo — pdf-ocr-extraction slot, Mistral chat models) |
+| `MISTRAL_OCR_ENDPOINT` | Optional override for Mistral OCR 3 endpoint (default resolved from admin_resources) |
+| `RESEND_API_KEY` | Transactional email (Resend) |
+| `SENTRY_DSN` | Error monitoring (Sentry) |
+
+---
+
+## Production Deployment
+
+**Production runs on Railway, not on Replit.** Replit Publish (both `autoscale` and Reserved VM) failed for this app — see Task #942 history and `docs/solutions/integration-issues/dev-login-empty-body-edge-proxy-2026-05-02.md` for the edge-proxy / bundle-size root causes that pushed us off Replit Publish for good.
+
+**Wiring (already in repo, do not duplicate):**
+
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Two-stage Node 24 + pnpm build. Builds all packages, ships the api-server bundle plus the two SPAs (H+ Analytics at `dist/public`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
+| `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
+| `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
+
+**Single-container model:** the api-server serves `/api/*` plus both SPAs from one process on one port (`$PORT`). The Dockerfile builds every frontend and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at:
+
+- `/` → `artifacts/api-server/dist/public` (H+ Analytics — `hospitality-business-portal`)
+- `/__mockup/` → `artifacts/api-server/dist/mockup-sandbox`
+
+One Railway service, no separate frontend deployments.
+
+**Required production env vars on Railway** — all variables in §Environment Variables above must be set as Railway service variables (no Replit broker is reachable in production). `PASSWORD_*` fallbacks are optional dev shortcuts and must be **omitted** in production.
+
+**External services** (all user-owned, all reachable from Railway with secrets above): Neon Postgres (db + pgvector), Cloudflare R2 (objects), Google OAuth (auth, primary) + Replit OIDC (legacy/dev), OpenAI / Anthropic / Gemini (LLMs, direct SDKs), FRED (macro data), Resend (email), Sentry (errors), Linear (issues — connector `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`, falls back to env vars), GitHub. Per-service secrets: see §"Environment Variables" above.
+
+**Rule of thumb:** never provision Replit-managed equivalents (Replit Database, Object Storage, Auth) — they split the source of truth from production. Use the `prefer-external-dependencies` skill first.
+
+**Replit's role going forward:** dev workspace and code-review surface only. Do **not** rely on `.replit` `[deployment]`, `artifact.toml [services.production]`, or `suggest_deploy()` for shipping. Those blocks may stay in the repo for the workflow tooling, but production ships through `git push` → Railway build via the `Dockerfile`.
 
 ---
 
 ## Architecture Notes
 
-Full narrative for each topic lives in `docs/architecture/architecture-notes.md`. Inline 1-line pointers below — always-loaded sessions still see the rule; the doc carries the prose.
+### Import discipline
 
-- **Import discipline** — Frontend imports `@workspace/db/schema` (subpath export), never `@workspace/db` directly, to keep Node-only `pg` out of the browser bundle. Use `@engine/*` / `@calc/*` / `@shared/*` aliases, never deep relative paths.
-- **Zod compatibility** — Import from `"zod-validation-error/v3"` for Zod v3; cast `as any` when handing `@workspace/db` schemas or `.error` to Zod helpers.
-- **AI assistant — Rebecca only** — Rebecca is the only AI assistant (semantic KB-search via pgvector + OpenAI embeddings). **No voice agents, no Convai, no ElevenLabs.** Skill: `embedded-ai-agent`.
-- **Specialists** — Dev-defined only; no admin UI for creation or editing. Detail: `.claude/rules/specialists-are-dev-defined-only.md`.
-- **Costantino — Data Custodian (Step 0)** — Periodic agentic health-audit loop for `admin_resources` rows with `config.healthProbe`. Skill: `costantino-data-custodian`.
-- **Intelligence Display — specialist-sourced UI affordances** — Every range badge, tip, severity signal, or suggestion comes **100% from specialist/research-engine output**. Canonical: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`. Severity palette: ok=emerald, advisory=sky, warning=amber, block=red. Skill: `analyst-intelligence-display`.
-- **Roles and permissions** — `checker` and `investor` roles still **live in the DB** despite removal from `VALID_USER_ROLES`. `canManageScenarios` is orthogonal to role. Dual share tables `scenario_access` (enforcement) + `scenario_shares` (tracking) must stay in sync. Detail: `.local/tasks/task-800.md`.
-- **Number taxonomy — see §2** — Full enforcement rule is §2 above. Skill: `hplus-variable-taxonomy`. Slide Deck Factory consumer-only rule: see linked doc.
-- **Inflation policy (USD-base)** — All engine calculations use the **US inflation rate** for every property; country tables are display-only. Engine cascade always passes `'US'` to `getFactoryNumber`. Skill: `inflation-cascade`.
-- **LB Slides — investor PDF decks** — 6-slide deck via React → headless Chromium (Playwright) → PDF → R2. **Playwright only — never Puppeteer.** Detail: `docs/slide-system/lb-slides-implementation-reference.md`.
-- **`reference_brands` AI pipeline — DI pattern** — Route layer fetches; calc/engine DB-import-free. Detail: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
-- **Known issues** — See `docs/issues/known-issues.md`.
-- **Migration system architecture** — Three folders (`lib/db/migrations/` Drizzle output, `artifacts/api-server/migrations/` boot-read with drifted slots past 0052, `artifacts/api-server/src/migrations/*.ts` idempotent runtime guards). Schema changes use `pnpm --filter @workspace/db run generate`. Full topology: `docs/runbooks/schema-migrations.md`.
-- **Shared proxy routing** — All traffic routes by path through `localhost:80/<path>`. Never call service ports directly.
+- `lib/db/src/index.ts` initialises a `pg` Pool at module load. Frontend code **must** import schema from `@workspace/db/schema` (the subpath export), never from `@workspace/db` directly, to avoid pulling Node-only `pg` into the browser bundle.
+- `lib/engine` follows this pattern correctly and is a reference.
+- `artifacts/hospitality-business-portal/vite.config.ts` excludes `drizzle-orm/node-postgres`, `drizzle-orm/postgres-js`, `pg`, `postgres`, and `postgres-bytea` from `optimizeDeps`.
+- Frontend path aliases: `@engine/*` → `lib/engine/src/*`, `@calc/*` → `lib/calc/src/*`, `@shared/*` → `lib/shared/src/*`. Always use these aliases — never use deep relative paths (`../../../../engine/...`).
 
----
+### Zod compatibility
 
-## Inviolable Login / Auth Rules
+- `zod-validation-error` v5 defaults to Zod v4 types. Always import from `"zod-validation-error/v3"` for Zod v3 compatibility.
+- When passing a compiled `@workspace/db` schema type to a Zod function that expects `ZodTypeAny`, cast `as any` — the compiled `.d.ts` types don't satisfy the current Zod structural check.
+- Cast `.error as any` when calling `fromZodError(...)` in route files to avoid the `ZodError<SpecificType>` not assignable to `ZodError` mismatch.
 
-_Gate-equivalent: these 5 rules carry the same authority as §1–§14 and are protected by §14 retirement discipline. Do not delete or weaken without a same-PR replacement and re-baselined ratchets._
+### AI assistant — Rebecca only
+
+This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chatbot backed by pgvector + OpenAI embeddings. **Do not add voice agents, Convai, or ElevenLabs integrations.** Use the `embedded-ai-agent` skill for any Rebecca extension work.
+
+### Specialists
+
+Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-defined-only.md`. Admins are operators, not authors. No admin UI should expose specialist creation or editing.
+
+### Costantino — Data Custodian (Step 0)
+
+Periodic agentic health-audit loop for `admin_resources` rows with `config.healthProbe`. Full contract: `.agents/skills/costantino-data-custodian/SKILL.md`.
+
+### Intelligence Display — specialist-sourced UI affordances
+
+Every range badge, tip, severity signal, or suggestion must originate **100% from specialist/research-engine output** — no component may hard-code a range or derive a suggestion locally. Canonical components: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`. Severity palette: ok=emerald, advisory=sky, warning=amber, block=red — no new levels. Full contract: `.agents/skills/analyst-intelligence-display/SKILL.md`.
+
+### Roles and permissions
+
+- `checker` and `investor` roles are still **live in the database** even though they have been removed from the `VALID_USER_ROLES` enum in code. Do not assume the enum is the full set of live roles.
+- `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
+- Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
+
+### Number taxonomy — see §2
+
+Full enforcement rule is §2 above. Recurring violations, migration patterns, and confirmed exceptions: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local constants.
+
+### Inflation policy (USD-base calculations)
+
+All H+ engine calculations use the **US inflation rate** for every property. Country-level inflation tables are display-only. Engine cascade always passes `'US'` to `getFactoryNumber`. Full policy: `.agents/skills/inflation-cascade/SKILL.md`.
+
+### LB Slides — investor PDF decks (Playwright HTML→PDF)
+
+6-slide property deck (slide 7 "The Ask" always excluded). Pipeline: React pages at `features/internal-deck/` → headless Chromium (Playwright) → PDF → R2 → `GET /api/properties/:id/deck.pdf`. **Playwright is the only renderer — do not add Puppeteer.** Full reference: `docs/slide-system/lb-slides-implementation-reference.md`.
+
+### `reference_brands` AI pipeline — DI pattern
+
+Route layer fetches; calc/engine DB-import-free. Full doc: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
+
+### Inviolable login / auth rules
 
 1. **Railway ↔ Replit secrets must stay in parity.** Any env var the api-server reads must exist in *both* Railway service variables *and* Replit secrets. Absence in either silently disables the feature (`GOOGLE_CLIENT_ID` missing → Google auth 404). After adding a var to Railway, add it to Replit secrets immediately.
 
@@ -355,6 +498,19 @@ _Gate-equivalent: these 5 rules carry the same authority as §1–§14 and are p
 4. **Auth navigations must use `window.location`, never `window.top`.** `window.top` is cross-origin in the Replit canvas iframe. Use `window.location.href` / `window.location.replace()`. Google OAuth uses `window.open("/api/auth/google", "_blank")` (Google pages send `X-Frame-Options: DENY`); poll `refetch()` until session is established.
 
 5. **`DEV_SKIP_AUTH` must remain `false`.** Never edit `artifacts/api-server/src/dev-flags.ts`. Real auth is always active in development.
+
+### Known issues to address
+
+See `docs/issues/known-issues.md`.
+
+
+### Migration system architecture
+
+Three folders: `lib/db/migrations/` (Drizzle-generate output target), `artifacts/api-server/migrations/` (what the api-server reads at boot; slots past 0052 have drifted — new migrations need non-colliding slot numbers), `artifacts/api-server/src/migrations/*.ts` (runtime guards that re-apply idempotent `IF NOT EXISTS` DDL on every boot). Schema changes use `pnpm --filter @workspace/db run generate` — never hand-craft SQL except complex backfills. Full topology + workflow: `docs/runbooks/schema-migrations.md`.
+
+### Shared proxy routing
+
+All traffic is routed by path through a shared reverse proxy. Services must handle their full base path. Never call service ports directly in application code or curl — always go through `localhost:80/<path>`.
 
 ---
 
@@ -369,11 +525,6 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | Path | Contents |
 |---|---|
 | `references/openapi.md`, `references/server.md` | OpenAPI codegen + route conventions |
-| `docs/reference/project-overview.md` | Project source of truth — monorepo structure, stack, key commands |
-| `docs/reference/deployment-and-env.md` | Environment variables (api-server) + production deployment wiring (Railway, Dockerfile, single-container model) |
-| `docs/architecture/architecture-notes.md` | Architecture-notes details (import discipline, Zod compat, Rebecca-only, Specialists, intelligence display, migration system, shared proxy, etc.) — Inviolable Login/Auth Rules stay inline above |
-| `docs/changelog/cc-recent-changes.md` | Full CC changelog (older entries; CLAUDE.md keeps ≤ 3 most recent inline) |
-| `docs/plans/open-todos-cc.md` | Full CC TODO list (CLAUDE.md keeps a 1-line pointer inline) |
 | `docs/runbooks/schema-migrations.md` | Schema + migration + seed runbook (three-folder topology, runtime guards, drift recovery) |
 | `docs/concepts/numeric-values-explained.md` | Readable explainer for the five-category numeric rule (§1–§5) — start here when onboarding to the rule |
 | `docs/brainstorms/numeric-architecture-requirements.md` | Numeric architecture brainstorm — three-pillar model, Phase 2 design decisions D1–D5 |
@@ -415,8 +566,17 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 
 ## Open TODOs — CC
 
+<!-- Check off when done · Add when identified · Prune [x] rows at next session start -->
 <!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
-Full list: `docs/plans/open-todos-cc.md`
+| | Item | Scope |
+|---|---|---|
+| [x] | Session 17 (2026-05-18): 11 `DEFAULT_*` constants retired — `MAX_STALENESS_HOURS`, `REINVESTMENT_RATE`, `OCCUPANCY_GROWTH_STEP`, `AR_DAYS`+`AP_DAYS`, `PROPERTY_INFLATION_RATE`+`COMPANY_INFLATION_RATE`, `OFFICE_LEASE_START`+`PROFESSIONAL_SERVICES_START`+`TECH_INFRA_START`+`BUSINESS_INSURANCE_START`. Commits `b981c4e66`, `5f0c73402`, `5d02e7e18`, `ccb3efdcb`, `fe730c7c9`, `b34b8d20a`. | T1-4 Phase 2 |
+| [x] | Session 17: Category 5 — Starter-Portfolio Seeds carve-out shipped (CLAUDE.md §2 + checker carve-out + 4 doc files harmonized + conventions doc). Commits `ab1924923` + `fd4636223`. | Rule extension |
+| [x] | Session 19 (2026-05-18): 3 more `DEFAULT_*` retired — `ALERT_COOLDOWN_MINUTES`, `MARKETING_RATE`, `MISC_OPS_RATE` (commit `0ad1ae1d1`, parallel with Replit's `6a228a142`). Five others confirmed already gone in prior sessions: `OCCUPANCY_RAMP_MONTHS`, `START_OCCUPANCY`, `MAX_OCCUPANCY`, `START_ADR`, `ROOM_COUNT`. | T1-4 Phase 2 |
+| [x] | Session 20 brainstorm: §2 campaign PAUSED. `DEFAULT_ADR_GROWTH_RATE` retirement attempted but reverted (broke typecheck + regressed ratchet; inline 0.03 appeared in engine/calc — wrong surface). Architecture requirements doc at `docs/brainstorms/numeric-architecture-requirements.md`. Full three-pillar model documented; campaign stays paused until Phase 2 (Analyst research → model_defaults wiring) is designed. | Architecture |
+| [ ] | **PAUSED — §2 T1-4 campaign** (session 20, 2026-05-18): `DEFAULT_ADR_GROWTH_RATE` retirement reverted (broke typecheck, regressed magic-numbers ratchet 15→17 — inline 0.03 leaked into engine/calc). `DEFAULT_TRAVEL_COST_PER_CLIENT`+`DEFAULT_IT_LICENSE_PER_CLIENT` also paused. Resumption gated by §14 pre-conditions: destination wired & reading in same PR + ratchets re-baselined ≤ current. See `docs/brainstorms/numeric-architecture-requirements.md` for Phase 2 design (D1–D5). | T1-4 incremental |
+| [ ] | §14 enforcement: before ANY retirement PR (constants, integration IDs, UI canonical, future campaigns), the plan unit MUST list both §14 pre-conditions in Verification. Plans missing them are incomplete. | §14 enforcement |
+| [ ] | Tier 2 (deferred plan docs, 1-2 days each, dedicated session): `DEFAULT_PROPERTY_INCOME_TAX_RATE` — `docs/plans/t1-4-property-income-tax-rate-retirement.md`; `DEFAULT_LAND_VALUE_PERCENT` — `docs/plans/t1-4-land-value-percent-retirement.md` | T1-4 cross-cutting |
 
 ---
 
@@ -428,5 +588,3 @@ Full list: `docs/plans/open-todos-cc.md`
 | 2026-05-18 | **§14 Retirement Campaign Discipline locked (session 21).** New inviolable rule in CLAUDE.md: never delete a TS constant or named source-code symbol participating in an active retirement campaign until (a) its replacement destination is wired and reading green in the same PR, and (b) every CI ratchet the symbol touches has been re-baselined at ≤ current count. Generalizes the session-20 failure mode (DEFAULT_ADR_GROWTH_RATE deleted before `computePropertyDefaults` was wired → inline 0.03 leaked into engine/calc → typecheck broken, ratchet regressed 15→17, full revert). Applies to every retirement campaign: §2 numeric, §1 integration IDs, §13 UI canonical, future schema/auth/agent slug retirements. Plan units with deletion scope must include both pre-conditions in Verification. Companion explainer for non-engineers at `docs/concepts/numeric-values-explained.md` (session 21, earlier). Master plan T1-4 status note updated; replit.md harmonized. |
 | 2026-05-18 | **Category 5 — Starter-Portfolio Seeds carve-out shipped + 11 DEFAULT_* constants retired (T1-4 Phase 2).** CLAUDE.md §2 extended with Category 5 codifying calibrated `SEED_*` constants and inline bootstrap literals in dedicated surfaces (`artifacts/api-server/src/{migrations,seeds}/**`, `syncHelpers.ts`, cross-package `SEED_*` in `lib/shared/src/constants.ts`). Mandatory `SEED_` prefix + source-citation comment + no runtime imports + prod-DB-wins via `onConflictDoNothing()`. Checker (`scripts/src/check-magic-numbers.ts`) gained `"seeds"` in `SERVER_EXCLUDE_DIRS` + new `SKIP_REL_PATHS`; baseline went 144→119 suspects. 11 `DEFAULT_*` retirements: `MAX_STALENESS_HOURS`, `REINVESTMENT_RATE`, `OCCUPANCY_GROWTH_STEP`, `AR_DAYS`+`AP_DAYS`, `PROPERTY_INFLATION_RATE`+`COMPANY_INFLATION_RATE`, `OFFICE_LEASE_START`+`PROFESSIONAL_SERVICES_START`+`TECH_INFRA_START`+`BUSINESS_INSURANCE_START`. Plan docs written for the two cross-cutting deferred refactors (`PROPERTY_INCOME_TAX_RATE`, `LAND_VALUE_PERCENT`). T2-7 audit doc shipped (12 in-scope pages, `CompanyAssumptions` confirmed in scope). Convention doc at `docs/solutions/conventions/category-5-starter-portfolio-seeds-carve-out-2026-05-18.md`. |
 | 2026-05-17 | **UI canonical enforcement gate shipped (Plan 2026-05-16-004; CLAUDE.md §13).** Zero-tolerance mechanical gate at `scripts/src/check-ui-canonical.ts` covering Rule A (canonical `Analyst` CTA — banned `Ask (the) Analyst` text, banned `onAskAnalyst`/`askTheAnalyst`/`ASK_ANALYST_*`/`button-ask-analyst-*` identifiers, banned `<AnalystActionButton label="X">` where X ≠ `"Analyst"` with multi-line JSX buffer) and Rule B (canonical `<CurrentThemeTab>` wrapper — bare `TabsList`/`TabsTrigger` imports outside `tabs.tsx` forbidden, hand-rolled `<button>+activeTab===` heuristic). Cleanup: 5 Rule A files + 12 Rule B files. `CurrentThemeTab` rebuilt on Radix internals — gains `role="tab"`/`aria-selected`/arrow-key nav plus new affordances (`suffix`, `trailingIcon`, `disabled`+`tooltipTitle`, `responsive: { fallback: "select" }`, `variant: "default" \| "drawer"`). Meta-checker `check:gate-health` asserts file-exists / CI-wired / effective per registered gate. CI wired in `.github/workflows/ci.yml`. |
-
-Older entries: `docs/changelog/cc-recent-changes.md`.

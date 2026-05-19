@@ -20,7 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconCheckCircle } from "@/components/icons";
-import { AnalystActionButton } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { computeVerdictFreshness } from "@/components/admin/model-defaults/analyst-fields";
 
 type BandCategory = "compensation" | "revenue" | "overhead" | "property-defaults" | "company";
 
@@ -34,6 +35,9 @@ interface BandGroup {
   mid: number;
   high: number;
   seeded: boolean;
+  /** ISO timestamp from model_constants.last_edited_at for the Low band key.
+   *  null when the row has never been saved (factory-default fallback in use). */
+  lastEditedAt: string | null;
 }
 
 interface ListResponse {
@@ -219,6 +223,33 @@ export default function BenchmarkBandsTab() {
     return categoryOrder.map((cat) => ({ category: cat, groups: map.get(cat) ?? [] }));
   }, [data]);
 
+  // Freshness dot logic (same traffic-light thresholds as Model Defaults tabs):
+  //   "missing"    → any group is unseeded (seed would fill it)
+  //   null (no dot) → most-recently-edited group is < 7 days old
+  //   "stale"      → most-recent lastEditedAt is 7–30 days old
+  //   "very_stale" → most-recent lastEditedAt is > 30 days old
+  //
+  // "missing" takes priority over age-based states because unseeded rows are
+  // the primary action this Analyst button performs. Age classification falls
+  // back to the most recent lastEditedAt across all seeded groups.
+  //
+  // IMPORTANT: this hook must remain ABOVE all conditional early returns so
+  // that it is called in stable order on every render (React Rules of Hooks).
+  const seedFreshnessStatus = useMemo(() => {
+    if (!data) return null;
+    const unseededCount = data.groups.filter((g) => !g.seeded).length;
+    if (unseededCount > 0) return "missing" as const;
+    // Find the most recent lastEditedAt across all groups to age-classify.
+    let newestMs = 0;
+    for (const g of data.groups) {
+      if (!g.lastEditedAt) continue;
+      const t = new Date(g.lastEditedAt).getTime();
+      if (t > newestMs) newestMs = t;
+    }
+    if (newestMs === 0) return "missing" as const;
+    return computeVerdictFreshness({ generatedAt: new Date(newestMs).toISOString() });
+  }, [data]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -255,12 +286,13 @@ export default function BenchmarkBandsTab() {
             Edits write directly to the canonical model_constants table. Percentages are entered as whole numbers (e.g. 3 = 3%).
           </p>
         </div>
-        <AnalystActionButton
+        <AnalystButton
           onClick={() => seedMutation.mutate()}
-          running={seedRunning}
-          testIdSuffix="benchmark-bands-seed"
-          variant="header"
-          tooltipText="Fill any missing benchmark rows with factory defaults (non-destructive — never overwrites values you have already saved)."
+          isRunning={seedRunning}
+          freshnessStatus={seedFreshnessStatus}
+          pulse={seedFreshnessStatus !== null}
+          dataTestId="button-analyst-benchmark-bands-seed"
+          tooltip="Fill any missing benchmark rows with factory defaults (non-destructive — never overwrites values you have already saved)."
         />
       </div>
 

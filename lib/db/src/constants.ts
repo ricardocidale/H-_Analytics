@@ -226,12 +226,6 @@ export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
 };
 
 // ──────────────────────────────────────────────────────────
-// PROPERTY-LEVEL DEFAULTS
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_ADR_GROWTH_RATE = 0.03;
-
-// ──────────────────────────────────────────────────────────
 // INFLATION & COST ESCALATION
 // ──────────────────────────────────────────────────────────
 
