@@ -142,10 +142,10 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T1-5: CodeRabbit deferred findings from PR #147
-**Status:** ⚠️ Partial (items 1, 3, 4 done 2026-05-16)
+**Status:** ✅ Complete (all 4 items done)
 **Items:**
 1. ✅ `brandId` FK `ON DELETE RESTRICT` — migrations 0064/0071 added (commit 5b7f2ab0b)
-2. ⬜ Double-cast in `artifacts/api-server/src/routes/analyst-admin-runners-mgmt.ts` — advisory, deferred
+2. ✅ Double-cast in `analyst-admin-runners-mgmt.ts` + `analyst-admin-runners-portfolio.ts` — fixed 2026-05-19 (commit `8c2dcbd3b`): typed `gaToGlobalInput` as `GlobalAssumptions` instead of `Record<string,unknown>`, removing the `as unknown as` at both call sites. Remaining `withFinancialHydration` cast explained by comment (Drizzle types don't satisfy `extends Record<string,unknown>` structurally).
 3. ✅ `EMPTY_PORTFOLIO_DEFAULT_MIX` — taxonomy comment added confirming algorithm calibration exception (commit b6cc85d4c)
 4. ✅ SEED_* literals in `property-data.ts` — market-source citations added to cap rates, financing rates, ADR growth tiers (commit f5e8c40a5)
 
@@ -192,7 +192,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-2: Portfolio grouping
-**Status:** ✅ Complete (2026-05-16) — CC backend: schema, migrations, storage, CRUD routes, Rebecca tools (6), parity map. Replit UI commit `9b3222350` ("Unassigned Properties" section on Portfolio.tsx with per-row dropdown + "Assign to portfolio" button; calls PUT /api/properties/:id/portfolio, invalidates properties query); ownership-check follow-up commit `00bac3340`.
+**Status:** ✅ Complete — CC backend + Replit UI. Portfolio filter dropdown (All / by portfolio / Unassigned) added to property list header by Replit (session 2026-05-19); main grid filters client-side; unassigned section hides when a specific portfolio is selected.
 **Context:** Multiple users need to be able to see different groupings of properties (e.g., "Southeast Portfolio," "Colombia Properties"). Currently all properties in a company are a flat list.
 **Done when:**
 - `portfolios` table: `(id, userId, companyId, name, description, createdAt)`
@@ -200,7 +200,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 - `GET /api/portfolios`: list user's portfolios
 - `GET /api/portfolios/:id/properties`: properties in a portfolio
 - Finance compute accepts optional `portfolioId` filter
-- UI: portfolio selector on the property list page
+- UI: portfolio selector on the property list page ✅
 
 **Effort:** 3–5 days
 **Owner:** CC (migration, routes) + Replit-safe (UI)
@@ -250,7 +250,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-6: Generic brand-type slugs + admin UI for brand display names
-**Status:** ❌ Not started (added 2026-05-17 from user input)
+**Status:** ✅ Complete — CC API routes (`POST/PATCH /api/admin/brands`, session 2026-05-15) + Replit UI `BrandFormDialog` with create/edit modes (session 2026-05-19): slug auto-fills from name on create then locks; edit mode shows slug read-only; "New brand" button in Brand Flags card header; per-brand edit icon on hover.
 **Context:** Brand types in the app should use generic slug identifiers (`Boutique-Hotel-01`, `STR-01`, `Boutique-Hotel-02`, etc.). The actual brand display name does not have an authoring surface yet — admins need a place under Model Default Management Co to define the mapping from slug → display name and any per-brand metadata.
 **Done when:**
 - All brand-type references in DB / engine / UI use generic slug identifiers, not display names baked into code or seed data
@@ -264,7 +264,7 @@ Every CC or Replit session should open this file first. Before writing a line of
 ---
 
 ### T2-7: Horizontal tabs → collapsible UI on non-main pages
-**Status:** ❌ Not started (added 2026-05-17 from user input)
+**Status:** ✅ Complete — audit (CC, `docs/plans/t2-7-tab-audit.md`) + all 12 in-scope pages migrated to collapsible section pattern by Replit (confirmed session 2026-05-19).
 **Context:** Pages other than the main pages currently use horizontal tab menus with cards rendered under each tab. The user wants those refactored to a collapsible UI pattern modeled on Agent Roster — each item shows a description plus a few indicators that expand into a full card on click.
 **Excluded from refactor (keep horizontal tabs):**
 - Dashboard
