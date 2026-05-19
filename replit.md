@@ -83,7 +83,17 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 
 **Every member declares three fields:** `role` (one-line title), `short_description` (1-2 sentences), `long_description` (capabilities, I/O, model tier).
 
-**Canonical definitions of Agent / Minion / Specialist / Swarm, reserved names, and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
+### Canonical definitions
+
+**Agent** — A named pipeline member that does substantive work using an LLM. Agents receive structured inputs, apply reasoning or generation, and produce structured outputs. Every agent declares a `role`, `short_description`, and `long_description`. Agents may be job-specific (Swarm format) or cross-app (Specialist format).
+
+**Minion** — A deterministic helper invoked by an agent. Minions never call an LLM and exercise no judgment — they transform, validate, extract, or diff data according to fixed rules. Minions carry a single name. Examples in this factory: Aldo, Bruno, Carlo, Dino, Enzo.
+
+**Specialist** — An Agent used across more than one product surface, not bound to a single pipeline. Specialists carry a single name (no NN suffix) and their outputs surface directly in the product UI. Examples in this factory: Lucca (Content Drafter), Maya (Visual Inspector).
+
+**Swarm** — A coordinated team of job-specific Agents that collaborate on one pipeline stage. Swarm members use the `Name-NN` zero-padded format. When a swarm finishes, its combined output is a single artifact handed to the next pipeline stage. Swarm members are never reused outside their pipeline. Examples in this factory: Lorenzo-01..05, Sofia-01..03, Felix-01..05.
+
+**Reserved names and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
 
 ---
 
