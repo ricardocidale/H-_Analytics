@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T12:00:00Z
-Status: idle
+Updated: 2026-05-19T12:55:00Z
+Status: active
 
 ## Active Branch
 
@@ -13,7 +13,29 @@ Status: idle
 
 ## Last Commit on Branch
 
-`feat(schema): complete DEFAULT_TRAVEL/IT_PER_CLIENT retirement — §2 T1-4` (`131c686b0`)
+`feat(constants): delete DEFAULT_PROPERTY_INCOME_TAX_RATE and DEFAULT_LAND_VALUE_PERCENT (Commit B)` (`8c133659c`)
+
+## What CC Did This Session (2026-05-19 session 24 — T1-4 cross-cutting retirement)
+
+**Retired `DEFAULT_PROPERTY_INCOME_TAX_RATE` and `DEFAULT_LAND_VALUE_PERCENT` (§2 T1-4 Tier 2) via §14 two-commit discipline.**
+
+**Context:** Replit had attempted this retirement in commits `2ced23aaf` + `e95077706` but violated §9 (edited `lib/calc/src/`) and §14 (deleted before consumers rewired). Session opened by reverting those commits surgically (file-level restore to `556c963f9`).
+
+**Commit A (SHA 7f8c6fd57) — rewire all consumers:**
+- `lib/shared/src/constants-research.ts` + `lib/db/src/constants-research.ts`: added `RESEARCH_TAX_RATE_25_PCT = 0.25` (bracket-illustration partner of `RESEARCH_TAX_RATE_30_PCT`)
+- `lib/calc/src/research/depreciation-basis.ts`: switched from `DEFAULT_PROPERTY_INCOME_TAX_RATE` to `RESEARCH_TAX_RATE_25_PCT`
+- `lib/calc/src/analysis/hold-vs-sell.ts`: tightened `land_value_pct` from optional to required; removed `?? DEFAULT_LAND_VALUE_PERCENT`
+- `lib/calc/src/shared/schemas.ts`: `land_value_pct` → required in Zod holdVsSell schema
+- `lib/engine/src/debt/loanCalculations.ts`: removed both from import + re-export block
+- `lib/shared/src/field-registry.ts` + `lib/db/src/field-registry.ts`: removed fallback entries for both fields (NOT NULL in DB, resolver always populates, fallback unreachable)
+- `lib/db/src/schema/config.ts`: dead imports removed
+- Seed surfaces: `seed-model-defaults.ts` + `property-data.ts` → inline 0.25 literals
+- Portal: `PropertyAuditInput.landValuePercent` and `.taxRate` tightened to required; `TestCase.property` intersection-typed to require both; all `?? DEFAULT_*` chains removed from audits, display, edit, admin, verification harness; both removed from `lib/constants.ts` re-exports
+
+**Commit B (SHA 8c133659c) — delete definitions:**
+- `lib/shared/src/constants.ts` + `lib/db/src/constants.ts`: both definitions deleted, tombstone comments added
+
+**Gates (both commits):** typecheck clean · check-magic-numbers PASS (+2 improvements vs baseline) · check:schema-drift PASS · engine 41/41 · calc 96/96
 
 ## What CC Did This Session (2026-05-19 session 23 — TRAVEL/IT constant retirement)
 
