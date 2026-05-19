@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T22:00:00Z
+Updated: 2026-05-19T23:30:00Z
 Status: active
 
 ## Active Branch
@@ -13,7 +13,15 @@ Status: active
 
 ## Last Commit on Branch
 
-`fix(docs): add ### Canonical definitions to CLAUDE.md §10 + mirror to replit.md` (`3063c75d5`)
+`chore(portal): delete unreferenced SpecialistsSection.tsx` (`f4b192fae`)
+
+## What CC Did This Session (2026-05-19 session 28 — Valentina scheduler tests + ce-compound + Replit handoff cleanup)
+
+**Wrote unit tests for `runValentinaModelDefaultsCycle` (D3 scheduler); ran /ce-compound to document Vitest TDZ pattern; cleaned up dead `SpecialistsSection.tsx` from Replit session 28 handoff.**
+
+- `artifacts/api-server/src/tests/valentina-model-defaults-scheduler.test.ts` — 25 tests for `runValentinaModelDefaultsCycle`: concurrency guard, feature-flag gate (absent/value=0), row filtering (lastSetSource≠seed, excluded categories, management_company), happy path (proposed count, DB writes, ok status), all-skipped (warn, no DB write), error path (no throw, error status), finally-block guarantee that `recordSchedulerCycle` always fires. Same vi.mocked() pattern as the prior valentina-model-defaults.test.ts (inline `vi.fn()` in factories, `vi.mocked()` after imports). Commit `3f1242c81`.
+- **`/ce-compound` full mode** — documented the Vitest `vi.mock` factory TDZ pattern. Four subagents ran (Context Analyzer, Solution Extractor, Related Docs Finder, Session Historian). No prior sessions, no duplicate docs. Result: `docs/solutions/best-practices/vitest-mock-factory-tdz-hoisting-2026-05-19.md` (knowledge track, `best_practice`). Cross-linked from `vacuous-catch-test-regression-magnet-2026-05-11.md` (sibling Vitest best-practice doc). Frontmatter validated (`OK` exit). Commits `b7a6702c0` + `0925c7bec`.
+- **Replit session 28 handoff** — per-entity LLM info on roster cards (5 frontend files, all portal-only). No CC surfaces touched. Cleaned up the one follow-on item: deleted `SpecialistsSection.tsx` (121 lines, now unreferenced after `LlmWorkflowsPage` removed its import). Commit `f4b192fae`.
 
 ## What CC Did This Session (2026-05-19 session 25 — coderabbit loop + handoff fixes)
 
