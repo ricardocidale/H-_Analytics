@@ -249,6 +249,18 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     serverLog(`[db-retention-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
   });
 
+  // ── Phase 3n: Valentina quarterly model-defaults research (D3) ────────
+  // Runs Valentina on all seed-sourced model_defaults rows every 90 days.
+  // Cadence guard checks scheduler_runs at startup so restarts don't trigger
+  // spurious research runs. Gated by the valentina-enabled feature flag.
+  import("./jobs/valentina-model-defaults-scheduler").then(({ startValentinaModelDefaultsScheduler }) => {
+    startValentinaModelDefaultsScheduler().catch(err => {
+      serverLog(`[valentina-model-defaults] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+    });
+  }).catch(err => {
+    serverLog(`[valentina-model-defaults] Failed to import: ${err instanceof Error ? err.message : err}`, "startup", "error");
+  });
+
   // Phase 3n (minion-self-test scheduler) is started inside the migration
   // `.then()` block above — it must wait for migrations 0051/0052 and the
   // `admin_resources` cadence row before its first tick.
@@ -309,6 +321,12 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     try {
       const { stopIrisScheduler } = await import("./ai/ambient/iris-scheduler");
       stopIrisScheduler();
+    } catch {
+      /* best-effort — module may not have loaded yet */
+    }
+    try {
+      const { stopValentinaModelDefaultsScheduler } = await import("./jobs/valentina-model-defaults-scheduler");
+      stopValentinaModelDefaultsScheduler();
     } catch {
       /* best-effort — module may not have loaded yet */
     }

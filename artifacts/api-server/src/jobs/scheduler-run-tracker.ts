@@ -145,6 +145,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Daily cleanup: deletes resource_health_checks rows older than 7 days and specialist_research_quality_snapshots rows older than 30 days. Prevents unbounded table growth identified in DB audit 2026-05-14.",
   },
+  {
+    key: "valentina-model-defaults",
+    label: "Valentina Model Defaults Research",
+    cycleIntervalMs: 90 * 24 * 60 * 60 * 1000, // quarterly
+    description:
+      "Quarterly Valentina research cycle: calls the Valentina LLM specialist on all seed-sourced model_defaults rows and writes proposed_* values for admin review. Only runs when the valentina-enabled feature flag is set to 1.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -278,6 +285,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "db-retention-scheduler": async () => {
     const mod = await import("./db-retention-scheduler");
     return mod.runDbRetentionCycle();
+  },
+  "valentina-model-defaults": async () => {
+    const mod = await import("./valentina-model-defaults-scheduler");
+    return mod.runValentinaModelDefaultsCycle();
   },
 };
 
