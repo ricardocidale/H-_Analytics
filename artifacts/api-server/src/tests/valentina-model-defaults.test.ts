@@ -8,34 +8,28 @@
  *   - LLM slot unavailable → all eligible rows skipped with reason prefix
  *   - Anthropic vendor path: happy path + call-failed path
  *   - OpenAI vendor path: happy path
- *   - Parse error (malformed JSON, missing proposals key)
- *   - Non-numeric proposedValue → parse-error skip
+ *   - Parse error (malformed JSON, non-numeric proposedValue)
+ *   - No proposals key in response
  *   - Rows missing from LLM response → missing-from-llm-response skip
  *   - Conviction mapping: high → 0.9, moderate → 0.6, low → 0.3, unknown → 0.3
  *   - All rows skipped → no LLM call made
+ *   - Null range / authority fields accepted
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Mock } from "vitest";
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
-// Must be declared before the dynamic import of the module under test.
-
-const mockAnthropicCreate = vi.fn();
-const mockOpenAICreate = vi.fn();
+// Factories use inline vi.fn() — external variable refs in vi.mock factories
+// are in TDZ when the hoisted factory executes.
 
 vi.mock("../ai/clients", () => ({
-  getAnthropicClient: () => ({
-    messages: { create: mockAnthropicCreate },
-  }),
-  getOpenAIClient: () => ({
-    chat: { completions: { create: mockOpenAICreate } },
-  }),
+  getAnthropicClient: vi.fn(),
+  getOpenAIClient: vi.fn(),
 }));
 
-const mockResolveLlmFor = vi.fn();
 vi.mock("../ai/llm-config-resolver", () => ({
-  resolveLlmFor: mockResolveLlmFor,
+  resolveLlmFor: vi.fn(),
 }));
 
 vi.mock("../middleware/cost-logger", () => ({
@@ -43,10 +37,21 @@ vi.mock("../middleware/cost-logger", () => ({
   estimateCost: vi.fn().mockReturnValue(0),
 }));
 
-// ── Import under test (after mocks) ──────────────────────────────────────────
+// ── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { runValentinaResearch } from "../ai/valentina-model-defaults";
 import type { ValentinaInputRow } from "../ai/valentina-model-defaults";
+import { getAnthropicClient, getOpenAIClient } from "../ai/clients";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
+
+const mockResolveLlmFor = vi.mocked(resolveLlmFor);
+const mockGetAnthropicClient = vi.mocked(getAnthropicClient);
+const mockGetOpenAIClient = vi.mocked(getOpenAIClient);
+
+// ── LLM stub shapes ────────────────────────────────────────────────────────────
+
+const mockAnthropicCreate = vi.fn();
+const mockOpenAICreate = vi.fn();
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -100,6 +105,8 @@ const OPENAI_LLM = { vendor: "openai", modelId: "gpt-4o", modelSlug: "gpt-4o" };
 describe("runValentinaResearch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetAnthropicClient.mockReturnValue({ messages: { create: mockAnthropicCreate } } as never);
+    mockGetOpenAIClient.mockReturnValue({ chat: { completions: { create: mockOpenAICreate } } } as never);
   });
 
   // ── Skip logic ────────────────────────────────────────────────────────────
@@ -126,7 +133,7 @@ describe("runValentinaResearch", () => {
       expect(mockResolveLlmFor).not.toHaveBeenCalled();
     });
 
-    it("skips all ineligible rows and returns without calling LLM", async () => {
+    it("returns without calling LLM when all rows are ineligible", async () => {
       const rows = [
         makeRow({ id: 1, subTab: "funding" }),
         makeRow({ id: 2, defaultKey: "adrByTierLuxury" }),
@@ -137,7 +144,7 @@ describe("runValentinaResearch", () => {
       expect(mockResolveLlmFor).not.toHaveBeenCalled();
     });
 
-    it("processes eligible rows alongside skipped rows", async () => {
+    it("processes eligible rows alongside skipped rows in the same batch", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
       const eligibleRow = makeRow({ id: 20, defaultKey: "revParTarget" });
       const skippedRow = makeRow({ id: 21, subTab: "funding" });
@@ -217,7 +224,7 @@ describe("runValentinaResearch", () => {
   // ── OpenAI vendor path ────────────────────────────────────────────────────
 
   describe("OpenAI vendor path", () => {
-    it("happy path via OpenAI: returns proposal", async () => {
+    it("happy path via OpenAI: returns proposal with correct conviction", async () => {
       mockResolveLlmFor.mockResolvedValue(OPENAI_LLM);
       const row = makeRow({ id: 70, defaultKey: "revParTarget" });
       mockOpenAICreate.mockResolvedValue(
@@ -255,16 +262,14 @@ describe("runValentinaResearch", () => {
       expect(results[0]).toMatchObject({ id: 81, skipped: true, skipReason: "parse-error" });
     });
 
-    it("handles empty proposals array gracefully", async () => {
+    it("marks row skipped when LLM returns empty proposals array", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
-      mockAnthropicCreate.mockResolvedValue(
-        anthropicResponse([]),
-      );
+      mockAnthropicCreate.mockResolvedValue(anthropicResponse([]));
       const results = await runValentinaResearch([makeRow({ id: 82 })]);
       expect(results[0]).toMatchObject({ id: 82, skipped: true, skipReason: "missing-from-llm-response" });
     });
 
-    it("handles response with no proposals key", async () => {
+    it("marks row skipped when response JSON has no proposals key", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
       mockAnthropicCreate.mockResolvedValue({
         content: [{ type: "text", text: JSON.stringify({ other: "data" }) }],
@@ -278,13 +283,12 @@ describe("runValentinaResearch", () => {
   // ── Missing from LLM response ─────────────────────────────────────────────
 
   describe("missing-from-llm-response", () => {
-    it("marks row skipped when defaultKey absent from LLM proposals", async () => {
+    it("marks row skipped when its defaultKey is absent from LLM proposals", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
       const rows = [
         makeRow({ id: 90, defaultKey: "occupancyRate" }),
         makeRow({ id: 91, defaultKey: "exitCapRate" }),
       ];
-      // LLM only returns occupancyRate
       mockAnthropicCreate.mockResolvedValue(
         anthropicResponse([happyProposal("occupancyRate")]),
       );
@@ -307,32 +311,29 @@ describe("runValentinaResearch", () => {
     for (const [level, expected] of cases) {
       it(`maps conviction "${level}" → ${expected}`, async () => {
         mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
-        const row = makeRow({ id: 100, defaultKey: "occupancyRate" });
         mockAnthropicCreate.mockResolvedValue(
           anthropicResponse([happyProposal("occupancyRate", { conviction: level })]),
         );
-        const results = await runValentinaResearch([row]);
+        const results = await runValentinaResearch([makeRow({ id: 100, defaultKey: "occupancyRate" })]);
         expect(results[0]?.proposedConviction).toBe(expected);
       });
     }
 
     it("maps unknown conviction string → 0.3 (low fallback)", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
-      const row = makeRow({ id: 101, defaultKey: "occupancyRate" });
       mockAnthropicCreate.mockResolvedValue(
         anthropicResponse([happyProposal("occupancyRate", { conviction: "very-certain" })]),
       );
-      const results = await runValentinaResearch([row]);
+      const results = await runValentinaResearch([makeRow({ id: 101, defaultKey: "occupancyRate" })]);
       expect(results[0]?.proposedConviction).toBe(0.3);
     });
   });
 
-  // ── Null range / authority fields ─────────────────────────────────────────
+  // ── Null optional fields ──────────────────────────────────────────────────
 
   describe("optional fields", () => {
     it("accepts null rangeLow/rangeHigh and null authority/referenceUrl", async () => {
       mockResolveLlmFor.mockResolvedValue(ANTHROPIC_LLM);
-      const row = makeRow({ id: 110, defaultKey: "occupancyRate" });
       mockAnthropicCreate.mockResolvedValue(
         anthropicResponse([{
           defaultKey: "occupancyRate",
@@ -346,7 +347,7 @@ describe("runValentinaResearch", () => {
           deviationFlag: false,
         }]),
       );
-      const results = await runValentinaResearch([row]);
+      const results = await runValentinaResearch([makeRow({ id: 110, defaultKey: "occupancyRate" })]);
       expect(results[0]).toMatchObject({
         id: 110,
         skipped: false,
