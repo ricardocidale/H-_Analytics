@@ -88,9 +88,7 @@ export function buildGlobalInput(ga: Record<string, unknown>, projYears: number)
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    // ga.inflationRate is non-null per schema (globalAssumptions.inflationRate NOT NULL DEFAULT 0.03);
-    // locality-aware engine reads go through getFactoryNumber('inflationRate', country) elsewhere.
-    inflationRate: Number(ga.inflationRate ?? 0.03),
+    inflationRate: Number(ga.inflationRate),
     marketingRate: Number(ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
