@@ -45,8 +45,6 @@ import {
   DEFAULT_STAFF_TIER1_MAX_PROPERTIES,
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
   DEFAULT_STAFF_SALARY,
-  DEFAULT_TRAVEL_COST_PER_CLIENT,
-  DEFAULT_IT_LICENSE_PER_CLIENT,
 } from "../constants";
 import { getFactoryNumber } from "../model-constants-registry";
 
@@ -172,8 +170,9 @@ export const globalAssumptions = pgTable("global_assumptions", {
   businessInsuranceStart: real("business_insurance_start").notNull().default(12000),
   
   // Cost variables - Variable costs
-  travelCostPerClient: real("travel_cost_per_client").notNull().default(DEFAULT_TRAVEL_COST_PER_CLIENT),
-  itLicensePerClient: real("it_license_per_client").notNull().default(DEFAULT_IT_LICENSE_PER_CLIENT),
+  // SEED values: AHLA 2024 ($12k/yr travel) + HFTP 2024 ($3k/yr IT). Bootstrap via migration 0076.
+  travelCostPerClient: real("travel_cost_per_client").notNull().default(12_000),
+  itLicensePerClient: real("it_license_per_client").notNull().default(3_000),
   marketingRate: real("marketing_rate").notNull().default(0.05),
   miscOpsRate: real("misc_ops_rate").notNull().default(0.03),
   

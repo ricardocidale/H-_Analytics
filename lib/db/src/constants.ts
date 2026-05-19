@@ -335,8 +335,9 @@ export const DEFAULT_REFI_PERIOD_YEARS = 3;
 // Year-1 overhead bootstrap (office lease 36k, professional services 24k,
 // tech infra 18k, business insurance 12k) lives on globalAssumptions schema
 // columns + model_defaults rows under card="overhead". See lib/db/src/schema/config.ts.
-export const DEFAULT_TRAVEL_COST_PER_CLIENT = 5000;
-export const DEFAULT_IT_LICENSE_PER_CLIENT = 3600;
+// TRAVEL_COST_PER_CLIENT + IT_LICENSE_PER_CLIENT: retired (§2 T1-4).
+// Live values: globalAssumptions schema columns (.default(12_000) / .default(3_000)).
+// Bootstrap: SEED_TRAVEL_PER_CLIENT / SEED_IT_LICENSE_PER_CLIENT in lib/shared/src/constants.ts.
 // ── Operating Reserve / Funding Buffers ─────────────────────────────────
 export const OPERATING_RESERVE_BUFFER = 50_000;
 export const COMPANY_FUNDING_BUFFER = 100_000;

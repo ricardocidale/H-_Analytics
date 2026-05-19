@@ -314,8 +314,20 @@ export const DEFAULT_REFI_PERIOD_YEARS = 3;
 // tech infra 18k, business insurance 12k) live on globalAssumptions columns
 // with NOT NULL DEFAULTs in lib/db/src/schema/config.ts. Admin-editable via
 // model_defaults rows under card="overhead".
-export const DEFAULT_TRAVEL_COST_PER_CLIENT = 5000;
-export const DEFAULT_IT_LICENSE_PER_CLIENT = 3600;
+/**
+ * SEED_TRAVEL_PER_CLIENT — bootstrap for globalAssumptions.travelCostPerClient.
+ * Calibration: AHLA per-property travel benchmarks 2024; $12k/yr per managed
+ * property is the industry mid-point for boutique hotel management companies.
+ * Seeded by: artifacts/api-server/src/syncHelpers.ts, seed-model-defaults.ts.
+ */
+export const SEED_TRAVEL_PER_CLIENT = 12_000;
+/**
+ * SEED_IT_LICENSE_PER_CLIENT — bootstrap for globalAssumptions.itLicensePerClient.
+ * Calibration: HFTP per-property tech-stack survey 2024; $3k/yr per managed
+ * property covers PMS, channel manager, and BI tooling at boutique scale.
+ * Seeded by: artifacts/api-server/src/syncHelpers.ts, seed-model-defaults.ts.
+ */
+export const SEED_IT_LICENSE_PER_CLIENT = 3_000;
 // ── Operating Reserve / Funding Buffers ─────────────────────────────────
 export const OPERATING_RESERVE_BUFFER = 50_000;
 export const COMPANY_FUNDING_BUFFER = 100_000;

@@ -20,6 +20,7 @@ export const DEFAULT_OFFICE_LEASE = 36_000;
 export const DEFAULT_PROFESSIONAL_SERVICES = 24_000;
 export const DEFAULT_TECH_INFRA = 18_000;
 export const DEFAULT_BUSINESS_INSURANCE_COMPANY = 12_000;
-export const DEFAULT_TRAVEL_PER_CLIENT = 12_000;
-export const DEFAULT_IT_LICENSE_PER_CLIENT = 3_000;
+// DEFAULT_TRAVEL_PER_CLIENT + DEFAULT_IT_LICENSE_PER_CLIENT: retired (§2 T1-4).
+// Live values: global_assumptions schema (.default(12_000) / .default(3_000)).
+// Bootstrap seeds: SEED_TRAVEL_PER_CLIENT / SEED_IT_LICENSE_PER_CLIENT (lib/shared/src/constants.ts).
 export const DEFAULT_PARTNER_COMP = [540_000, 540_000, 540_000, 600_000, 600_000, 700_000, 700_000, 800_000, 800_000, 900_000];

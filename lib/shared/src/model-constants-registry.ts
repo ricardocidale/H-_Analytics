@@ -123,8 +123,12 @@ import {
 import {
   DEFAULT_STAFF_SALARY, DEFAULT_OFFICE_LEASE, DEFAULT_PROFESSIONAL_SERVICES,
   DEFAULT_TECH_INFRA, DEFAULT_BUSINESS_INSURANCE_COMPANY,
-  DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT,
 } from "./constants-staffing";
+// SEED calibration values for model-constants registry — not re-exported, never imported by engine/calc/routes.
+// Calibration: AHLA per-property travel benchmarks 2024 ($12k/yr boutique mid-point).
+const FACTORY_TRAVEL_PER_CLIENT = 12_000;
+// Calibration: HFTP per-property tech-stack survey 2024 ($3k/yr PMS+channel+BI boutique scale).
+const FACTORY_IT_LICENSE_PER_CLIENT = 3_000;
 
 export type ConstantLocality = "universal" | "country" | "country+state";
 
@@ -645,8 +649,8 @@ function buildBenchmarkRegistryEntries(): Record<string, ConstantRegistryEntry> 
     { key: "benchmarkStaffDefaultProfServices", label: "Staffing — default professional services (USD/yr)", authority: "AICPA practice benchmarks for early-stage hospitality companies", unit: "usd", factory: () => DEFAULT_PROFESSIONAL_SERVICES },
     { key: "benchmarkStaffDefaultTechInfra", label: "Staffing — default tech infrastructure (USD/yr)", authority: "HFTP Technology Survey for corporate-level IT spend", unit: "usd", factory: () => DEFAULT_TECH_INFRA },
     { key: "benchmarkStaffDefaultBizInsurance", label: "Staffing — default business insurance (USD/yr)", authority: "Hospitality D&O / E&O / cyber liability premium benchmarks", unit: "usd", factory: () => DEFAULT_BUSINESS_INSURANCE_COMPANY },
-    { key: "benchmarkStaffDefaultTravelPerClient", label: "Staffing — default travel cost per property (USD/yr)", authority: "AHLA per-property travel benchmarks", unit: "usd", factory: () => DEFAULT_TRAVEL_PER_CLIENT },
-    { key: "benchmarkStaffDefaultItLicensePerClient", label: "Staffing — default IT/licensing cost per property (USD/yr)", authority: "HFTP per-property tech-stack survey", unit: "usd", factory: () => DEFAULT_IT_LICENSE_PER_CLIENT },
+    { key: "benchmarkStaffDefaultTravelPerClient", label: "Staffing — default travel cost per property (USD/yr)", authority: "AHLA per-property travel benchmarks", unit: "usd", factory: () => FACTORY_TRAVEL_PER_CLIENT },
+    { key: "benchmarkStaffDefaultItLicensePerClient", label: "Staffing — default IT/licensing cost per property (USD/yr)", authority: "HFTP per-property tech-stack survey", unit: "usd", factory: () => FACTORY_IT_LICENSE_PER_CLIENT },
   ];
 
   const entries: Record<string, ConstantRegistryEntry> = {};

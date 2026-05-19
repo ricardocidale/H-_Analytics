@@ -21,8 +21,10 @@ import {
   DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
+  SEED_TRAVEL_PER_CLIENT,
+  SEED_IT_LICENSE_PER_CLIENT,
 } from "@shared/constants";
-import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
+import { DEFAULT_STAFF_SALARY } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { resolveStaffingDefaults } from "./finance/benchmark-resolver";
 import { SEED_OPERATING_RESERVE_USD, SEED_PARTNER_COMP_PHASE1_USD, SEED_PARTNER_COMP_FINAL_USD } from "./constants";
@@ -51,8 +53,8 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   staffTier2MaxProperties: 6,
   staffTier2Fte: 4.5,
   staffTier3Fte: 7.0,
-  travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
-  itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
+  travelCostPerClient: SEED_TRAVEL_PER_CLIENT,
+  itLicensePerClient: SEED_IT_LICENSE_PER_CLIENT,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
   // Year-1 overhead bootstrap; matches schema NOT NULL DEFAULTs in globalAssumptions.
