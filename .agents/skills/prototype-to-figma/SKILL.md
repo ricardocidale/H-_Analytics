@@ -195,7 +195,7 @@ Any row with ⚠️ must get a DS Drift annotation in Phase 4.
 
 ### Phase 3: Plan the page structure
 
-```
+```text
 Page: "[Feature Name] — Prototype Flows"
   Section: "Flow 1: [Flow Name]"
     Frame: "1.1 — [State description]"   ← left-to-right within a flow

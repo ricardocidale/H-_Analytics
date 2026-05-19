@@ -69,6 +69,10 @@ Rewritten to:
 
 ## Verification
 
+Design review gate (CLAUDE.md §11): `/post-coding-design-review` was run against the four
+affected UI components before commit — `AgentRosterAccordion.tsx`, `SpecialistsRosterPage.tsx`,
+`AgentsRosterPage.tsx`, `LlmWorkflowsPage.tsx`. No blocking findings.
+
 All gates already confirmed green by Replit Agent before commit:
 
 ```bash

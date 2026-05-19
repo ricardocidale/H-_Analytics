@@ -40,7 +40,7 @@ vi.mock("../ai/llm-config-resolver", () => ({
 
 The entire test file threw immediately on load:
 
-```
+```text
 ReferenceError: Cannot access 'mockResolveLlmFor' before initialization
   at src/tests/valentina-model-defaults.test.ts:38:18
 ```
@@ -158,7 +158,7 @@ it("should call resolveLlmFor", async () => { /* ... */ });
 ```
 
 Runtime error:
-```
+```text
 ReferenceError: Cannot access 'mockResolveLlmFor' before initialization
   at src/tests/valentina-model-defaults.test.ts:38:18
 ```
