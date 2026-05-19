@@ -18,8 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { IconPencil, IconPlus } from "@/components/icons";
 import { useAssumptionGuardrail } from "@/hooks/useAssumptionGuardrail";
 import { cn } from "@/lib/utils";
+import { BrandFormDialog } from "./BrandFormDialog";
 
 interface BrandRow {
   id: number;
@@ -208,6 +210,7 @@ function BrandFeesPanel({ brand }: { brand: BrandRow }) {
 }
 
 export function BrandsTab() {
+  const queryClient = useQueryClient();
   const { data: brands, isLoading } = useQuery<BrandRow[]>({
     queryKey: ["/api/admin/brands"],
     queryFn: async () => {
@@ -220,6 +223,24 @@ export function BrandsTab() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const selectedBrand = brands?.find((b) => b.slug === selectedSlug) ?? null;
 
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<BrandRow | undefined>(undefined);
+
+  const openCreate = () => {
+    setEditTarget(undefined);
+    setFormDialogOpen(true);
+  };
+
+  const openEdit = (brand: BrandRow, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditTarget(brand);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    void queryClient.invalidateQueries({ queryKey: ["/api/admin/brands"] });
+  };
+
   const nonDefaultBrands = (brands ?? []).filter((b) => !b.isDefault);
 
   return (
@@ -227,11 +248,25 @@ export function BrandsTab() {
       {/* Brand selector */}
       <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">H+ Brand Flags</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Select a brand flag to view and edit its fee stack. Range-quality dots compare
-            values against CBRE 2024 Franchise Fee Survey guardrails.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <CardTitle className="text-base font-semibold">H+ Brand Flags</CardTitle>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Select a brand flag to view and edit its fee stack. Range-quality dots compare
+                values against CBRE 2024 Franchise Fee Survey guardrails.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openCreate}
+              className="shrink-0"
+              data-testid="button-new-brand"
+            >
+              <IconPlus className="w-3.5 h-3.5 mr-1.5" />
+              New brand
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -245,7 +280,7 @@ export function BrandsTab() {
                   key={brand.slug}
                   onClick={() => setSelectedSlug(brand.slug === selectedSlug ? null : brand.slug)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                    "group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
                     selectedSlug === brand.slug
                       ? "border-accent-pop bg-accent-pop/10 text-accent-pop"
                       : "border-border/60 bg-muted/30 text-foreground hover:border-border",
@@ -266,6 +301,17 @@ export function BrandsTab() {
                   {!brand.isActive && (
                     <Badge variant="outline" className="text-xs text-muted-foreground">inactive</Badge>
                   )}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => openEdit(brand, e)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openEdit(brand, e as unknown as React.MouseEvent); }}
+                    className="ml-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity rounded p-0.5 hover:bg-accent-pop/10"
+                    data-testid={`button-edit-brand-${brand.slug}`}
+                    aria-label={`Edit ${brand.name}`}
+                  >
+                    <IconPencil className="w-3 h-3" />
+                  </span>
                 </button>
               ))}
               {nonDefaultBrands.length === 0 && (
@@ -300,6 +346,14 @@ export function BrandsTab() {
           </CardContent>
         </Card>
       )}
+
+      <BrandFormDialog
+        mode={editTarget ? "edit" : "create"}
+        brand={editTarget}
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 }

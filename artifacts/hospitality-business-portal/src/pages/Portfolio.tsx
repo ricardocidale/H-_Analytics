@@ -20,7 +20,7 @@
  * Deleting a property removes it from the portfolio and triggers a full
  * invalidation of all financial queries so dashboards update.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PropertyStatus } from "@shared/constants";
 import { BUSINESS_MODEL_DEFAULTS } from "@shared/constants-business-models";
@@ -85,6 +85,23 @@ const INITIAL_FORM_DATA: AddPropertyFormData = {
 
 type PortfolioTab = "properties" | "map";
 
+type PortfolioFilter =
+  | { type: "all" }
+  | { type: "unassigned" }
+  | { type: "portfolio"; id: number };
+
+const filterToSelectValue = (f: PortfolioFilter): string => {
+  if (f.type === "all") return "all";
+  if (f.type === "unassigned") return "unassigned";
+  return String(f.id);
+};
+
+const selectValueToFilter = (v: string): PortfolioFilter => {
+  if (v === "all") return { type: "all" };
+  if (v === "unassigned") return { type: "unassigned" };
+  return { type: "portfolio", id: Number(v) };
+};
+
 interface PortfolioItem {
   id: number;
   name: string;
@@ -102,7 +119,20 @@ export default function Portfolio() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [_activeTab, _setActiveTab] = useState<PortfolioTab>("properties");
   const [formData, setFormData] = useState<AddPropertyFormData>({ ...INITIAL_FORM_DATA });
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
+  const [assignmentTargetPortfolioId, setAssignmentTargetPortfolioId] = useState<number | null>(null);
+  const [portfolioFilter, setPortfolioFilter] = useState<PortfolioFilter>({ type: "all" });
+
+  const filteredProperties = useMemo(() => {
+    const all = properties ?? [];
+    if (portfolioFilter.type === "all") return all;
+    if (portfolioFilter.type === "unassigned")
+      return all.filter(
+        (p) => (p as typeof p & { portfolioId?: number | null }).portfolioId == null,
+      );
+    return all.filter(
+      (p) => (p as typeof p & { portfolioId?: number | null }).portfolioId === portfolioFilter.id,
+    );
+  }, [properties, portfolioFilter]);
 
   const { data: portfolios = [] } = useQuery<PortfolioItem[]>({
     queryKey: ["portfolios"],
@@ -240,27 +270,48 @@ export default function Portfolio() {
           subtitle="Managed assets & developments"
           variant="dark"
           actions={
-            <AddPropertyDialog
-              open={isAddDialogOpen}
-              onOpenChange={setIsAddDialogOpen}
-              formData={formData}
-              setFormData={setFormData}
-              onSubmit={handleSubmit}
-              isPending={createProperty.isPending}
-              onCancel={() => { setIsAddDialogOpen(false); resetForm(); }}
-              onAcquisitionDateChange={handleAcquisitionDateChange}
-              trigger={
-                <Button variant="outline" data-testid="button-add-property">
-                  <IconPlus className="w-4 h-4" />
-                  Add Property
-                </Button>
-              }
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              {portfolios.length > 0 && (
+                <Select
+                  value={filterToSelectValue(portfolioFilter)}
+                  onValueChange={(v) => setPortfolioFilter(selectValueToFilter(v))}
+                >
+                  <SelectTrigger className="w-44 h-9 text-sm" data-testid="select-portfolio-filter">
+                    <SelectValue placeholder="All portfolios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All portfolios</SelectItem>
+                    {portfolios.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="unassigned">Unassigned only</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              <AddPropertyDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleSubmit}
+                isPending={createProperty.isPending}
+                onCancel={() => { setIsAddDialogOpen(false); resetForm(); }}
+                onAcquisitionDateChange={handleAcquisitionDateChange}
+                trigger={
+                  <Button variant="outline" data-testid="button-add-property">
+                    <IconPlus className="w-4 h-4" />
+                    Add Property
+                  </Button>
+                }
+              />
+            </div>
           }
         />
 
         <AnimatedGrid className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {properties?.slice().sort((a, b) => new Date(a.acquisitionDate).getTime() - new Date(b.acquisitionDate).getTime()).map((property, index) => (
+          {filteredProperties.slice().sort((a, b) => new Date(a.acquisitionDate).getTime() - new Date(b.acquisitionDate).getTime()).map((property, index) => (
             <PortfolioPropertyCard
               key={property.id}
               property={property}
@@ -272,8 +323,14 @@ export default function Portfolio() {
           ))}
         </AnimatedGrid>
 
-        {/* Unassigned properties section */}
-        {unassignedProperties.length > 0 && (
+        {filteredProperties.length === 0 && portfolioFilter.type !== "all" && (
+          <div className="rounded-lg border border-dashed border-border py-12 text-center">
+            <p className="text-sm text-muted-foreground">No properties match this filter.</p>
+          </div>
+        )}
+
+        {/* Unassigned properties section — hidden when a specific portfolio is selected */}
+        {portfolioFilter.type !== "portfolio" && unassignedProperties.length > 0 && (
           <div className="space-y-4 border-t border-border pt-6">
             <div className="flex items-center justify-between min-w-0 gap-4">
               <div className="min-w-0">
@@ -286,8 +343,8 @@ export default function Portfolio() {
               </div>
               <div className="shrink-0">
                 <Select
-                  value={selectedPortfolioId?.toString() ?? ""}
-                  onValueChange={(v) => setSelectedPortfolioId(Number(v))}
+                  value={assignmentTargetPortfolioId?.toString() ?? ""}
+                  onValueChange={(v) => setAssignmentTargetPortfolioId(Number(v))}
                 >
                   <SelectTrigger className="w-[200px]" data-testid="select-target-portfolio">
                     <SelectValue placeholder="Select portfolio…" />
@@ -318,14 +375,14 @@ export default function Portfolio() {
                     size="sm"
                     className="shrink-0"
                     onClick={() => {
-                      if (selectedPortfolioId != null) {
+                      if (assignmentTargetPortfolioId != null) {
                         assignMutation.mutate({
                           propertyId: property.id,
-                          portfolioId: selectedPortfolioId,
+                          portfolioId: assignmentTargetPortfolioId,
                         });
                       }
                     }}
-                    disabled={selectedPortfolioId == null || assignMutation.isPending}
+                    disabled={assignmentTargetPortfolioId == null || assignMutation.isPending}
                     data-testid={`button-assign-property-${property.id}`}
                   >
                     {assignMutation.isPending && (

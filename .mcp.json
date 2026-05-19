@@ -46,6 +46,10 @@
       "env": {
         "FMP_ACCESS_TOKEN": "${FMP_ACCESS_TOKEN}"
       }
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_API_KEY}"]
     }
   }
 }

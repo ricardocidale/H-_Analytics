@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T15:00:00Z
+Updated: 2026-05-19T18:30:00Z
 Status: idle
 
 ## Active Branch
@@ -13,25 +13,28 @@ main
 
 ## Last Commit on Branch
 
-feat(skills): add figma-prototyping skill from GitHub (task-1697)
+feat(frontend): CC session-26 handoff — T2-2, T2-6 implemented; T2-3, T2-4, T2-7 confirmed complete
 
 ## What Replit Did This Session
 
-**Task #1697 — Added Figma Prototyping skill from GitHub**
+**CC session 26 handoff — 5 frontend-only tasks:**
 
-- Cloned `https://github.com/alima-max/prototype-to-figma-skill.git`
-- Copied all three files to `.agents/skills/figma-prototyping/`: `SKILL.md`, `figma-patterns.md`, `README.md`
-- Validated frontmatter: `name: prototype-to-figma` (18 chars, lowercase+hyphens ✓), `description` (853 chars ✓)
-- Removed temp clone
-- No existing skills were modified
+- T2-2 ✅ Portfolio filter dropdown (Portfolio.tsx) — filteredProperties memo, PortfolioFilter type, filter Select in header, empty state, assignmentTargetPortfolioId rename
+- T2-3 ✅ "Improve with AI" — already implemented in AsPurchasedDescriptionField.tsx
+- T2-4 ✅ "Verify deck quality" — already implemented in DownloadTab.tsx
+- T2-6 ✅ BrandFormDialog create/edit — new BrandFormDialog.tsx + BrandsTab.tsx wired
+- T2-7 ✅ Collapsible tabs — all 12 in-scope pages already using CollapsibleSection
 
-## Files Replit Owns Right Now
+## Files Modified This Session
 
-None — session complete.
+- `artifacts/hospitality-business-portal/src/pages/Portfolio.tsx`
+- `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandsTab.tsx`
+- `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandFormDialog.tsx` (new)
+- `.agents/status/replit.md`
 
 ## Handoff to CC
 
-None pending. T2-2 and T2-6 plans are Replit-safe (frontend-only); either agent can implement.
+All 5 tasks from CC session 26 handoff are done. CC can resume any work on main.
 
 ## Do Not Touch (CC-owned surfaces)
 
