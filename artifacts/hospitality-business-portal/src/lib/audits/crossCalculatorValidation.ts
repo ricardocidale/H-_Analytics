@@ -2,7 +2,6 @@ import type { MonthlyFinancials } from '../financialEngine';
 import { pmt } from '@calc/shared/pmt';
 import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 import {
-  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_COST_RATE_FFE,
@@ -40,7 +39,7 @@ interface PropertyForValidation {
   acquisitionLTV?: number | null;
   acquisitionInterestRate?: number | null;
   acquisitionTermYears?: number | null;
-  landValuePercent?: number | null;
+  landValuePercent: number;
   buildingImprovements?: number | null;
   baseManagementFeeRate?: number | null;
   incentiveManagementFeeRate?: number | null;
@@ -332,7 +331,7 @@ export function crossValidateFinancingCalculators(
   const operatingMonths = monthlyData.filter(m => m.propertyValue > 0);
   let bsErrors = 0;
   if (operatingMonths.length > 0) {
-    const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+    const landPct = property.landValuePercent;
     const landValue = property.purchasePrice * landPct;
     const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
     const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
@@ -373,7 +372,7 @@ export function crossValidateFinancingCalculators(
   // 14. IRS: Depreciation = Basis / 39 / 12 (straight-line, nonresidential hotel)
   const depMonths = monthlyData.filter(m => m.depreciationExpense > 0);
   if (depMonths.length > 0) {
-    const depLandPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+    const depLandPct = property.landValuePercent;
     const buildingBasis = property.purchasePrice * (1 - depLandPct) + (property.buildingImprovements ?? 0);
     const effectiveDepYears2 = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
     const expectedMonthlyDep = buildingBasis / effectiveDepYears2 / MONTHS_PER_YEAR;

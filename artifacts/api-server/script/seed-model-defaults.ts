@@ -51,9 +51,7 @@ import {
   DEFAULT_TRAVEL_COST_PER_CLIENT,
   DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_LAND_VALUE_PERCENT,
   SEED_EXIT_CAP_RATE_LUXURY,
 } from "@shared/constants";
 // SEED value — calibrated from HVS 2024 mid-market survey; see docs/runbooks/seed-calibration-2026-05-13.md
@@ -180,9 +178,9 @@ export const SPECS: SeedSpec[] = [
   { key: "companyTaxRate",              card: "tax_exit", value: DEFAULT_COMPANY_TAX_RATE,                   unit: "%",     label: "Company blended tax rate" },
   { key: "exitCapRate",                 card: "tax_exit", value: DEFAULT_EXIT_CAP_RATE,                      unit: "%",     label: "Default exit cap rate" },
   { key: "exitCapRateLuxury",           card: "tax_exit", value: SEED_EXIT_CAP_RATE_LUXURY,                  unit: "%",     label: "Exit cap rate — luxury tier seed (L+B)" },
-  { key: "propertyIncomeTaxRate",       card: "tax_exit", value: DEFAULT_PROPERTY_INCOME_TAX_RATE,           unit: "%",     label: "Property income tax rate" },
+  { key: "propertyIncomeTaxRate",       card: "tax_exit", value: 0.25,                                      unit: "%",     label: "Property income tax rate" },
   { key: "commissionRate",              card: "tax_exit", value: DEFAULT_COMMISSION_RATE,                    unit: "%",     label: "Exit sale commission rate" },
-  { key: "landValuePercent",            card: "tax_exit", value: DEFAULT_LAND_VALUE_PERCENT,                 unit: "%",     label: "Land value as % of property cost" },
+  { key: "landValuePercent",            card: "tax_exit", value: 0.25,                                      unit: "%",     label: "Land value as % of property cost" },
 
   // ── Property Defaults (MC-managed template for new properties) ───────
   { key: "roomCount",                   card: "property_defaults", value: BUSINESS_MODEL_DEFAULTS.hotel.roomCount, unit: "rooms",  label: "Default room count for new property" },

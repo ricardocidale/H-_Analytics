@@ -51,6 +51,7 @@ export const DEFAULT_RESEARCH_EVENT_CONFIG = {
   refreshIntervalDays: DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS,
 };
 
+export const RESEARCH_TAX_RATE_25_PCT = 0.25; // IRS §1250 depreciation recapture bracket / bracket-illustration lower bound
 export const RESEARCH_TAX_RATE_30_PCT = 0.30;
 
 export const RESEARCH_MAKE_VS_BUY_MARGINAL_THRESHOLD = 0.10;

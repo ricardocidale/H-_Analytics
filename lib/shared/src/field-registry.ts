@@ -1,6 +1,5 @@
 import {
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -18,7 +17,6 @@ import {
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
-  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
@@ -89,7 +87,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "exit",
-    fallback: DEFAULT_PROPERTY_INCOME_TAX_RATE,
+    // fallback intentionally omitted — taxRate is NOT NULL in the DB; the three-layer resolver always populates it
     gaSource: { kind: "direct", gaField: "defaultPropertyTaxRate" },
     engineImpact: true,
     validationMin: 0,
@@ -380,7 +378,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "operating",
-    fallback: DEFAULT_LAND_VALUE_PERCENT,
+    // fallback intentionally omitted — landValuePercent is NOT NULL in the DB; the three-layer resolver always populates it
     gaSource: { kind: "direct", gaField: "defaultLandValuePercent" },
     engineImpact: true,
     validationMin: 0,

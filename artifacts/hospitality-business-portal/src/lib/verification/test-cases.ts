@@ -2,7 +2,6 @@ import type { PropertyAuditInput } from "../financialAuditor";
 import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
-  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
@@ -21,7 +20,6 @@ import {
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   MONTHS_PER_YEAR,
 } from "../constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -32,7 +30,7 @@ const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States
 
 export interface TestCase {
   name: string;
-  property: Partial<PropertyAuditInput>;
+  property: Partial<PropertyAuditInput> & Pick<PropertyAuditInput, 'landValuePercent' | 'taxRate'>;
   expectedMonthlyRoomRevenue: number;
   expectedAnnualDepreciation: number;
   expectedMonthlyPayment: number;
@@ -87,7 +85,7 @@ export function computeMonthlyPL(tc: TestCase) {
   const ffeFee = totalRev * (tc.property.costRateFFE ?? DEFAULT_COST_RATE_FFE);
   const anoi = noi - ffeFee;
 
-  const landPct = tc.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = tc.property.landValuePercent;
   const depBasis = (tc.property.purchasePrice ?? 0) * (1 - landPct) + (tc.property.buildingImprovements ?? 0);
   const monthlyDep = depBasis / DEPRECIATION_YEARS / MONTHS_PER_YEAR;
 
@@ -99,7 +97,7 @@ export function computeMonthlyPL(tc: TestCase) {
   }
 
   const taxableIncome = anoi - interest - monthlyDep;
-  const incomeTax = taxableIncome > 0 ? taxableIncome * (tc.property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) : 0;
+  const incomeTax = taxableIncome > 0 ? taxableIncome * tc.property.taxRate : 0;
   const netIncome = anoi - interest - monthlyDep - incomeTax;
   const cashFlow = anoi - tc.expectedMonthlyPayment - incomeTax;
 
@@ -116,6 +114,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.70,
       purchasePrice: 1000000,
       buildingImprovements: 200000,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "Financed",
       acquisitionLTV: 0.75,
     },
@@ -132,6 +132,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.80,
       purchasePrice: 2000000,
       buildingImprovements: 500000,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "All Cash",
     },
     expectedMonthlyRoomRevenue: 59475,
@@ -147,6 +149,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.85,
       purchasePrice: 1500000,
       buildingImprovements: 0,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "All Cash",
     },
     expectedMonthlyRoomRevenue: 54900,
@@ -162,6 +166,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.90,
       purchasePrice: 5000000,
       buildingImprovements: 1000000,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "Financed",
       acquisitionLTV: 0.80,
     },
@@ -178,6 +184,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.80,
       purchasePrice: 1800000,
       buildingImprovements: 300000,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "Financed",
       acquisitionLTV: 0.70,
     },
@@ -194,6 +202,8 @@ export const KNOWN_VALUE_TEST_CASES: TestCase[] = [
       maxOccupancy: 0.75,
       purchasePrice: 3000000,
       buildingImprovements: 500000,
+      landValuePercent: 0.25,
+      taxRate: 0.25,
       type: "All Cash",
     },
     expectedMonthlyRoomRevenue: 54900,

@@ -44,7 +44,6 @@ import {
   DEFAULT_REFI_LTV,
   DEFAULT_ACQ_CLOSING_COST_RATE,
   DEFAULT_REFI_CLOSING_COST_RATE,
-  DEFAULT_LAND_VALUE_PERCENT
 } from "@/lib/financial/loanCalculations";
 import { DEFAULT_REFI_PERIOD_YEARS } from "@/lib/constants";
 import type { PropertyEditSectionProps } from "./types";
@@ -143,20 +142,20 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               badgeProps={{ entry: researchValues.landValue }}
               onApplyValue={() => researchValues.landValue && onChange("landValuePercent", researchValues.landValue.mid / 100)}
               guidanceContext={gc("landValue", "Land Value")}
-              currentValue={draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT} isPercent
+              currentValue={draft.landValuePercent} isPercent
             />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-foreground min-w-0" data-testid="text-land-value-percent">
-                  {((draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT) * 100).toFixed(0)}%
+                  {((draft.landValuePercent) * 100).toFixed(0)}%
                 </span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  Depreciable basis: ${((draft.purchasePrice * (1 - (draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT))) + draft.buildingImprovements).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  Depreciable basis: ${((draft.purchasePrice * (1 - (draft.landValuePercent))) + draft.buildingImprovements).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
               </div>
               <Slider
                 data-testid="slider-land-value-percent"
-                value={[(draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT) * 100]}
+                value={[(draft.landValuePercent) * 100]}
                 onValueChange={(vals: number[]) => onNumberChange("landValuePercent", (vals[0] / 100).toString())}
                 min={5}
                 max={60}

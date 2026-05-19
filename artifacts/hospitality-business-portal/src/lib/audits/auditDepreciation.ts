@@ -2,7 +2,6 @@ import { MonthlyFinancials } from "../financialEngine";
 import { differenceInMonths, startOfMonth } from "date-fns";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import {
-  DEFAULT_LAND_VALUE_PERCENT,
   // DEPRECIATION_YEARS replaced with registry factory baseline (Audit #319 R4).
   MONTHS_PER_YEAR,
 } from '../constants';
@@ -16,7 +15,7 @@ export function auditDepreciation(
 ): AuditSection {
   const findings: AuditFinding[] = [];
   
-  const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = property.landValuePercent;
   const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
   const depreciableBasis = property.purchasePrice * (1 - landPct) + property.buildingImprovements;
   const expectedMonthlyDep = depreciableBasis / effectiveDepYears / MONTHS_PER_YEAR;

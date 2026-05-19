@@ -47,8 +47,8 @@ export interface PropertyAuditInput {
   occupancyGrowthStep: number;
   purchasePrice: number;
   buildingImprovements: number;
-  landValuePercent?: number;
-  taxRate?: number;
+  landValuePercent: number;
+  taxRate: number;
   type: string;
   acquisitionLTV?: number;
   acquisitionInterestRate?: number;

@@ -4,7 +4,6 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_REV_SHARE_EVENTS,
@@ -22,7 +21,6 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   MONTHS_PER_YEAR,
 } from "../constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -68,12 +66,12 @@ function buildEngineInputs(tc: TestCase): { property: import("@engine/types").Pr
       occupancyGrowthStep: 0,
       purchasePrice: tc.property.purchasePrice ?? 0,
       buildingImprovements: tc.property.buildingImprovements ?? 0,
-      landValuePercent: tc.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT,
+      landValuePercent: tc.property.landValuePercent,
       type: tc.property.type || "All Cash",
       acquisitionLTV: tc.property.acquisitionLTV ?? DEFAULT_LTV,
       acquisitionInterestRate: tc.property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE,
       acquisitionTermYears: tc.property.acquisitionTermYears ?? DEFAULT_TERM_YEARS,
-      taxRate: tc.property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE,
+      taxRate: tc.property.taxRate,
       inflationRate: 0,
       costRateRooms: tc.property.costRateRooms ?? DEFAULT_COST_RATE_ROOMS,
       costRateFB: tc.property.costRateFB ?? DEFAULT_COST_RATE_FB,
@@ -137,7 +135,7 @@ function buildChecksForTestCase(testCase: TestCase): KnownValueCheck[] {
     passed: match(calculatedRoomRevenue, testCase.expectedMonthlyRoomRevenue),
   });
 
-  const landPct = testCase.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = testCase.property.landValuePercent;
   const depreciableBasis = (testCase.property.purchasePrice ?? 0) * (1 - landPct) + (testCase.property.buildingImprovements ?? 0);
   const calculatedDepreciation = depreciableBasis / DEPRECIATION_YEARS;
   checks.push({

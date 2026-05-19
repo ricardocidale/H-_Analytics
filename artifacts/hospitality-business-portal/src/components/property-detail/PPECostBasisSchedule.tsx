@@ -26,7 +26,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { IconInfo } from "@/components/icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { DEFAULT_LAND_VALUE_PERCENT, DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER, DEFAULT_CATERING_BOOST_PCT, MONTHS_PER_YEAR } from "@shared/constants";
+import { DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER, DEFAULT_CATERING_BOOST_PCT, MONTHS_PER_YEAR } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { FactorySourceBadge } from "@/components/ui/factory-source-badge";
 import { DEFAULT_LTV } from "@/lib/financial/loanCalculations";
@@ -53,7 +53,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const buildingImprovements = property.buildingImprovements ?? 0;
   const preOpeningCosts = property.preOpeningCosts ?? 0;
   const operatingReserve = property.operatingReserve ?? 0;
-  const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
+  const landPct = property.landValuePercent;
   const landValue = purchasePrice * landPct;
   const buildingValue = purchasePrice * (1 - landPct);
   // Depreciable basis = building portion + renovation costs (land excluded)
