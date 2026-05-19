@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h old, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T19:45:00Z
+Updated: 2026-05-19T20:15:00Z
 Status: idle
 
 ## Active Branch
@@ -17,26 +17,21 @@ feat(intelligence): per-entity LLM info on agent/specialist roster cards
 
 ## What Replit Did This Session
 
-**LLM configuration UX improvement — per-entity model info on roster cards:**
+**Sidebar UX restructure — ce-plan written:**
 
-- Added `RosterLlmInfo` type + optional `llmInfo` field to `RosterEntry` in `lib/agent-roster.ts`
-- Updated `AgentRosterAccordion.tsx` with `VendorChip` + `RosterLlmDisplay` inline components; renders vendor/model badge in expanded card content
-- Rewrote `SpecialistsRosterPage.tsx`: fetches `/api/admin/specialists` (hasLlmOverrides) + LLM registry recommendations; merges into cards
-- Rewrote `AgentsRosterPage.tsx`: fetches `globalAssumptions` (rebeccaConfig.llm.provider/model) + LLM registry `chat` recommendation; wires llmInfo onto Rebecca's entry
-- Removed `SpecialistsSection` import + render from `LlmWorkflowsPage.tsx` (info moved to roster cards); cleaned up docstring and visibility flags
+- Investigated Iris in depth (IrisPanel.tsx, agent.ts, routes/admin/iris.ts, tools.ts)
+- Confirmed Iris is a monitoring/trigger surface only (status + action buttons), same
+  shape as Gustavo — no sub-sections, no config depth
+- Wrote implementation plan: `docs/plans/sidebar-ux-restructure-2026-05-19.md`
 
 ## Files Modified This Session
 
-- `artifacts/hospitality-business-portal/src/lib/agent-roster.ts`
-- `artifacts/hospitality-business-portal/src/components/intelligence/agent-roster/AgentRosterAccordion.tsx`
-- `artifacts/hospitality-business-portal/src/pages/intelligence/SpecialistsRosterPage.tsx`
-- `artifacts/hospitality-business-portal/src/pages/intelligence/AgentsRosterPage.tsx`
-- `artifacts/hospitality-business-portal/src/pages/intelligence/LlmWorkflowsPage.tsx`
+- `docs/plans/sidebar-ux-restructure-2026-05-19.md` (created)
 - `.agents/status/replit.md`
 
 ## Handoff to CC
 
-Session complete. All checks pass (typecheck, lint, ui-canonical). CC can resume any work on main.
+Plan is ready for implementation. See docs/plans/sidebar-ux-restructure-2026-05-19.md.
 
 ## Do Not Touch (CC-owned surfaces)
 
