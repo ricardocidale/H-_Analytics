@@ -30,7 +30,7 @@ export function PctField({ label, tooltip, value, fallback, onChange, min, max, 
   label: string;
   tooltip: string;
   value: number | null | undefined;
-  fallback: number;
+  fallback?: number;
   onChange: (field: string, v: number) => void;
   min: number;
   max: number;
@@ -40,7 +40,7 @@ export function PctField({ label, tooltip, value, fallback, onChange, min, max, 
   researchRange?: string;
   guardrailKey?: string;
 }) {
-  const current = value ?? fallback;
+  const current = value ?? fallback ?? 0;
   const guardrail = useAssumptionGuardrail(guardrailKey ?? null);
 
   const rangeEntry =
