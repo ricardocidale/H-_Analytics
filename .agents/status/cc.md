@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T17:00:00Z
-Status: idle
+Updated: 2026-05-19T17:30:00Z
+Status: handoff-pending
 
 ## Active Branch
 
@@ -320,24 +320,65 @@ No urgent CC work outstanding. Replit UI tasks (T2-2, T2-3, T2-4, T2-6) remain o
 
 Tier 1 T1-4 backlog above (incremental — check off each as cleaned up).
 
-## Handoff to Replit — T2-6 UI
+## Handoff to Replit (session 26, 2026-05-19)
 
-**New API routes ready for UI work (`artifacts/api-server/src/routes/admin/fees.ts`):**
-- `POST /api/admin/brands` — create brand. Body: `{ slug: string, name: string, description?: string|null, businessModel?: "hotel"|"str", segment?: string|null, sortOrder?: number, isActive?: boolean }`. Returns `201 + brand row`. 409 if slug already exists.
-- `PATCH /api/admin/brands/:slug` — update brand metadata. Same fields as POST except slug is immutable. Returns updated brand row. 404 if slug not found.
+**All work is on `main`. Working tree is clean (one untracked `.mcp.json` change — Figma MCP entry you added; safe to commit or leave).**
 
-**Existing routes:**
-- `GET /api/admin/brands` — list all brands (already wired, already used in `BrandsTab.tsx`)
+### What CC completed this session
 
-**UI task:** Add "New Brand" button + form, and "Edit" capability per brand, to the existing `BrandsTab.tsx` at `artifacts/hospitality-business-portal/src/components/admin/model-defaults/BrandsTab.tsx`. Fields: slug (create-only), display name, description, businessModel (hotel/str), segment, sortOrder, isActive toggle.
+Three residual dead `??` fallbacks removed from route/slide code (all §2 cleanup — schema columns are NOT NULL so fallbacks were structurally unreachable):
+
+| File | Change |
+|---|---|
+| `artifacts/api-server/src/slides/build-payload.ts:93` | `inflationRate: Number(ga.inflationRate ?? 0.03)` → `Number(ga.inflationRate)` |
+| `artifacts/api-server/src/routes/scenario-helpers.ts:78-79` | `marketingRate ?? 0.05`, `miscOpsRate ?? 0.03` → direct reads |
+| `artifacts/api-server/src/routes/analyst-admin-utils.ts:12-13` | same `marketingRate`/`miscOpsRate` fallbacks removed |
+
+T1-4 §2 campaign is **fully complete**. All DEFAULT_* constants retired, all dead fallbacks cleared.
+
+### Your tasks (all Replit-safe, frontend-only)
+
+Pick any of these — all plan docs are in `docs/plans/`:
+
+**T2-2 — Portfolio filter on `Portfolio.tsx`** (`docs/plans/t2-2-portfolio-filter.md`)
+- Add a filter dropdown (All / by portfolio / Unassigned) to the property list page header
+- Client-side only — `portfolioId` is already on every property, `useQuery` for portfolios already in the page
+- No new API routes needed
+
+**T2-6 — Brand create/edit dialog in `BrandsTab.tsx`** (`docs/plans/t2-6-brand-form-dialog.md`)
+- Routes live: `POST /api/admin/brands`, `PATCH /api/admin/brands/:slug`
+- Single `BrandFormDialog` component with `mode: "create" | "edit"` prop
+- Reference pattern: `CreateUserDialog.tsx` / `EditUserDialog.tsx` under `components/admin/users/`
+
+**T2-4 — "Verify deck" button in Slide Factory Tab 6**
+- Routes live: `POST /api/slide-factory-runs/:id/verify`, `GET /api/slide-factory-runs/:id/verification`
+- Severity palette: ok=emerald, advisory=sky, warning=amber, block=red
+
+**T2-3 — "Improve with AI" on description textarea in `BasicInfoSection.tsx`**
+- Route live: `POST /api/properties/:id/rewrite-description { text: string }`
+
+**T2-7 — Horizontal tabs → collapsible UI** (`docs/plans/t2-7-tab-audit.md`)
+- 12 pages in scope; audit doc lists tab labels, indicator hypotheses, and suggested order
+- AgentRosterAccordion is the reference pattern
+
+### Reminder: surfaces you must not touch
+
+- `lib/engine/src/`, `lib/calc/src/`, `lib/shared/src/constants*.ts`
+- `lib/db/src/`, `artifacts/api-server/src/finance/`, `artifacts/api-server/src/report/`
+- `artifacts/api-server/src/migrations/*.ts`, `artifacts/api-server/src/tests/proof/`, `tests/engine/`
 
 ---
 
-## Handoff to Replit
+## Handoff to Replit (prior — T2-6 UI routes reference)
 
-All clean on `main`. No CC-specific work outstanding.
+**API routes for T2-6 (already live in `artifacts/api-server/src/routes/admin/fees.ts`):**
+- `POST /api/admin/brands` — Body: `{ slug, name, description?, businessModel?, segment?, sortOrder?, isActive? }`. Returns 201 + brand row. 409 if slug exists.
+- `PATCH /api/admin/brands/:slug` — same fields except slug is immutable. Returns updated row. 404 if not found.
+- `GET /api/admin/brands` — list all brands (already in use by `BrandsTab.tsx`)
 
-### NEW for Replit awareness (2026-05-18, session 17)
+---
+
+## Prior handoff notes (2026-05-18, session 17)
 
 **Category 5 — Starter-Portfolio Seeds is now codified** (commit `ab1924923` + convention doc `fd4636223`). What this means for Replit:
 - `SEED_*` named constants and inline calibration literals are permitted in: `artifacts/api-server/src/migrations/*.ts`, `artifacts/api-server/src/seeds/**`, `artifacts/api-server/script/seed-*.ts`, `artifacts/api-server/src/syncHelpers.ts`, and (cross-package `SEED_*` only) `lib/shared/src/constants.ts`.
