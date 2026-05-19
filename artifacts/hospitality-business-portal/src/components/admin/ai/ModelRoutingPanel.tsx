@@ -1,7 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "@/components/icons/themed-icons";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight, Loader2 } from "@/components/icons/themed-icons";
 import {
   IconBrain, IconTarget, IconProperties, IconTrendingUp,
   IconMessageCircle, IconFlaskConical, IconSparkles,
@@ -17,10 +23,10 @@ interface ModelRoutingPanelProps {
 
 interface TierCard {
   tier: number;
+  id: string;
   label: string;
   description: string;
   color: string;
-  bgColor: string;
   domains: DomainEntry[];
 }
 
@@ -36,8 +42,6 @@ const RESEARCH_DOMAINS: DomainEntry[] = [
   { key: "property", label: "Property", icon: IconProperties, configField: "propertyLlm" },
   { key: "market", label: "Market & Industry", icon: IconTrendingUp, configField: "marketLlm" },
 ];
-
-const _REBECCA_DOMAIN: DomainEntry = { key: "chatbot", label: "Rebecca", icon: IconMessageCircle, configField: "chatbotLlm" };
 
 function getModelDisplay(config: ResearchConfig | undefined, configField: string): { vendor: string; model: string } | null {
   if (!config) return null;
@@ -85,6 +89,11 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
   const { data: registry } = useLlmRegistry();
   const refreshMutation = useRefreshLlmRegistry();
 
+  const [openRows, setOpenRows] = useState<Record<string, boolean>>({
+    tier1: true,
+    rebecca: true,
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="model-routing-loading">
@@ -131,26 +140,26 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
   const tiers: TierCard[] = [
     {
       tier: 0,
+      id: "tier0",
       label: "Tier 0 — Deterministic",
       description: "Cached data and formulas. No LLM calls — zero cost, instant results.",
       color: "text-muted-foreground",
-      bgColor: "bg-muted/30",
       domains: [],
     },
     {
       tier: 1,
+      id: "tier1",
       label: "Tier 1 — Deep Research",
       description: isDual ? "Multi-model synthesis: Stage 1 (reasoning) + Stage 2 (workhorse)." : "Single-model deep research with full context pack.",
       color: "text-blue-700",
-      bgColor: "bg-blue-500/5",
       domains: RESEARCH_DOMAINS,
     },
     {
       tier: 2,
+      id: "tier2",
       label: "Tier 2 — Fast Refresh",
       description: "Quick single-model refresh using the workhorse model for speed.",
       color: "text-amber-700",
-      bgColor: "bg-amber-500/5",
       domains: RESEARCH_DOMAINS,
     },
   ];
@@ -158,8 +167,12 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
   const rebeccaModel = getModelDisplay(rc, "chatbotLlm");
   const rebeccaRec = getRecommendationForDomain("chatbotLlm");
 
+  const toggle = (id: string) =>
+    setOpenRows((prev) => ({ ...prev, [id]: !prev[id] }));
+
   return (
     <div className="space-y-5" data-testid="model-routing-panel">
+      {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge variant={isDual ? "default" : "secondary"} className="text-xs">
@@ -197,6 +210,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
         </div>
       </div>
 
+      {/* ── Issues banner ─────────────────────────────────────────── */}
       {registry?.adminIssues && registry.adminIssues.length > 0 && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1" data-testid="llm-issues-banner">
           <p className="text-xs font-medium text-destructive">Gustavo detected configuration issues:</p>
@@ -206,6 +220,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
         </div>
       )}
 
+      {/* ── Vendor status bar ─────────────────────────────────────── */}
       {registry?.vendorStatuses && registry.vendorStatuses.length > 0 && (
         <div className="flex flex-wrap gap-2" data-testid="vendor-status-bar">
           {registry.vendorStatuses.map(vs => (
@@ -224,129 +239,177 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {tiers.map(tier => (
-          <Card key={tier.tier} className={cn("transition-all", tier.bgColor)} data-testid={`card-tier-${tier.tier}`}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className={cn("text-sm font-semibold", tier.color)}>{tier.label}</h4>
-                <Badge variant="outline" className="text-[10px]">T{tier.tier}</Badge>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{tier.description}</p>
+      {/* ── Tier rows ─────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        {tiers.map(tier => {
+          const open = openRows[tier.id] ?? false;
+          return (
+            <Card key={tier.tier} className="overflow-hidden" data-testid={`card-tier-${tier.tier}`}>
+              <Collapsible open={open} onOpenChange={() => toggle(tier.id)}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                    aria-expanded={open}
+                  >
+                    {open ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    )}
+                    <span className={cn("font-semibold text-sm shrink-0", tier.color)}>
+                      {tier.label}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                      T{tier.tier}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground truncate hidden sm:block ml-auto">
+                      {tier.description}
+                    </span>
+                  </button>
+                </CollapsibleTrigger>
 
-              {tier.tier === 0 ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                  <IconFlaskConical className="w-3.5 h-3.5" />
-                  <span>No model required</span>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-1">
-                  {tier.domains.map(domain => {
-                    const primary = getModelDisplay(rc, domain.configField);
-                    const secondary = tier.tier === 1 && isDual ? getSecondaryModel(rc, domain.configField) : null;
-                    const rec = getRecommendationForDomain(domain.configField);
-                    const domainHasIssue = hasIssue(domain.configField);
-                    return (
-                      <div key={domain.key} className="space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <domain.icon className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span className="text-[11px] font-medium truncate">{domain.label}</span>
-                          {domainHasIssue && <StatusDot status="error" />}
-                        </div>
-                        {primary ? (
-                          <div className="ml-4.5 space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <StatusDot status={getVendorStatus(primary.vendor) as "available" | "no_key" | "error" | "unknown"} />
-                              <VendorBadge vendor={primary.vendor} />
-                              <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-primary`}>{primary.model}</span>
-                              {isRecommended(primary.vendor, primary.model) && (
-                                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200" data-testid={`badge-recommended-${domain.key}`}>
-                                  recommended
-                                </Badge>
+                <CollapsibleContent>
+                  <CardContent className="px-4 pb-4 pt-3 border-t">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mb-3 sm:hidden">
+                      {tier.description}
+                    </p>
+                    {tier.tier === 0 ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <IconFlaskConical className="w-3.5 h-3.5" />
+                        <span>No model required</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {tier.domains.map(domain => {
+                          const primary = getModelDisplay(rc, domain.configField);
+                          const secondary = tier.tier === 1 && isDual ? getSecondaryModel(rc, domain.configField) : null;
+                          const rec = getRecommendationForDomain(domain.configField);
+                          const domainHasIssue = hasIssue(domain.configField);
+                          return (
+                            <div key={domain.key} className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <domain.icon className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span className="text-[11px] font-medium truncate">{domain.label}</span>
+                                {domainHasIssue && <StatusDot status="error" />}
+                              </div>
+                              {primary ? (
+                                <div className="ml-4.5 space-y-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <StatusDot status={getVendorStatus(primary.vendor) as "available" | "no_key" | "error" | "unknown"} />
+                                    <VendorBadge vendor={primary.vendor} />
+                                    <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-primary`}>{primary.model}</span>
+                                    {isRecommended(primary.vendor, primary.model) && (
+                                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200" data-testid={`badge-recommended-${domain.key}`}>
+                                        recommended
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {secondary && (
+                                    <div className="flex items-center gap-1.5">
+                                      <StatusDot status={getVendorStatus(secondary.vendor) as "available" | "no_key" | "error" | "unknown"} />
+                                      <VendorBadge vendor={secondary.vendor} />
+                                      <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-secondary`}>{secondary.model}</span>
+                                      <span className="text-[9px] text-muted-foreground/60">fallback</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="ml-4.5">
+                                  {rec ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <StatusDot status="available" />
+                                      <VendorBadge vendor={rec.vendor} />
+                                      <span className="text-[10px] font-mono text-muted-foreground truncate">{rec.modelId}</span>
+                                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                                        auto
+                                      </Badge>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                                  )}
+                                </div>
                               )}
                             </div>
-                            {secondary && (
-                              <div className="flex items-center gap-1.5">
-                                <StatusDot status={getVendorStatus(secondary.vendor) as "available" | "no_key" | "error" | "unknown"} />
-                                <VendorBadge vendor={secondary.vendor} />
-                                <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-secondary`}>{secondary.model}</span>
-                                <span className="text-[9px] text-muted-foreground/60">fallback</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="ml-4.5">
-                            {rec ? (
-                              <div className="flex items-center gap-1.5">
-                                <StatusDot status="available" />
-                                <VendorBadge vendor={rec.vendor} />
-                                <span className="text-[10px] font-mono text-muted-foreground truncate">{rec.modelId}</span>
-                                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
-                                  auto
-                                </Badge>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          );
+        })}
 
-        <Card className="bg-violet-500/5" data-testid="card-tier-rebecca">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-violet-700">Rebecca</h4>
-              <Badge variant="outline" className="text-[10px]">Assistant</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Conversational AI for portfolio intelligence, property insights, and research exploration.
-            </p>
-            <div className="space-y-1 pt-1">
-              <div className="flex items-center gap-1.5">
-                <IconMessageCircle className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="text-[11px] font-medium">Chat Model</span>
-                {hasIssue("chatbotLlm") && <StatusDot status="error" />}
-              </div>
-              {rebeccaModel ? (
-                <div className="ml-4.5 flex items-center gap-1.5">
-                  <StatusDot status={getVendorStatus(rebeccaModel.vendor) as "available" | "no_key" | "error" | "unknown"} />
-                  <VendorBadge vendor={rebeccaModel.vendor} />
-                  <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid="text-model-rebecca">{rebeccaModel.model}</span>
-                  {isRecommended(rebeccaModel.vendor, rebeccaModel.model) && (
-                    <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
-                      recommended
-                    </Badge>
-                  )}
-                </div>
-              ) : (
-                <div className="ml-4.5">
-                  {rebeccaRec ? (
-                    <div className="flex items-center gap-1.5">
-                      <StatusDot status="available" />
-                      <VendorBadge vendor={rebeccaRec.vendor} />
-                      <span className="text-[10px] font-mono text-muted-foreground truncate">{rebeccaRec.modelId}</span>
-                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
-                        auto
-                      </Badge>
+        {/* ── Rebecca row ───────────────────────────────────────── */}
+        <Card className="overflow-hidden" data-testid="card-tier-rebecca">
+          <Collapsible
+            open={openRows.rebecca ?? false}
+            onOpenChange={() => toggle("rebecca")}
+          >
+            <CollapsibleTrigger asChild>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                aria-expanded={openRows.rebecca ?? false}
+              >
+                {(openRows.rebecca ?? false) ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                )}
+                <span className="font-semibold text-sm text-violet-700 shrink-0">Rebecca</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                  Assistant
+                </Badge>
+                <span className="text-[11px] text-muted-foreground truncate hidden sm:block ml-auto">
+                  Conversational AI for portfolio intelligence and research exploration.
+                </span>
+              </button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <CardContent className="px-4 pb-4 pt-3 border-t space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <IconMessageCircle className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="text-[11px] font-medium">Chat Model</span>
+                    {hasIssue("chatbotLlm") && <StatusDot status="error" />}
+                  </div>
+                  {rebeccaModel ? (
+                    <div className="ml-4.5 flex items-center gap-1.5">
+                      <StatusDot status={getVendorStatus(rebeccaModel.vendor) as "available" | "no_key" | "error" | "unknown"} />
+                      <VendorBadge vendor={rebeccaModel.vendor} />
+                      <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid="text-model-rebecca">{rebeccaModel.model}</span>
+                      {isRecommended(rebeccaModel.vendor, rebeccaModel.model) && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                          recommended
+                        </Badge>
+                      )}
                     </div>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                    <div className="ml-4.5">
+                      {rebeccaRec ? (
+                        <div className="flex items-center gap-1.5">
+                          <StatusDot status="available" />
+                          <VendorBadge vendor={rebeccaRec.vendor} />
+                          <span className="text-[10px] font-mono text-muted-foreground truncate">{rebeccaRec.modelId}</span>
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                            auto
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <IconSparkles className="w-3 h-3 text-violet-500" />
-              <span className="text-[10px] text-muted-foreground">Context-aware with research injection</span>
-            </div>
-          </CardContent>
+                <div className="flex items-center gap-2">
+                  <IconSparkles className="w-3 h-3 text-violet-500" />
+                  <span className="text-[10px] text-muted-foreground">Context-aware with research injection</span>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
       </div>
     </div>
