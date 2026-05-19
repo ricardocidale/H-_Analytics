@@ -300,6 +300,10 @@
       "status": "guarded",
       "guard": "scenario-perspective-role-001.ts",
       "reason": "T2-1 \u2014 adds perspective_role text NOT NULL DEFAULT 'operator' column to scenarios. Existing rows receive 'operator' via the DEFAULT clause. Idempotent (ADD COLUMN IF NOT EXISTS)."
+    },
+    "0075_adr_growth_rate_default": {
+      "status": "self-idempotent",
+      "reason": "\u00a72 T1-4 DEFAULT_ADR_GROWTH_RATE retirement \u2014 adds SQL DEFAULT 0.03 to properties.adr_growth_rate. SET DEFAULT is idempotent: re-running sets the same value. Existing rows are unaffected; only future inserts that omit the field benefit from the default."
     }
   }
 }

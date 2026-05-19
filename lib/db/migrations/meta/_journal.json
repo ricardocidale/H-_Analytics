@@ -463,6 +463,13 @@
       "when": 1779840000000,
       "tag": "0067_scenario_perspective_role",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1779178013324,
+      "tag": "0068_adr_growth_rate_default",
+      "breakpoints": true
     }
   ]
 }

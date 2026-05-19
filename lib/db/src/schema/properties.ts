@@ -81,7 +81,7 @@ export const properties = pgTable("properties", {
   
   roomCount: integer("room_count").notNull(),
   startAdr: real("start_adr").notNull(),
-  adrGrowthRate: real("adr_growth_rate").notNull(),
+  adrGrowthRate: real("adr_growth_rate").notNull().default(0.03), // SEED: HVS 2024 mid-market; three-layer resolver sets per-property value
   startOccupancy: real("start_occupancy").notNull(),
   maxOccupancy: real("max_occupancy").notNull(),
   occupancyRampMonths: integer("occupancy_ramp_months").notNull(),
