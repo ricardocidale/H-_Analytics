@@ -26,6 +26,7 @@ import {
   IconBriefcase, IconPhone, IconPalette,
   IconShieldCheck,
   IconCalculator, IconDashboard, IconImage, IconRuler, IconGitFork,
+  IconPlay, IconLayers,
 } from "@/components/icons";
 import { Link } from "wouter";
 
@@ -43,6 +44,7 @@ export type AdminSection =
   | "users" | "activity"
   | "scenarios"
   | "brand-themes" | "brand-assets-page"
+  | "brand-assets-logos" | "brand-assets-animations" | "brand-assets-other-graphics"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance" | "login-settings"
@@ -103,8 +105,9 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Per docs/audits/admin-section-audit-2026-04-20.md §MT.1, every other
   // alias was a code-internal rename and has been dropped — components are
   // now reached by their canonical section name (no redirect hop).
-  "brand": "brand-assets-page",
-  "logos": "brand-assets-page",
+  "brand": "brand-assets-logos",
+  "logos": "brand-assets-logos",
+  "brand-assets-page": "brand-assets-logos",
   "themes": "brand-themes",
   "llms": "data-sources",
   "sources": "data-sources",
@@ -236,6 +239,17 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
+      id: "brand-assets",
+      label: "Brand Assets",
+      icon: IconPalette,
+      description: "Logos, animations, and graphic assets",
+      sections: [
+        { value: "brand-assets-logos",          label: "Logos",          icon: IconImage },
+        { value: "brand-assets-animations",     label: "Animations",     icon: IconPlay },
+        { value: "brand-assets-other-graphics", label: "Other Graphics", icon: IconLayers },
+      ],
+    },
+    {
       id: "configuration",
       label: "Configuration",
       icon: IconSettingsGear,
@@ -243,8 +257,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "notifications",      label: "Notifications",      icon: IconPhone },
         { value: "sidebar-visibility", label: "Sidebar Visibility", icon: IconPanelLeft },
-        { value: "brand-themes",       label: "Themes",             icon: IconSwatchBook },
-        { value: "brand-assets-page",  label: "Brand Assets",       icon: IconImage },
       ],
     },
     {
@@ -253,6 +265,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconDashboard,
       description: "Database, observability, and activity logs",
       sections: [
+        { value: "brand-themes",    label: "Themes",        icon: IconSwatchBook },
         { value: "database",        label: "Database",      icon: IconDatabase },
         { value: "observability",   label: "Observability", icon: IconDashboard },
         { value: "activity",        label: "Activity",      icon: IconActivity },

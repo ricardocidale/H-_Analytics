@@ -36,6 +36,9 @@ const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox")
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
 const ThemesSection   = lazy(() => import("@/components/admin/ThemesSection"));
 const BrandAssetsPage = lazy(() => import("@/components/admin/BrandAssetsPage"));
+const LogosTab        = lazy(() => import("@/components/admin/LogosTab"));
+const AnimationsTab   = lazy(() => import("@/components/admin/brand-assets/AnimationsTab"));
+const OtherGraphicsTab = lazy(() => import("@/components/admin/BrandAssetsTab"));
 const PropertyHeroImagesTab = lazy(() => import("@/components/admin/PropertyHeroImagesTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
@@ -58,8 +61,11 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   users:                 { title: "Users",                   subtitle: "Manage user accounts and assignments" },
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
   scenarios:             { title: "Scenarios",                subtitle: "Manage all scenarios, ownership, and access grants" },
-  "brand-themes":        { title: "Themes",       subtitle: "Color palettes, typography, and visual appearance" },
-  "brand-assets-page":  { title: "Brand Assets", subtitle: "Logos, brand assets, and animation previews" },
+  "brand-themes":                 { title: "Themes",         subtitle: "Color palettes, typography, and visual appearance" },
+  "brand-assets-page":           { title: "Brand Assets",   subtitle: "Logos, brand assets, and animation previews" },
+  "brand-assets-logos":          { title: "Logos",          subtitle: "Company and property logos" },
+  "brand-assets-animations":     { title: "Animations",     subtitle: "Motion and animation assets for agent personas" },
+  "brand-assets-other-graphics": { title: "Other Graphics", subtitle: "OG images and additional graphic assets" },
   brand:                 { title: "Brand Assets", subtitle: "Logos, brand assets, and animation previews" },
   "ai-agents":           { title: "Rebecca Configuration",   subtitle: "System prompt, personality, and configuration for your AI assistant" },
   "engine-dashboard":    { title: "Research Dashboard",       subtitle: "Coverage, freshness, costs, and system health" },
@@ -234,6 +240,9 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "scenarios":        return <ScenariosTab />;
     case "brand-themes":     return <ThemesSection />;
     case "brand-assets-page": return <BrandAssetsPage />;
+    case "brand-assets-logos":          return <LogosTab />;
+    case "brand-assets-animations":     return <AnimationsTab />;
+    case "brand-assets-other-graphics": return <OtherGraphicsTab />;
     case "ai-agents":        return (
       <ErrorBoundary fallback={
         <div className="mt-6 p-8 flex flex-col items-center gap-4 text-center rounded-xl border border-accent-pop/20 bg-accent-pop/10">
