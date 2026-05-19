@@ -4,8 +4,8 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-19T12:55:00Z
-Status: active
+Updated: 2026-05-19T16:00:00Z
+Status: idle
 
 ## Active Branch
 
@@ -13,7 +13,21 @@ Status: active
 
 ## Last Commit on Branch
 
-`feat(constants): delete DEFAULT_PROPERTY_INCOME_TAX_RATE and DEFAULT_LAND_VALUE_PERCENT (Commit B)` (`8c133659c`)
+`fix(docs): add ### Canonical definitions to CLAUDE.md §10 + mirror to replit.md` (`3063c75d5`)
+
+## What CC Did This Session (2026-05-19 session 25 — coderabbit loop + handoff fixes)
+
+**Ran coderabbit-loop review on T1-4 retirement work; resolved two Replit-reported CC-owned blockers; closed PR #169.**
+
+- Working tree was clean at session start → adapted loop to `--type committed --base main --agent`.
+- **Branch hygiene failure on `feat/cc-t1-4-retirement`**: 2 Replit-email commits mixed in. User chose cherry-pick onto clean branch; `efce5eef4` became empty (revert of a commit not on main) → skipped via `--skip`.
+- **CodeRabbit loop** (2 iterations): 7 findings iter 1 → 0 clean iter 2. Key fixes: moved `SEED_TRAVEL_PER_CLIENT`/`SEED_IT_LICENSE_PER_CLIENT` canonical definitions from portal's `lib/constants.ts` (§2 Cat 5 violation — not in allowed surfaces) to `lib/shared/src/constants.ts`; portal re-exports from `@shared/constants`. `PctField.fallback` made optional (`fallback?: number`, `value ?? fallback ?? 0`) so `PropertyUnderwritingTab` tax/land fields need no fallback.
+- **PR #169 opened** (`feat/cc-t1-4-retirement`), then **closed as superseded** — all work already on main via direct commits.
+- **Replit handoff — two CC-owned blockers:**
+  1. `artifacts/api-server/src/seeds/property-data.ts` — Replit reported remaining `DEFAULT_PROPERTY_INCOME_TAX_RATE` / `DEFAULT_LAND_VALUE_PERCENT` refs. Grep on main confirmed **already clean** — no fix needed.
+  2. `CLAUDE.md` `### Canonical definitions` section header missing → `check:taxonomy-mirror` failing. **Fixed:** added `### Canonical definitions` subsection to §10 with four canonical definitions (Agent, Minion, Specialist, Swarm) from `.agents/skills/slide-factory/SKILL.md`; mirrored verbatim to replit.md `## Agent Taxonomy` section. `check:taxonomy-mirror` → OK.
+- All gates green: typecheck PASS, check-magic-numbers PASS, check:taxonomy-mirror OK.
+- Pushed main to `origin/main` (`06b811a7c` → `3063c75d5`). PR #169 closed.
 
 ## What CC Did This Session (2026-05-19 session 24 — T1-4 cross-cutting retirement)
 
@@ -283,13 +297,17 @@ None — work is on main, working tree clean.
 
 ## What's Pending
 
-### Next CC session pickup (also captured in CC's memory at `project_next_session_priorities.md`)
+### T1-4 campaign status (as of session 25)
 
-**Tier 1 — bounded T1-4 retirements** (1-3 hr each, CC-only): `DEFAULT_ADR_GROWTH_RATE` (needs schema `.default(0.03)` migration — `notNull()` with no default today), `DEFAULT_TRAVEL_COST_PER_CLIENT`+`DEFAULT_IT_LICENSE_PER_CLIENT` (paired, audit first — value conflict between constants.ts 5000/3600 and constants-staffing.ts 3600/3000; ~16-27 sites including model-constants-registry benchmark constants). Pattern is established (Category 5 + `--init` baseline reset).
+All tracked `DEFAULT_*` retirements from the original campaign are **COMPLETE**. Remaining §2 violations flagged for future work:
 
-Already retired in session 19 (2026-05-18): `DEFAULT_ALERT_COOLDOWN_MINUTES`, `DEFAULT_MARKETING_RATE`, `DEFAULT_MISC_OPS_RATE` (commit `0ad1ae1d1`). Already retired in prior sessions and confirmed gone: `DEFAULT_OCCUPANCY_RAMP_MONTHS`, `DEFAULT_START_OCCUPANCY`, `DEFAULT_MAX_OCCUPANCY`, `DEFAULT_START_ADR`, `DEFAULT_ROOM_COUNT`.
+- `lib/engine/src/property/resolve-assumptions.ts:219-220` — `arDays ?? 30`, `apDays ?? 45` (structurally unreachable; type-tightening needed on `PropertyInput.arDays/apDays`)
+- `artifacts/api-server/src/slides/build-payload.ts:93` — `inflationRate ?? 0.03` (likely dead `??` — `GlobalInput.inflationRate` is already required)
+- Route-layer `?? 0.05`/`?? 0.03` in `scenario-helpers.ts` + `analyst-admin-utils.ts` (mirror schema DEFAULTs; low priority)
 
-**Tier 2 — deferred cross-cutting refactors** (1-2 days each, dedicated focused session): plan docs exist at `docs/plans/t1-4-property-income-tax-rate-retirement.md` and `docs/plans/t1-4-land-value-percent-retirement.md`.
+### Next CC session pickup
+
+T1-4 tightening above when bandwidth allows. Otherwise no urgent CC work outstanding.
 
 ### Completed CC work this session (status reference)
 
