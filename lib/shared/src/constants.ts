@@ -87,8 +87,8 @@ export const DEFAULT_SERVICE_TEMPLATES = [
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_EXIT_CAP_RATE = 0.085;
-// DEFAULT_PROPERTY_INCOME_TAX_RATE: retired (§2 T1-4). Live value: properties.taxRate (DB column, NOT NULL DEFAULT 0.25).
-// Research surface: RESEARCH_TAX_RATE_25_PCT in lib/shared/src/constants-research.ts.
+/** @deprecated Use getFactoryNumber('taxRate', country) for country-aware rates. */
+export const DEFAULT_PROPERTY_INCOME_TAX_RATE = 0.25;
 export const DEFAULT_COMMISSION_RATE = 0.05;
 
 /**
@@ -129,8 +129,7 @@ export const SEED_MEDELLIN_DUPLEX_START_ADR = 1500;
 // DEPRECIATION & LAND VALUE
 // ──────────────────────────────────────────────────────────
 
-// DEFAULT_LAND_VALUE_PERCENT: retired (§2 T1-4). Live value: properties.landValuePercent (DB column, NOT NULL DEFAULT 0.25).
-// Research fallback: LAND_VALUE_FALLBACK_PCT in lib/shared/src/field-registry.ts (display only).
+export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
 
 /**
  * @deprecated Audit #319 R4. The model-constants registry is now the canonical

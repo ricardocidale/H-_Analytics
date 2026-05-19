@@ -51,10 +51,6 @@ export const DEFAULT_RESEARCH_EVENT_CONFIG = {
   refreshIntervalDays: DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS,
 };
 
-// US mid-range income tax reference for depreciation tax-shield research output (tax_shield_at_25pct field).
-// Paired with RESEARCH_TAX_RATE_30_PCT to show tax savings at two representative US bracket rates.
-// Not a configurable property assumption — value is structural to the research output schema.
-export const RESEARCH_TAX_RATE_25_PCT = 0.25;
 export const RESEARCH_TAX_RATE_30_PCT = 0.30;
 
 export const RESEARCH_MAKE_VS_BUY_MARGINAL_THRESHOLD = 0.10;

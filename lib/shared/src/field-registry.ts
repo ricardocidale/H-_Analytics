@@ -1,5 +1,6 @@
 import {
   DEFAULT_EXIT_CAP_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -17,17 +18,13 @@ import {
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
+  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
   SEED_DEBT_ASSUMPTIONS,
 } from "./constants";
 import { getFactoryNumber } from "./model-constants-registry";
-// Registry fallback display values — not exported, never used by engine/calc/routes.
-// Property.taxRate and Property.landValuePercent are always populated by the three-layer resolver;
-// these constants exist only to satisfy the FieldRegistry type when a record pre-dates resolver wiring.
-const INCOME_TAX_FALLBACK_PCT = 0.25; // US statutory rate; three-layer resolver sets per-property via model_defaults
-const LAND_VALUE_FALLBACK_PCT = 0.25; // IRS Pub 946 / USDA appraisal norms — US-typical non-depreciable fraction
 import {
   DEFAULT_FRANCHISE_FEE_RATE,
   DEFAULT_ROYALTY_FEE_RATE,
@@ -92,7 +89,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "exit",
-    fallback: INCOME_TAX_FALLBACK_PCT,
+    fallback: DEFAULT_PROPERTY_INCOME_TAX_RATE,
     gaSource: { kind: "direct", gaField: "defaultPropertyTaxRate" },
     engineImpact: true,
     validationMin: 0,
@@ -383,7 +380,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "operating",
-    fallback: LAND_VALUE_FALLBACK_PCT,
+    fallback: DEFAULT_LAND_VALUE_PERCENT,
     gaSource: { kind: "direct", gaField: "defaultLandValuePercent" },
     engineImpact: true,
     validationMin: 0,

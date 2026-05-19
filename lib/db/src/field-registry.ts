@@ -1,5 +1,6 @@
 import {
   DEFAULT_EXIT_CAP_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -17,6 +18,7 @@ import {
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
+  DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
@@ -87,7 +89,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "exit",
-    fallback: 0.25, // US statutory rate; three-layer resolver sets per-property via model_defaults
+    fallback: DEFAULT_PROPERTY_INCOME_TAX_RATE,
     gaSource: { kind: "direct", gaField: "defaultPropertyTaxRate" },
     engineImpact: true,
     validationMin: 0,
@@ -378,7 +380,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "operating",
-    fallback: 0.25, // IRS Pub 946 / USDA appraisal norms — US-typical non-depreciable fraction
+    fallback: DEFAULT_LAND_VALUE_PERCENT,
     gaSource: { kind: "direct", gaField: "defaultLandValuePercent" },
     engineImpact: true,
     validationMin: 0,
