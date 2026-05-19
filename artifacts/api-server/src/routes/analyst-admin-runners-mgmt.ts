@@ -137,7 +137,9 @@ export async function runFundingV1Path(userId: number) {
   let engineAnalysis: FundingAnalysisSummary | undefined;
   try {
     if (properties.length > 0) {
-      const globalInput = gaToGlobalInput(overlaidGa as unknown as Record<string, unknown>, DEFAULT_PROJECTION_YEARS);
+      const globalInput = gaToGlobalInput(overlaidGa, DEFAULT_PROJECTION_YEARS);
+      // Drizzle inferred types don't satisfy `extends Record<string,unknown>` structurally,
+      // so the double-cast is required to bridge the generic constraint on withFinancialHydration.
       const hydratedProperties = await withFinancialHydration(properties as unknown as Record<string, unknown>[]);
       const { companyMonthly } = computeCompanyProjection({
         properties: hydratedProperties as unknown as PropertyInput[],

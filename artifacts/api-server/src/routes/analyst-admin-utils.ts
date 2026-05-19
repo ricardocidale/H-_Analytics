@@ -2,13 +2,13 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 import { SEED_DEBT_ASSUMPTIONS } from "@shared/constants-funding";
 import { DEFAULT_INTEREST_RATE } from "@shared/constants";
 import type { GlobalInput } from "@engine/types";
-import type { ModelConstant } from "@workspace/db";
+import type { GlobalAssumptions, ModelConstant } from "@workspace/db";
 import type { CountryInflationOutlook } from "@engine/analyst/surface/property/risk-intelligence-specialist";
 
-export function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: number): GlobalInput {
-  const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
+export function gaToGlobalInput(ga: GlobalAssumptions, projectionYears: number): GlobalInput {
+  const dbDebt = ga.debtAssumptions;
   return {
-    modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
+    modelStartDate: ga.modelStartDate ?? String(new Date().getFullYear()),
     inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate', 'US')),
     marketingRate: Number(ga.marketingRate),
     miscOpsRate: Number(ga.miscOpsRate),
@@ -17,12 +17,12 @@ export function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: nu
       amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),
     },
     projectionYears,
-    capitalRaise1Amount: (ga.capitalRaise1Amount as number | null) ?? undefined,
-    capitalRaise1Date: (ga.capitalRaise1Date as string | null) ?? undefined,
-    capitalRaise2Amount: (ga.capitalRaise2Amount as number | null) ?? undefined,
-    capitalRaise2Date: (ga.capitalRaise2Date as string | null) ?? undefined,
-    capitalRaise3Amount: (ga.capitalRaise3Amount as number | null) ?? undefined,
-    capitalRaise3Date: (ga.capitalRaise3Date as string | null) ?? undefined,
+    capitalRaise1Amount: ga.capitalRaise1Amount ?? undefined,
+    capitalRaise1Date: ga.capitalRaise1Date ?? undefined,
+    capitalRaise2Amount: ga.capitalRaise2Amount ?? undefined,
+    capitalRaise2Date: ga.capitalRaise2Date ?? undefined,
+    capitalRaise3Amount: ga.capitalRaise3Amount ?? undefined,
+    capitalRaise3Date: ga.capitalRaise3Date ?? undefined,
   } as GlobalInput;
 }
 

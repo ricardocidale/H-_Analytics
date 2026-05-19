@@ -49,7 +49,7 @@ export async function runPortfolioRaiseV1Path(userId: number) {
   const properties = await storage.getAllProperties(userId);
   if (properties.length === 0) return { __noProperties: true } as const;
 
-  const globalInput = gaToGlobalInput(ga as unknown as Record<string, unknown>, DEFAULT_PROJECTION_YEARS);
+  const globalInput = gaToGlobalInput(ga, DEFAULT_PROJECTION_YEARS);
 
   // Per-property pro formas — non-fatal per property; analysis proceeds with
   // whatever subset succeeds.
