@@ -73,7 +73,7 @@ export async function runValentinaModelDefaultsCycle(): Promise<{
 
   try {
     // Feature-flag gate — same check as the manual admin route.
-    const flagRow = await storage.getAdminResourceBySlug?.("parameter", VALENTINA_ENABLED_PARAM);
+    const flagRow = await storage.getAdminResourceBySlug("parameter", VALENTINA_ENABLED_PARAM);
     const flagValue = (flagRow?.config as { value?: number } | undefined)?.value ?? 0;
     if (flagValue !== 1) {
       logger.info(`[${VALENTINA_SCHEDULER_KEY}] Feature flag disabled — skipping cycle`);

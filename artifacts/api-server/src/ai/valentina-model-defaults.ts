@@ -174,6 +174,7 @@ Return one proposal object per key in the "proposals" array. Maintain the exact 
       const response = await client.messages.create({
         model: resolvedLlm.modelId,
         max_tokens: VALENTINA_MAX_TOKENS,
+        temperature: VALENTINA_TEMPERATURE,
         system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userPrompt }],
       });

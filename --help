@@ -1,0 +1,10 @@
+{"type":"review_context","reviewType":"uncommitted","currentBranch":"main","baseBranch":"main","workingDirectory":"/home/runner/workspace"}
+{"type":"status","phase":"connecting","status":"connecting_to_review_service"}
+{"type":"status","phase":"analyzing","status":"setting_up","message":"You're working in an OSS repo. OSS attribution/rules apply."}
+{"type":"status","phase":"setup","status":"setting_up"}
+{"type":"status","phase":"setup","status":"preparing_sandbox"}
+{"type":"status","phase":"analyzing","status":"summarizing"}
+{"type":"status","phase":"analyzing","status":"tools_completed"}
+{"type":"status","phase":"analyzing","status":"reviewing"}
+{"type":"finding","severity":"critical","fileName":"--help","codegenInstructions":"Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.\n\nIn @--help at line 1, The file named \"--help\" appears to be accidental debug output and must be removed or renamed; either delete the file from the repo (remove the file and commit the deletion) or rename it to a proper metadata filename like \"review-context.json\" and update any references that might expect it; ensure the commit message explains the removal/rename and that no code references (search for \"--help\") remain—use the file name \"--help\" as the identifier to locate and act on the problematic file.","suggestions":[]}
+{"type":"complete","status":"review_completed","findings":1}

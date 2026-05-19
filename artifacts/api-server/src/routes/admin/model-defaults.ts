@@ -37,6 +37,8 @@ const patchBodySchema = z.object({
   reason: z.string().min(1, "A reason is required for manual overrides"),
 });
 
+let isValentinaResearchRunning = false;
+
 export function registerModelDefaultsRoutes(app: Express) {
   // ── Read ────────────────────────────────────────────────────────────
   app.get("/api/admin/model-defaults", requireAdmin, async (req, res) => {
@@ -147,9 +149,13 @@ export function registerModelDefaultsRoutes(app: Express) {
 
   // ── Valentina: trigger model defaults research ──────────────────────
   app.post("/api/admin/model-defaults/research", requireAdmin, async (req, res) => {
+    if (isValentinaResearchRunning) {
+      return res.status(409).json({ error: "Research already in progress", code: "MD-002" });
+    }
+    isValentinaResearchRunning = true;
     try {
       // Feature flag gate — ships dark (value: 0).
-      const flagRow = await storage.getAdminResourceBySlug?.("parameter", VALENTINA_ENABLED_PARAM);
+      const flagRow = await storage.getAdminResourceBySlug("parameter", VALENTINA_ENABLED_PARAM);
       const flagValue = (flagRow?.config as { value?: number } | undefined)?.value ?? 0;
       if (flagValue !== 1) {
         return res.status(503).json({ error: "Valentina is not yet enabled", code: "MD-001" });
@@ -210,6 +216,8 @@ export function registerModelDefaultsRoutes(app: Express) {
       res.json({ proposed, skipped, runId: null });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to run Valentina research", error, "AMDF-012");
+    } finally {
+      isValentinaResearchRunning = false;
     }
   });
 

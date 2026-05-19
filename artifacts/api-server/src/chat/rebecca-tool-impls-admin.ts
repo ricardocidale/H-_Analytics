@@ -891,7 +891,7 @@ export async function toolTriggerModelDefaultsResearch(
   if (authError) return authError;
 
   const { runValentinaResearch, VALENTINA_ENABLED_PARAM } = await import("../ai/valentina-model-defaults");
-  const flagRow = await storage.getAdminResourceBySlug?.("parameter", VALENTINA_ENABLED_PARAM);
+  const flagRow = await storage.getAdminResourceBySlug("parameter", VALENTINA_ENABLED_PARAM);
   const flagValue = (flagRow?.config as { value?: number } | undefined)?.value ?? 0;
   if (flagValue !== 1) {
     return {
